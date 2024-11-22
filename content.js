@@ -1,14 +1,56 @@
-// Listen for user input and replace shortcuts with expanded text
 document.addEventListener("input", (event) => {
-    // Check if the event is triggered in a content-editable or text area element
     const target = event.target;
-    if (target && (target.isContentEditable || target.tagName === "TEXTAREA")) {
+
+    // Only process inputs in text areas, input fields, or content-editable elements
+    if (
+        target &&
+        (target.tagName === "TEXTAREA" ||
+            target.tagName === "INPUT" ||
+            target.isContentEditable)
+    ) {
+        // Get the value of the field (or inner text for content-editable elements)
+        const inputText =
+            target.tagName === "TEXTAREA" || target.tagName === "INPUT"
+                ? target.value
+                : target.innerText;
+
         chrome.storage.local.get("shortcuts", (data) => {
             const shortcuts = data.shortcuts || {};
-            for (const shortcut in shortcuts) {
-                // Use a regular expression to find the shortcut and replace it
-                const regex = new RegExp(`\\b${shortcut}\\b`, "g");
-                target.innerHTML = target.innerHTML.replace(regex, shortcuts[shortcut]);
+
+            // Loop through shortcuts to find matches
+            for (const [shortcut, expanded] of Object.entries(shortcuts)) {
+                // Check if the input ends with the shortcut
+                if (inputText.endsWith(shortcut)) {
+                    const replacementText = inputText.slice(
+                        0,
+                        inputText.length - shortcut.length
+                    ) + expanded;
+
+                    // Replace the shortcut with expanded text
+                    if (
+                        target.tagName === "TEXTAREA" ||
+                        target.tagName === "INPUT"
+                    ) {
+                        target.value = replacementText;
+                    } else if (target.isContentEditable) {
+                        const selection = window.getSelection();
+                        const range = selection.getRangeAt(0);
+                        const node = range.startContainer;
+
+                        // Replace the shortcut text with expanded text
+                        const newText = node.nodeValue.replace(
+                            new RegExp(`${shortcut}$`),
+                            expanded
+                        );
+                        node.nodeValue = newText;
+
+                        // Move the cursor to the end of the replacement
+                        range.setStart(node, newText.length);
+                        range.setEnd(node, newText.length);
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                    }
+                }
             }
         });
     }

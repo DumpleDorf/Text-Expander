@@ -1,22 +1,36 @@
+// Wait until the DOM is fully loaded before executing the script
 document.addEventListener("DOMContentLoaded", () => {
-    // Display shortcuts when the options page loads
+    // Display the list of shortcuts when the page loads
     displayShortcuts();
 
-    // Add a new shortcut
+    // Event listener for the 'Add Shortcut' button
     document.getElementById("addShortcutBtn").addEventListener("click", () => {
-        const shortcut = document.getElementById("shortcutInput").value.trim();
-        const expandedText = document.getElementById("expandedTextInput").innerHTML.trim();
+        const shortcut = document.getElementById("shortcutInput").value.trim(); // Get the shortcut
+        const expandedText = document.getElementById("expandedTextInput").innerHTML.trim(); // Get the expanded text
 
+        // If both fields are filled
         if (shortcut && expandedText) {
-            // Save the shortcut to chrome.storage.local
+            // Retrieve existing shortcuts from local storage
             chrome.storage.local.get("shortcuts", (data) => {
+                if (chrome.runtime.lastError) {
+                    console.error("Error retrieving shortcuts:", chrome.runtime.lastError);
+                    return;
+                }
+
                 const shortcuts = data.shortcuts || {};
+
+                // Check if the shortcut already exists, if so prompt for overwriting
+                if (shortcuts[shortcut] && !confirm(`Shortcut "${shortcut}" already exists. Overwrite?`)) {
+                    return;
+                }
+
+                // Add or update the shortcut in the shortcuts object
                 shortcuts[shortcut] = expandedText;
 
-                // Save updated shortcuts back to storage
+                // Save the updated shortcuts back to local storage
                 chrome.storage.local.set({ shortcuts }, () => {
-                    displayShortcuts();
-                    clearInputs();
+                    displayShortcuts(); // Refresh the shortcut list
+                    clearInputs(); // Clear the input fields
                 });
             });
         } else {
@@ -24,16 +38,17 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Save changes to a file
+    // Event listener for saving shortcuts to a file
     document.getElementById("saveShortcutsBtn").addEventListener("click", () => {
         chrome.storage.local.get("shortcuts", (data) => {
             const shortcuts = data.shortcuts || {};
             if (Object.keys(shortcuts).length > 0) {
+                // Create a Blob for saving the shortcuts as a JSON file
                 const blob = new Blob([JSON.stringify(shortcuts, null, 2)], { type: "application/json" });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
                 a.href = url;
-                a.download = "shortcuts.json";
+                a.download = "shortcuts.json"; // File name for download
                 a.click();
             } else {
                 alert("No shortcuts to save.");
@@ -41,29 +56,38 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // Text formatting functions
+    // Event listeners for text formatting buttons (Bold, Italic, Underline, etc.)
     document.getElementById("boldBtn").addEventListener("click", () => document.execCommand('bold'));
     document.getElementById("italicBtn").addEventListener("click", () => document.execCommand('italic'));
     document.getElementById("underlineBtn").addEventListener("click", () => document.execCommand('underline'));
     document.getElementById("numberedListBtn").addEventListener("click", () => document.execCommand('insertOrderedList'));
     document.getElementById("bulletListBtn").addEventListener("click", () => document.execCommand('insertUnorderedList'));
+
+    // Event listener for inserting a link
     document.getElementById("linkBtn").addEventListener("click", () => {
         const url = prompt("Enter the link URL:");
         if (url) {
             document.execCommand('createLink', false, url);
         }
     });
+
+    // Event listener to clear text formatting
     document.getElementById("clearFormattingBtn").addEventListener("click", () => document.execCommand('removeFormat'));
 });
 
-// Display the list of shortcuts
+// Function to display all saved shortcuts
 function displayShortcuts() {
     chrome.storage.local.get("shortcuts", (data) => {
+        if (chrome.runtime.lastError) {
+            console.error("Error retrieving shortcuts:", chrome.runtime.lastError);
+            return;
+        }
+
         const shortcuts = data.shortcuts || {};
         const listDiv = document.getElementById("shortcutList");
-        listDiv.innerHTML = ""; // Clear current list
+        listDiv.innerHTML = ""; // Clear the current list
 
-        // Display shortcuts
+        // If there are shortcuts saved, display them
         if (Object.keys(shortcuts).length > 0) {
             for (const [shortcut, expandedText] of Object.entries(shortcuts)) {
                 const div = document.createElement("div");
@@ -75,35 +99,40 @@ function displayShortcuts() {
                 listDiv.appendChild(div);
             }
 
-            // Attach delete button functionality
-            const deleteButtons = document.querySelectorAll(".deleteBtn");
-            deleteButtons.forEach(button => {
+            // Event listeners for delete buttons next to each shortcut
+            document.querySelectorAll(".deleteBtn").forEach(button => {
                 button.addEventListener("click", (event) => {
                     const shortcutToDelete = event.target.getAttribute("data-shortcut");
-                    deleteShortcut(shortcutToDelete);
+                    // Confirm before deleting
+                    if (confirm(`Are you sure you want to delete the shortcut "${shortcutToDelete}"?`)) {
+                        deleteShortcut(shortcutToDelete);
+                    }
                 });
             });
         } else {
-            listDiv.innerHTML = "<p>No shortcuts saved yet.</p>";
+            listDiv.innerHTML = "<p class='empty-list'>No shortcuts saved yet.</p>";
         }
     });
 }
 
-// Delete a shortcut
+// Function to delete a specific shortcut
 function deleteShortcut(shortcut) {
     chrome.storage.local.get("shortcuts", (data) => {
+        if (chrome.runtime.lastError) {
+            console.error("Error deleting shortcut:", chrome.runtime.lastError);
+            return;
+        }
+
         const shortcuts = data.shortcuts || {};
         if (shortcuts[shortcut]) {
-            delete shortcuts[shortcut];
-            chrome.storage.local.set({ shortcuts }, () => {
-                displayShortcuts(); // Refresh the list
-            });
+            delete shortcuts[shortcut]; // Remove the shortcut from the object
+            chrome.storage.local.set({ shortcuts }, displayShortcuts); // Save the updated shortcuts and refresh the list
         }
     });
 }
 
-// Clear the input fields after adding a shortcut
+// Function to clear the input fields after adding a new shortcut
 function clearInputs() {
-    document.getElementById("shortcutInput").value = "";
-    document.getElementById("expandedTextInput").innerHTML = "";
+    document.getElementById("shortcutInput").value = ""; // Clear the shortcut input
+    document.getElementById("expandedTextInput").innerHTML = ""; // Clear the expanded text input
 }
