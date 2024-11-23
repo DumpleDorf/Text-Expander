@@ -65,9 +65,35 @@ function displayShortcuts() {
 
         for (const [shortcut, expanded] of Object.entries(shortcuts)) {
             const listItem = document.createElement("li");
-            listItem.innerHTML = `<strong>${shortcut}</strong>: <span class="expanded-text">${expanded}</span>`;
+
+            // Add the shortcut and its expanded text
+            listItem.innerHTML = `
+                <strong>${shortcut}</strong>: <span class="expanded-text">${expanded}</span>
+                <button class="deleteBtn" data-shortcut="${shortcut}">Delete</button>
+            `;
+
+            // Add event listener to the delete button
+            listItem.querySelector(".deleteBtn").addEventListener("click", () => {
+                deleteShortcut(shortcut);
+            });
+
             shortcutList.appendChild(listItem);
         }
+    });
+}
+
+// Function to delete a specific shortcut
+function deleteShortcut(shortcut) {
+    chrome.storage.local.get("shortcuts", (data) => {
+        const shortcuts = data.shortcuts || {};
+
+        // Remove the shortcut from the object
+        delete shortcuts[shortcut];
+
+        // Save the updated shortcuts back to local storage
+        chrome.storage.local.set({ shortcuts }, () => {
+            displayShortcuts(); // Refresh the shortcut list
+        });
     });
 }
 

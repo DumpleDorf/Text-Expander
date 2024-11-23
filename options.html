@@ -1,40 +1,45 @@
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Text Expander Options</title>
-        <!-- Link to the external CSS file -->
-        <link rel="stylesheet" href="styles.css">
-    </head>
-    <body>
-        <div class="container">
-            <h1>Manage Shortcuts</h1>
-            <div>
-                <label for="shortcutInput">Shortcut:</label>
-                <input type="text" id="shortcutInput" placeholder="Enter shortcut" />
-            </div>
-            
-            <div class="toolbar">
-                <button id="boldBtn"><b>B</b></button>
-                <button id="italicBtn"><i>I</i></button>
-                <button id="underlineBtn"><u>U</u></button>
-                <button id="numberedListBtn">1.</button>
-                <button id="bulletListBtn">•</button>
-                <button id="linkBtn">Link</button>
-                <button id="clearFormattingBtn">Clear</button>
-            </div>
-
-            <div>
-                <label for="expandedTextInput">Expanded Text (Paste images, links, etc.):</label>
-                <div contenteditable="true" id="expandedTextInput" class="expandedTextInput" aria-label="Expanded text editor"></div>
-            </div>
-            <button id="addShortcutBtn">Add Shortcut</button>
-            <button id="saveShortcutsBtn">Save Changes</button>
-
-            <div id="shortcutList" class="shortcut-list"></div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Expander Options</title>
+    <!-- Link to the external CSS file -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Manage Shortcuts</h1>
+        
+        <div>
+            <label for="shortcutInput">Shortcut:</label>
+            <input type="text" id="shortcutInput" placeholder="Enter shortcut" />
+        </div>
+        
+        <div class="toolbar">
+            <button id="boldBtn"><b>B</b></button>
+            <button id="italicBtn"><i>I</i></button>
+            <button id="underlineBtn"><u>U</u></button>
+            <button id="numberedListBtn">1.</button>
+            <button id="bulletListBtn">•</button>
+            <button id="linkBtn">Link</button>
+            <button id="clearFormattingBtn">Clear</button>
         </div>
 
-        <script src="options.js"></script>
-    </body>
-    </html>
+        <div>
+            <label for="expandedTextInput">Expanded Text (Paste images, links, etc.):</label>
+            <div contenteditable="true" id="expandedTextInput" class="expandedTextInput" aria-label="Expanded text editor"></div>
+        </div>
+
+        <button id="addShortcutBtn">Add Shortcut</button>
+        <button id="saveShortcutsBtn">Save Changes</button>
+
+        <h2>Saved Shortcuts</h2>
+        <ul id="shortcutList" class="shortcut-list">
+            <!-- Dynamically filled with saved shortcuts -->
+        </ul>
+    </div>
+
+    <script src="options.js"></script>
+</body>
+</html>
