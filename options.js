@@ -1,4 +1,3 @@
-// Wait until the DOM is fully loaded before executing the script
 document.addEventListener("DOMContentLoaded", () => {
     // Display the list of shortcuts when the page loads
     displayShortcuts();
@@ -50,6 +49,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 a.href = url;
                 a.download = "shortcuts.json"; // File name for download
                 a.click();
+    
+                // Copy the entire shortcuts JSON to clipboard
+                const shortcutsJSON = JSON.stringify(shortcuts, null, 2);
+                navigator.clipboard.writeText(shortcutsJSON).then(() => {
+                    console.log("Shortcuts copied to clipboard.");
+                }).catch((err) => {
+                    console.error("Failed to copy shortcuts to clipboard: ", err);
+                });
             } else {
                 alert("No shortcuts to save.");
             }
@@ -75,7 +82,6 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("clearFormattingBtn").addEventListener("click", () => document.execCommand('removeFormat'));
 });
 
-// Function to display all saved shortcuts
 function displayShortcuts() {
     chrome.storage.local.get("shortcuts", (data) => {
         if (chrome.runtime.lastError) {
@@ -97,25 +103,24 @@ function displayShortcuts() {
                     <button class="deleteBtn" data-shortcut="${shortcut}">Delete</button>
                 `;
                 listDiv.appendChild(div);
-            }
 
-            // Event listeners for delete buttons next to each shortcut
-            document.querySelectorAll(".deleteBtn").forEach(button => {
-                button.addEventListener("click", (event) => {
-                    const shortcutToDelete = event.target.getAttribute("data-shortcut");
-                    // Confirm before deleting
-                    if (confirm(`Are you sure you want to delete the shortcut "${shortcutToDelete}"?`)) {
-                        deleteShortcut(shortcutToDelete);
-                    }
+                // Event listeners for delete buttons next to each shortcut
+                document.querySelectorAll(".deleteBtn").forEach(button => {
+                    button.addEventListener("click", (event) => {
+                        const shortcutToDelete = event.target.getAttribute("data-shortcut");
+                        // Confirm before deleting
+                        if (confirm(`Are you sure you want to delete the shortcut "${shortcutToDelete}"?`)) {
+                            deleteShortcut(shortcutToDelete);
+                        }
+                    });
                 });
-            });
+            }
         } else {
             listDiv.innerHTML = "<p class='empty-list'>No shortcuts saved yet.</p>";
         }
     });
 }
 
-// Function to delete a specific shortcut
 function deleteShortcut(shortcut) {
     chrome.storage.local.get("shortcuts", (data) => {
         if (chrome.runtime.lastError) {
@@ -131,7 +136,6 @@ function deleteShortcut(shortcut) {
     });
 }
 
-// Function to clear the input fields after adding a new shortcut
 function clearInputs() {
     document.getElementById("shortcutInput").value = ""; // Clear the shortcut input
     document.getElementById("expandedTextInput").innerHTML = ""; // Clear the expanded text input

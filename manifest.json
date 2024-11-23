@@ -3,10 +3,11 @@
   "name": "Text Expander",
   "version": "1.0",
   "description": "A Chrome extension for managing text shortcuts and expansions.",
-  "permissions": [
-      "storage",
-      "activeTab"
-  ],
+    "permissions": [
+        "storage",
+        "activeTab",
+        "clipboardWrite"
+    ],
   "background": {
       "service_worker": "background.js"
   },
