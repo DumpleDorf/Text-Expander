@@ -26,74 +26,41 @@ document.addEventListener("input", (event) => {
                         inputText.length - shortcut.length
                     ) + expanded;
 
-                    // If the expanded text contains an image URL, replace with an actual <img> element
-                    if (expanded.includes("http") && (expanded.includes(".jpg") || expanded.includes(".png") || expanded.includes(".gif"))) {
-                        // Create an image element
-                        const img = new Image();
-                        img.src = expanded;
+                    // Check if expanded text contains an image tag or any HTML
+                    if (
+                        target.tagName === "TEXTAREA" ||
+                        target.tagName === "INPUT"
+                    ) {
+                        target.value = replacementText; // For input fields and textareas
+                    } else if (target.isContentEditable) {
+                        // Replace shortcut with expanded HTML (e.g., <img src="...">)
+                        const selection = window.getSelection();
+                        const range = selection.getRangeAt(0);
+                        const node = range.startContainer;
 
-                        // Wait for the image to load before inserting
-                        img.onload = function() {
-                            // If it's a content-editable area
-                            if (target.isContentEditable) {
-                                const selection = window.getSelection();
-                                const range = selection.getRangeAt(0);
-                                const node = range.startContainer;
+                        // Insert expanded text as HTML (e.g., <img> tag will be rendered)
+                        const tempDiv = document.createElement("div");
+                        tempDiv.innerHTML = expanded; // Parse HTML
 
-                                // Replace the shortcut with the image element
-                                const newText = node.nodeValue.replace(
-                                    new RegExp(`${shortcut}$`),
-                                    ""
-                                );
-                                node.nodeValue = newText;
-
-                                // Insert the image at the cursor position
-                                const imgNode = document.createElement('img');
-                                imgNode.src = img.src;
-
-                                // Insert the image element into the contenteditable div
-                                range.insertNode(imgNode);
-
-                                // Move the cursor after the image
-                                range.setStartAfter(imgNode);
-                                range.setEndAfter(imgNode);
-                                selection.removeAllRanges();
-                                selection.addRange(range);
-                            }
-                        };
-                    } else {
-                        // If no image, just replace the shortcut with expanded text
-                        if (
-                            target.tagName === "TEXTAREA" ||
-                            target.tagName === "INPUT"
-                        ) {
-                            target.value = replacementText;
-                        } else if (target.isContentEditable) {
-                            const selection = window.getSelection();
-                            const range = selection.getRangeAt(0);
-                            const node = range.startContainer;
-
-                            // Replace the shortcut text with expanded text (HTML or plain text)
-                            const newText = node.nodeValue.replace(
-                                new RegExp(`${shortcut}$`),
-                                expanded
-                            );
-                            node.nodeValue = newText;
-
-                            // Move the cursor to the end of the replacement
-                            range.setStart(node, newText.length);
-                            range.setEnd(node, newText.length);
-                            selection.removeAllRanges();
-                            selection.addRange(range);
+                        // Replace content with the parsed HTML
+                        node.nodeValue = node.nodeValue.replace(
+                            new RegExp(`${shortcut}$`),
+                            ""
+                        );
+                        const fragment = document.createDocumentFragment();
+                        while (tempDiv.firstChild) {
+                            fragment.appendChild(tempDiv.firstChild);
                         }
-                    }
 
-                    // Optionally copy the expanded text with image URL to clipboard
-                    navigator.clipboard.writeText(expanded).then(() => {
-                        console.log("Text with image URL copied to clipboard.");
-                    }).catch((err) => {
-                        console.error("Failed to copy text to clipboard: ", err);
-                    });
+                        range.deleteContents();
+                        range.insertNode(fragment);
+
+                        // Move the cursor to the end of the expanded content
+                        range.setStartAfter(fragment);
+                        range.setEndAfter(fragment);
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                    }
                 }
             }
         });
