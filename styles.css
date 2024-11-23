@@ -13,7 +13,7 @@ h1 {
 }
 
 .container {
-    max-width: 600px;
+    max-width: 800px; /* Increased the width to make the container wider */
     margin: 0 auto;
     padding: 20px;
     background-color: white;
@@ -34,16 +34,19 @@ input[type="text"], .expandedTextInput {
     margin-bottom: 20px;
     border: 1px solid #ddd;
     border-radius: 4px;
-    font-size: 16px;
+    /* font-size: 16px; */
+    font-size: 110%;
     box-sizing: border-box;
 }
 
 .expandedTextInput {
-    height: 150px;
-    min-height: 100px;
+    height: auto;  /* Let the height adjust automatically */
+    min-height: 300px;  /* Minimum height */
+    max-height: 600px;  /* Maximum height for better control */
     white-space: pre-wrap;
     background-color: #f9f9f9;
     overflow-y: auto;
+    resize: none;  /* Disable manual resizing by the user */
 }
 
 .expandedTextInput:empty:before {
@@ -115,7 +118,8 @@ button:hover {
 }
 
 .shortcut-list li .expanded-text {
-    font-size: 14px;
+    /* font-size: 14px; */
+    font-size: 110%;
     white-space: pre-wrap;
     margin-bottom: 20px;
 }
