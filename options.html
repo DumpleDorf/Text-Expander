@@ -4,18 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Text Expander Options</title>
-    <!-- Link to the external CSS file -->
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
         <h1>Manage Shortcuts</h1>
-        
         <div>
             <label for="shortcutInput">Shortcut:</label>
             <input type="text" id="shortcutInput" placeholder="Enter shortcut" />
         </div>
-        
+
         <div class="toolbar">
             <button id="boldBtn"><b>B</b></button>
             <button id="italicBtn"><i>I</i></button>
@@ -32,12 +30,10 @@
         </div>
 
         <button id="addShortcutBtn">Add Shortcut</button>
+        <button id="clearAllBtn">Clear All</button>
         <button id="saveShortcutsBtn">Save Changes</button>
 
-        <h2>Saved Shortcuts</h2>
-        <ul id="shortcutList" class="shortcut-list">
-            <!-- Dynamically filled with saved shortcuts -->
-        </ul>
+        <div id="shortcutList" class="shortcut-list"></div>
     </div>
 
     <script src="options.js"></script>

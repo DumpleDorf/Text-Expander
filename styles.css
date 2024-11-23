@@ -1,4 +1,3 @@
-/* Body styling */
 body {
     font-family: 'Arial', sans-serif;
     background-color: #f4f7fc;
@@ -22,7 +21,6 @@ h1 {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Label styling */
 label {
     font-size: 14px;
     color: #555;
@@ -30,7 +28,6 @@ label {
     margin: 10px 0 5px;
 }
 
-/* Input field styling */
 input[type="text"], .expandedTextInput {
     width: 100%;
     padding: 10px;
@@ -54,7 +51,6 @@ input[type="text"], .expandedTextInput {
     color: #aaa;
 }
 
-/* Button styling */
 button {
     padding: 10px 20px;
     background-color: #4CAF50;
@@ -70,7 +66,6 @@ button:hover {
     background-color: #45a049;
 }
 
-/* Toolbar button styling */
 .toolbar {
     margin-bottom: 10px;
     display: flex;
@@ -91,23 +86,44 @@ button:hover {
     background-color: #ddd;
 }
 
-/* Shortcut list and item styling */
 .shortcut-list {
     margin-top: 30px;
+    list-style: none; /* Remove default list styles */
+    padding: 0;
 }
 
-.shortcut-item {
+.shortcut-list li {
     background-color: #f9f9f9;
     padding: 15px;
     margin-bottom: 10px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
+    border: 1px solid #ddd; /* Light border to separate items */
+    border-radius: 8px; /* Rounded corners */
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    justify-content: flex-start;
+    position: relative;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow */
 }
 
-.shortcut-item button {
+.shortcut-list li .trigger {
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 10px;
+    background-color: #eaf4e1; /* Lighter fill for the trigger */
+    padding: 5px 10px;
+    border-radius: 12px; /* Rounded corners */
+}
+
+.shortcut-list li .expanded-text {
+    font-size: 14px;
+    white-space: pre-wrap;
+    margin-bottom: 20px;
+}
+
+.shortcut-list li .deleteBtn {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
     background-color: #f44336;
     border-radius: 4px;
     padding: 8px 15px;
@@ -117,13 +133,8 @@ button:hover {
     border: none;
 }
 
-.shortcut-item button:hover {
+.shortcut-list li .deleteBtn:hover {
     background-color: #d32f2f;
-}
-
-.shortcut-item span {
-    font-weight: bold;
-    color: #333;
 }
 
 .empty-list {
@@ -131,21 +142,33 @@ button:hover {
     color: #999;
 }
 
-/* Styling for list items in the shortcut list */
-#shortcutList li {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 10px;
+/* Additional CSS for the trigger and separator */
+.trigger {
+    font-weight: bold;
+    background-color: #f0f0f0;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.shortcut-divider {
+    margin: 10px 0;
+    border: 0;
+    border-top: 1px solid #ccc;
+}
+
+.expanded-text {
+    padding: 10px;
 }
 
 .deleteBtn {
-    background-color: #ff6b6b;
+    background-color: #f44336;
     color: white;
     border: none;
+    border-radius: 4px;
+    padding: 8px 12px;
     cursor: pointer;
 }
 
 .deleteBtn:hover {
-    background-color: #ff4040;
+    background-color: #d32f2f;
 }
