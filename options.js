@@ -14,7 +14,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     return;
                 }
 
-                // If a shortcut is being edited, we replace the existing shortcut
                 shortcuts[shortcut] = expandedText;
 
                 chrome.storage.local.set({ shortcuts }, () => {
@@ -28,52 +27,94 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    // Save changes to a JSON file
+    document.getElementById("saveShortcutsBtn").addEventListener("click", () => {
+        console.log("Save Shortcuts button pressed.");
+
+        chrome.storage.local.get("shortcuts", (data) => {
+            const shortcuts = data.shortcuts || {};
+            if (Object.keys(shortcuts).length > 0) {
+                console.log("Shortcuts retrieved from storage:", shortcuts);
+
+                const blob = new Blob([JSON.stringify(shortcuts, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "shortcuts.json";
+                a.click();
+
+                console.log("Shortcuts file downloaded as 'shortcuts.json'.");
+            } else {
+                console.warn("No shortcuts to save.");
+                alert("No shortcuts to save.");
+            }
+        });
+    });
+
+    document.getElementById("uploadShortcutsBtn").addEventListener("click", () => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "application/json";
+    
+        input.addEventListener("change", (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    try {
+                        const uploadedShortcuts = JSON.parse(reader.result);
+    
+                        if (typeof uploadedShortcuts !== "object" || Array.isArray(uploadedShortcuts)) {
+                            alert("Invalid file format. Please upload a valid JSON file.");
+                            return;
+                        }
+    
+                        chrome.storage.local.get("shortcuts", (data) => {
+                            const currentShortcuts = data.shortcuts || {};
+    
+                            const updatedShortcuts = { ...currentShortcuts };
+                            for (const [shortcut, expanded] of Object.entries(uploadedShortcuts)) {
+                                let newShortcut = shortcut;
+                                let count = 1;
+    
+                                // Handle duplicate shortcuts by renaming with incrementing numbers
+                                while (updatedShortcuts[newShortcut]) {
+                                    newShortcut = `${shortcut}${count}`;
+                                    count++;
+                                }
+    
+                                updatedShortcuts[newShortcut] = expanded;
+                            }
+    
+                            chrome.storage.local.set({ shortcuts: updatedShortcuts }, () => {
+                                displayShortcuts();
+                                alert("Shortcuts uploaded successfully!");
+                            });
+                        });
+                    } catch (error) {
+                        alert("Failed to upload shortcuts. Please ensure the file is a valid JSON.");
+                    }
+                };
+    
+                reader.readAsText(file);
+            }
+        });
+    
+        input.click();
+    });    
+
     document.getElementById("clearAllBtn").addEventListener("click", () => {
         if (confirm("Are you sure you want to clear all shortcuts?")) {
             chrome.storage.local.set({ shortcuts: {} }, displayShortcuts);
         }
     });
 
-    // Save changes to a JSON file
-    // Event listener for saving shortcuts to a file
-    document.getElementById("saveShortcutsBtn").addEventListener("click", () => {
-        chrome.storage.local.get("shortcuts", (data) => {
-            const shortcuts = data.shortcuts || {};
-            if (Object.keys(shortcuts).length > 0) {
-                // Create a Blob for saving the shortcuts as a JSON file
-                const blob = new Blob([JSON.stringify(shortcuts, null, 2)], { type: "application/json" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = "shortcuts.json"; // File name for download
-                a.click();
-
-                // Copy the entire shortcuts JSON to clipboard
-                const shortcutsJSON = JSON.stringify(shortcuts, null, 2);
-                navigator.clipboard.writeText(shortcutsJSON).then(() => {
-                    console.log("Shortcuts copied to clipboard.");
-                }).catch((err) => {
-                    console.error("Failed to copy shortcuts to clipboard: ", err);
-                });
-            } else {
-                alert("No shortcuts to save.");
-            }
-        });
-    });
+    
 
     // Rich text formatting buttons
-    document.getElementById("boldBtn").addEventListener("click", () => {
-        document.execCommand("bold");
-    });
-
-    document.getElementById("italicBtn").addEventListener("click", () => {
-        document.execCommand("italic");
-    });
-
-    document.getElementById("underlineBtn").addEventListener("click", () => {
-        document.execCommand("underline");
-    });
-
+    document.getElementById("boldBtn").addEventListener("click", () => document.execCommand("bold"));
+    document.getElementById("italicBtn").addEventListener("click", () => document.execCommand("italic"));
+    document.getElementById("underlineBtn").addEventListener("click", () => document.execCommand("underline"));
     document.getElementById("imageBtn").addEventListener("click", () => {
         const imageUrl = prompt("Enter image URL:");
         if (imageUrl) {
@@ -81,118 +122,102 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("expandedTextInput").innerHTML += imgTag;
         }
     });
-
-    // Numbered List button
-    document.getElementById("numberedListBtn").addEventListener("click", () => {
-        document.execCommand("insertOrderedList");
-    });
-
-    // Bullet List button
-    document.getElementById("bulletListBtn").addEventListener("click", () => {
-        document.execCommand("insertUnorderedList");
-    });
-
-    // Link button
+    document.getElementById("numberedListBtn").addEventListener("click", () => document.execCommand("insertOrderedList"));
+    document.getElementById("bulletListBtn").addEventListener("click", () => document.execCommand("insertUnorderedList"));
     document.getElementById("linkBtn").addEventListener("click", () => {
         const url = prompt("Enter URL:", "https://");
         if (url) {
             document.execCommand("createLink", false, url);
         }
     });
-
-    // Clear the content of the expanded text input
     document.getElementById("clearTextBtn").addEventListener("click", () => {
         document.getElementById("expandedTextInput").innerHTML = "";
     });
-});
+    });
 
-// Display saved shortcuts
-function displayShortcuts() {
-    chrome.storage.local.get("shortcuts", (data) => {
-        const shortcuts = data.shortcuts || {};
-        const shortcutList = document.getElementById("shortcutList");
-        shortcutList.innerHTML = "";
+    // Display saved shortcuts
+    function displayShortcuts() {
+        chrome.storage.local.get("shortcuts", (data) => {
+            const shortcuts = data.shortcuts || {};
+            const shortcutList = document.getElementById("shortcutList");
+            shortcutList.innerHTML = "";
 
-        if (Object.keys(shortcuts).length === 0) {
-            shortcutList.innerHTML = '<p class="empty-list">No shortcuts saved. Add one above.</p>';
-        } else {
-            for (const [shortcut, expanded] of Object.entries(shortcuts)) {
-                const listItem = document.createElement("li");
-                listItem.classList.add("shortcut-item");
+            if (Object.keys(shortcuts).length === 0) {
+                shortcutList.innerHTML = '<p class="empty-list">No shortcuts saved. Add one above.</p>';
+            } else {
+                for (const [shortcut, expanded] of Object.entries(shortcuts)) {
+                    const listItem = document.createElement("li");
+                    listItem.classList.add("shortcut-item");
 
-                const trigger = document.createElement("div");
-                trigger.classList.add("trigger");
-                trigger.textContent = shortcut;
-                listItem.appendChild(trigger);
+                    const trigger = document.createElement("div");
+                    trigger.classList.add("trigger");
+                    trigger.textContent = shortcut;
+                    listItem.appendChild(trigger);
 
-                const hr = document.createElement("hr");
-                hr.classList.add("shortcut-divider");
-                listItem.appendChild(hr);
+                    const hr = document.createElement("hr");
+                    hr.classList.add("shortcut-divider");
+                    listItem.appendChild(hr);
 
-                const expandedTextDiv = document.createElement("div");
-                expandedTextDiv.classList.add("expanded-text");
-                expandedTextDiv.innerHTML = expanded;
-                listItem.appendChild(expandedTextDiv);
+                    const expandedTextDiv = document.createElement("div");
+                    expandedTextDiv.classList.add("expanded-text");
+                    expandedTextDiv.innerHTML = expanded;
+                    listItem.appendChild(expandedTextDiv);
 
-                const deleteBtn = document.createElement("button");
-                deleteBtn.classList.add("deleteBtn");
-                deleteBtn.textContent = "Delete";
-                deleteBtn.addEventListener("click", () => {
-                    deleteShortcut(shortcut);
-                });
-                listItem.appendChild(deleteBtn);
+                    const deleteBtn = document.createElement("button");
+                    deleteBtn.classList.add("deleteBtn");
+                    deleteBtn.textContent = "Delete";
+                    deleteBtn.addEventListener("click", () => {
+                        deleteShortcut(shortcut);
+                    });
+                    listItem.appendChild(deleteBtn);
 
-                // Allow clicking to edit the shortcut
-                listItem.addEventListener("click", () => {
-                    editShortcut(shortcut, expanded);
-                });
+                    // Allow clicking to edit the shortcut
+                    listItem.addEventListener("click", () => {
+                        editShortcut(shortcut, expanded);
+                    });
 
-                shortcutList.appendChild(listItem);
+                    shortcutList.appendChild(listItem);
+                }
             }
-        }
-    });
-}
+        });
+    }
 
-// Edit a shortcut
-function editShortcut(shortcut, expandedText) {
-    // Populate the input fields with the current shortcut data
-    document.getElementById("shortcutInput").value = shortcut;
-    document.getElementById("expandedTextInput").innerHTML = expandedText;
+    // Edit a shortcut
+    function editShortcut(shortcut, expandedText) {
+        // Populate the input fields with the current shortcut data
+        document.getElementById("shortcutInput").value = shortcut;
+        document.getElementById("expandedTextInput").innerHTML = expandedText;
 
-    // Change the button text to "Update Shortcut"
-    document.getElementById("addShortcutBtn").textContent = "Update Shortcut";
+        // Change the button text to "Update Shortcut"
+        document.getElementById("addShortcutBtn").textContent = "Update Shortcut";
 
-    // Store the shortcut being edited, so we can identify it when saving
-    document.getElementById("addShortcutBtn").dataset.editing = shortcut;
+        // Store the shortcut being edited, so we can identify it when saving
+        document.getElementById("addShortcutBtn").dataset.editing = shortcut;
 
-    // Scroll to the top of the page
-    window.scrollTo(0, 0);
-}
+        // Scroll to the top of the page
+        window.scrollTo(0, 0);
+    }
 
-// Delete a shortcut
-function deleteShortcut(shortcut) {
-    chrome.storage.local.get("shortcuts", (data) => {
-        const shortcuts = data.shortcuts || {};
-        delete shortcuts[shortcut];
-        chrome.storage.local.set({ shortcuts }, displayShortcuts);
-    });
-}
+    function clearInputs() {
+        document.getElementById("shortcutInput").value = "";
+        document.getElementById("expandedTextInput").innerHTML = "";
+    }
 
-// Clear input fields
-function clearInputs() {
-    document.getElementById("shortcutInput").value = "";
-    document.getElementById("expandedTextInput").innerHTML = "";
-}
+    function deleteShortcut(shortcut) {
+        chrome.storage.local.get("shortcuts", (data) => {
+            const shortcuts = data.shortcuts || {};
+            delete shortcuts[shortcut];
+            chrome.storage.local.set({ shortcuts }, displayShortcuts);
+        });
+    }
 
-// Set caret at the end of the expanded text input
-function setCaretToEnd() {
-    const expandedTextInput = document.getElementById("expandedTextInput");
-    expandedTextInput.focus();
-
-    const range = document.createRange();
-    const selection = window.getSelection();
-    range.selectNodeContents(expandedTextInput);
-    range.collapse(false);
-    selection.removeAllRanges();
-    selection.addRange(range);
-}
+    function setCaretToEnd() {
+        const input = document.getElementById("expandedTextInput");
+        input.focus();
+        const range = document.createRange();
+        range.selectNodeContents(input);
+        range.collapse(false);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+    }

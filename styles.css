@@ -1,6 +1,7 @@
+/* General Body and Layout Styles */
 body {
     font-family: 'Arial', sans-serif;
-    background-color: #f4f7fc;
+    background-color: #fafafa;
     margin: 0;
     padding: 20px;
     color: #333;
@@ -13,7 +14,9 @@ h1 {
 }
 
 .container {
-    max-width: 800px; /* Increased the width to make the container wider */
+    position: relative;
+    min-width: 700px;
+    max-width: 900px;
     margin: 0 auto;
     padding: 20px;
     background-color: white;
@@ -28,25 +31,25 @@ label {
     margin: 10px 0 5px;
 }
 
+/* Input Fields */
 input[type="text"], .expandedTextInput {
     width: 100%;
     padding: 10px;
     margin-bottom: 20px;
     border: 1px solid #ddd;
     border-radius: 4px;
-    /* font-size: 16px; */
     font-size: 110%;
     box-sizing: border-box;
 }
 
 .expandedTextInput {
-    height: auto;  /* Let the height adjust automatically */
-    min-height: 300px;  /* Minimum height */
-    max-height: 600px;  /* Maximum height for better control */
+    height: auto;
+    min-height: 300px;
+    max-height: 600px;
     white-space: pre-wrap;
     background-color: #f9f9f9;
     overflow-y: auto;
-    resize: none;  /* Disable manual resizing by the user */
+    resize: none;
 }
 
 .expandedTextInput:empty:before {
@@ -54,6 +57,7 @@ input[type="text"], .expandedTextInput {
     color: #aaa;
 }
 
+/* Buttons */
 button {
     padding: 10px 20px;
     background-color: #4CAF50;
@@ -89,65 +93,85 @@ button:hover {
     background-color: #ddd;
 }
 
+/* Shortcut List */
 .shortcut-list {
     margin-top: 30px;
-    list-style: none; /* Remove default list styles */
+    list-style: none;
     padding: 0;
 }
 
 .shortcut-list li {
-    background-color: #f9f9f9;
+    background-color: #ecf3f5;
     padding: 15px;
     margin-bottom: 10px;
-    border: 1px solid #ddd; /* Light border to separate items */
-    border-radius: 8px; /* Rounded corners */
+    border: 1px solid #ddd;
+    border-radius: 8px;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    position: relative;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    position: relative; /* This ensures that the delete button can be positioned relative to the list item */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s;
+}
+
+.shortcut-list li:hover {
+    background-color: #dce7eb;
 }
 
 .shortcut-list li .trigger {
     font-weight: bold;
     color: #333;
     margin-bottom: 10px;
-    background-color: #eaf4e1; /* Lighter fill for the trigger */
+    background-color: #ffffff;
     padding: 5px 10px;
-    border-radius: 12px; /* Rounded corners */
+    position: relative; /* Optional if you want more control over the trigger's positioning */
 }
 
-.shortcut-list li .expanded-text {
-    /* font-size: 14px; */
-    font-size: 110%;
-    white-space: pre-wrap;
-    margin-bottom: 20px;
-}
-
+/* Delete Button (Positioned on Hover) */
 .shortcut-list li .deleteBtn {
     position: absolute;
-    bottom: 10px;
+    top: 10px;
     right: 10px;
-    background-color: #f44336;
+    background-color: #f28f8f;
     border-radius: 4px;
     padding: 8px 15px;
     font-size: 14px;
     cursor: pointer;
     transition: background-color 0.3s;
     border: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+    color: #fafafa;
+}
+
+.shortcut-list li:hover .deleteBtn {
+    opacity: 1;
+    visibility: visible;
 }
 
 .shortcut-list li .deleteBtn:hover {
-    background-color: #d32f2f;
+    background-color: #e66a6a;
 }
 
+.shortcut-list li .expanded-text {
+    font-size: 110%;
+    white-space: pre-wrap;
+    margin-bottom: 20px;
+    background-color: #ffffff;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+/* Empty List Message */
 .empty-list {
     text-align: center;
     color: #999;
 }
 
-/* Additional CSS for the trigger and separator */
+/* Trigger and Separator Styling */
 .trigger {
+    width: 33%;
     font-weight: bold;
     background-color: #f0f0f0;
     padding: 10px;
@@ -164,15 +188,26 @@ button:hover {
     padding: 10px;
 }
 
-.deleteBtn {
-    background-color: #f44336;
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+
+.action-buttons button {
+    padding: 10px 15px;
+    font-size: 14px;
+    background-color: #4CAF50;
     color: white;
     border: none;
     border-radius: 4px;
-    padding: 8px 12px;
     cursor: pointer;
+    transition: background-color 0.3s;
 }
 
-.deleteBtn:hover {
-    background-color: #d32f2f;
+.action-buttons button:hover {
+    background-color: #45a049;
 }
