@@ -115,13 +115,6 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("boldBtn").addEventListener("click", () => document.execCommand("bold"));
     document.getElementById("italicBtn").addEventListener("click", () => document.execCommand("italic"));
     document.getElementById("underlineBtn").addEventListener("click", () => document.execCommand("underline"));
-    document.getElementById("imageBtn").addEventListener("click", () => {
-        const imageUrl = prompt("Enter image URL:");
-        if (imageUrl) {
-            const imgTag = `<img src="${imageUrl}" alt="Image">`;
-            document.getElementById("expandedTextInput").innerHTML += imgTag;
-        }
-    });
     document.getElementById("numberedListBtn").addEventListener("click", () => document.execCommand("insertOrderedList"));
     document.getElementById("bulletListBtn").addEventListener("click", () => document.execCommand("insertUnorderedList"));
     document.getElementById("linkBtn").addEventListener("click", () => {
