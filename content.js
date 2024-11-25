@@ -21,19 +21,33 @@ document.addEventListener("input", (event) => {
                 if (inputText.endsWith(shortcut)) {
                     console.log(`Shortcut matched: ${shortcut}`); // Debugging: log matched shortcut
                     
+                    // Utility function to strip HTML tags
+                    const stripHTML = (html) => {
+                        const div = document.createElement("div");
+                        div.innerHTML = html;
+                    
+                        // Replace <br> tags with newlines
+                        div.innerHTML = div.innerHTML.replace(/<br\s*\/?>/gi, "\n");
+                    
+                        // Replace <p> tags with double newlines
+                        div.innerHTML = div.innerHTML.replace(/<\/p>/gi, "\n\n").replace(/<p[^>]*>/gi, "");
+                    
+                        // Remove any remaining HTML tags
+                        return div.textContent || div.innerText || "";
+                    };
+                    
                     if (target.tagName === "TEXTAREA" || target.tagName === "INPUT") {
-                        // Replace shortcut in text inputs
-                        const replacementText = inputText.slice(0, -shortcut.length) + expanded;
+                        // Replace shortcut with plain text
+                        const plainText = stripHTML(expanded);
+                        const replacementText = inputText.slice(0, -shortcut.length) + plainText;
+
                         target.value = replacementText;
 
-                        // Move caret one position to the right
-                        const currentCaretPosition = target.selectionStart;
-                        const newCaretPosition = currentCaretPosition + 1;
-
+                        // Move caret to the end of the expanded text
+                        const newCaretPosition = replacementText.length;
                         setTimeout(() => {
                             target.setSelectionRange(newCaretPosition, newCaretPosition);
-                        }, 0); // Delay to ensure the value update is complete before setting caret
-
+                        }, 0);
                     } else if (target.isContentEditable) {
                         const selection = window.getSelection();
                         const range = selection.getRangeAt(0);
@@ -43,37 +57,14 @@ document.addEventListener("input", (event) => {
                             const fullText = node.nodeValue;
                             const precedingText = fullText.slice(0, -shortcut.length);
 
-                            // Debugging: log expanded content before inserting it
-                            console.log("Expanded content:", expanded);
-                            if (!expanded) {
-                                console.error("Expanded content is empty or invalid.");
-                                return;
-                            }
-
-                            // Parse the expanded HTML if it's HTML
+                            // Decide what to insert: plain text for non-rich text fields or expanded HTML for content-editable
+                            const fragment = document.createDocumentFragment();
                             const tempDiv = document.createElement("div");
                             tempDiv.innerHTML = expanded;
 
-                            const fragment = document.createDocumentFragment();
-
-                            // Check if the content is plain text or HTML
-                            if (tempDiv.firstChild && tempDiv.firstChild.nodeType === Node.TEXT_NODE) {
-                                // If it's plain text, directly append it as text
-                                fragment.appendChild(document.createTextNode(expanded));
-                            } else {
-                                // Otherwise, append the parsed HTML to the fragment
-                                while (tempDiv.firstChild) {
-                                    fragment.appendChild(tempDiv.firstChild);
-                                }
-                            }
-
-                            // Debugging: log fragment content
-                            console.log("Fragment content after insertion:", fragment);
-
-                            // Check if fragment is empty
-                            if (fragment.childNodes.length === 0) {
-                                console.error("Fragment is empty after inserting expanded content.");
-                                return;
+                            // Append child nodes (HTML content) to the fragment
+                            while (tempDiv.firstChild) {
+                                fragment.appendChild(tempDiv.firstChild);
                             }
 
                             // Update the text node to remove the shortcut
@@ -84,31 +75,17 @@ document.addEventListener("input", (event) => {
                             range.deleteContents(); // Remove shortcut text
                             range.insertNode(fragment); // Insert the expanded content
 
-                            // Calculate the new caret position
-                            const newSelection = window.getSelection();
-                            const newRange = document.createRange();
-                            const newCaretPosition = precedingText.length + expanded.length;
+                            // Move the caret to the end of the inserted content
+                            const lastNode = fragment.lastChild;
+                            if (lastNode) {
+                                const newRange = document.createRange();
+                                newRange.setStart(lastNode, lastNode.textContent?.length || 0);
+                                newRange.setEnd(lastNode, lastNode.textContent?.length || 0);
 
-                            const nodeLength = node.nodeValue.length;
-                            if (newCaretPosition <= nodeLength) {
-                                const newNode = node.splitText(newCaretPosition);
-                                newRange.setStart(newNode, 0);
-                                newRange.setEnd(newNode, 0);
-                            } else {
-                                const lastNode = fragment.lastChild;
-                                if (lastNode && lastNode.textContent !== null) {
-                                    newRange.setStart(lastNode, lastNode.textContent.length);
-                                    newRange.setEnd(lastNode, lastNode.textContent.length);
-                                } else {
-                                    console.error("No valid lastNode found in the fragment.");
-                                    newRange.setStart(node, nodeLength);
-                                    newRange.setEnd(node, nodeLength);
-                                }
+                                const newSelection = window.getSelection();
+                                newSelection.removeAllRanges();
+                                newSelection.addRange(newRange);
                             }
-
-                            // Set the new selection range (caret position)
-                            newSelection.removeAllRanges();
-                            newSelection.addRange(newRange);
                         }
                     }
                     break;
