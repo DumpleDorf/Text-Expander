@@ -195,9 +195,6 @@
         document.getElementById("shortcutInput").value = shortcut;
         document.getElementById("expandedTextInput").innerHTML = expandedText;
 
-        // Change the button text to "Update Shortcut"
-        document.getElementById("addShortcutBtn").textContent = "Update Shortcut";
-
         // Store the shortcut being edited, so we can identify it when saving
         document.getElementById("addShortcutBtn").dataset.editing = shortcut;
 

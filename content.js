@@ -20,28 +20,34 @@ document.addEventListener("input", (event) => {
                 // Check if input ends with the shortcut
                 if (inputText.endsWith(shortcut)) {
                     console.log(`Shortcut matched: ${shortcut}`); // Debugging: log matched shortcut
-                    
+
                     // Utility function to strip HTML tags
                     const stripHTML = (html) => {
                         const div = document.createElement("div");
                         div.innerHTML = html;
-                    
+
                         // Replace <br> tags with newlines
                         div.innerHTML = div.innerHTML.replace(/<br\s*\/?>/gi, "\n");
-                    
+
                         // Replace <p> tags with double newlines
                         div.innerHTML = div.innerHTML.replace(/<\/p>/gi, "\n\n").replace(/<p[^>]*>/gi, "");
-                    
+
                         // Remove any remaining HTML tags
                         return div.textContent || div.innerText || "";
                     };
-                    
+
                     if (target.tagName === "TEXTAREA" || target.tagName === "INPUT") {
                         // Replace shortcut with plain text
                         const plainText = stripHTML(expanded);
                         const replacementText = inputText.slice(0, -shortcut.length) + plainText;
 
                         target.value = replacementText;
+
+                        // Trigger input and change events to ensure the website registers the change
+                        const inputEvent = new Event("input", { bubbles: true });
+                        const changeEvent = new Event("change", { bubbles: true });
+                        target.dispatchEvent(inputEvent);
+                        target.dispatchEvent(changeEvent);
 
                         // Move caret to the end of the expanded text
                         const newCaretPosition = replacementText.length;
@@ -87,6 +93,12 @@ document.addEventListener("input", (event) => {
                                 newSelection.addRange(newRange);
                             }
                         }
+
+                        // Trigger input and change events for content-editable areas
+                        const inputEvent = new Event("input", { bubbles: true });
+                        const changeEvent = new Event("change", { bubbles: true });
+                        target.dispatchEvent(inputEvent);
+                        target.dispatchEvent(changeEvent);
                     }
                     break;
                 }
