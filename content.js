@@ -124,6 +124,15 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
     confirmButton.style.padding = "8px 16px";
     confirmButton.style.borderRadius = "8px";
     confirmButton.style.cursor = "pointer";
+    confirmButton.style.transition = "background 0.3s ease"; // Add smooth transition effect
+
+    // Add hover effect for Confirm button
+    confirmButton.addEventListener("mouseover", () => {
+        confirmButton.style.background = "#45a049"; // Slightly darker green
+    });
+    confirmButton.addEventListener("mouseout", () => {
+        confirmButton.style.background = "#4caf50"; // Original green
+    });
 
     // Confirm button logic
     confirmButton.addEventListener("click", () => {
@@ -152,6 +161,15 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
     cancelButton.style.padding = "8px 16px";
     cancelButton.style.borderRadius = "8px";
     cancelButton.style.cursor = "pointer";
+    cancelButton.style.transition = "background 0.3s ease"; // Add smooth transition effect
+
+    // Add hover effect for Cancel button
+    cancelButton.addEventListener("mouseover", () => {
+        cancelButton.style.background = "#d73833"; // Slightly darker red
+    });
+    cancelButton.addEventListener("mouseout", () => {
+        cancelButton.style.background = "#f44336"; // Original red
+    });
 
     cancelButton.addEventListener("click", () => {
         document.body.removeChild(overlay); // Remove the popup and overlay
