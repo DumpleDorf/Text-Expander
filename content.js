@@ -61,7 +61,7 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
     popup.style.display = "flex";
     popup.style.flexDirection = "column";
     popup.style.gap = "15px";
-    popup.style.width = "600px"; // Set width to 600px
+    popup.style.width = "500px"
 
     // Build content with placeholders replaced by input fields
     const previewContainer = document.createElement("div");
