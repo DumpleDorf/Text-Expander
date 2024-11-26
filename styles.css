@@ -1,14 +1,19 @@
 /* General Body and Layout Styles */
 body {
     font-family: 'Arial', sans-serif;
-    background-color: #fafafa;
+    background-color: #FEFFDB;
     margin: 0;
     padding: 20px;
-    color: #333;
+    color: #444444;
+
+    background-color: #fff7a3;
+    background-image:  linear-gradient(30deg, #e5de92 12%, transparent 12.5%, transparent 87%, #e5de92 87.5%, #e5de92), linear-gradient(150deg, #e5de92 12%, transparent 12.5%, transparent 87%, #e5de92 87.5%, #e5de92), linear-gradient(30deg, #e5de92 12%, transparent 12.5%, transparent 87%, #e5de92 87.5%, #e5de92), linear-gradient(150deg, #e5de92 12%, transparent 12.5%, transparent 87%, #e5de92 87.5%, #e5de92), linear-gradient(60deg, #e5de9277 25%, transparent 25.5%, transparent 75%, #e5de9277 75%, #e5de9277), linear-gradient(60deg, #e5de9277 25%, transparent 25.5%, transparent 75%, #e5de9277 75%, #e5de9277);
+    background-size: 50px 88px;
+    background-position: 0 0, 0 0, 25px 44px, 25px 44px, 0 0, 25px 44px;
 }
 
 h1 {
-    color: #4CAF50;
+    color: #444444; 
     text-align: center;
     margin-bottom: 30px;
 }
@@ -17,16 +22,17 @@ h1 {
     position: relative;
     min-width: 700px;
     max-width: 900px;
-    margin: 0 auto;
+    margin: 20px auto 0;
     padding: 20px;
     background-color: white;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border: 3px solid #444444;
 }
 
 label {
     font-size: 14px;
-    color: #555;
+    color: #444444;
     display: block;
     margin: 10px 0 5px;
 }
@@ -36,7 +42,7 @@ input[type="text"], .expandedTextInput {
     width: 100%;
     padding: 10px;
     margin-bottom: 20px;
-    border: 1px solid #ddd;
+    border: 1px solid #444444; 
     border-radius: 4px;
     font-size: 110%;
     box-sizing: border-box;
@@ -60,17 +66,18 @@ input[type="text"], .expandedTextInput {
 /* Buttons */
 button {
     padding: 10px 20px;
-    background-color: #4CAF50;
-    color: white;
+    background-color: #fff7a3;
+    color: #444444;
     font-size: 16px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.3s;
+    border: 1px solid #444444; 
 }
 
 button:hover {
-    background-color: #45a049;
+    background-color: #fde591; 
 }
 
 .toolbar {
@@ -101,30 +108,30 @@ button:hover {
 }
 
 .shortcut-list li {
-    background-color: #ecf3f5;
+    background-color: #FEFFDB;
     padding: 15px;
     margin-bottom: 10px;
-    border: 1px solid #ddd;
+    border: 1px solid #444444; 
     border-radius: 8px;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    position: relative; /* This ensures that the delete button can be positioned relative to the list item */
+    position: relative;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     transition: background-color 0.3s;
 }
 
 .shortcut-list li:hover {
-    background-color: #dce7eb;
+    background-color: #fff7a3;
 }
 
 .shortcut-list li .trigger {
     font-weight: bold;
-    color: #333;
+    color: #444444; 
     margin-bottom: 10px;
     background-color: #ffffff;
     padding: 5px 10px;
-    position: relative; /* Optional if you want more control over the trigger's positioning */
+    position: relative;
 }
 
 /* Delete Button (Positioned on Hover) */
@@ -132,7 +139,7 @@ button:hover {
     position: absolute;
     top: 10px;
     right: 10px;
-    background-color: #f28f8f;
+    background-color: #F18F8F; 
     border-radius: 4px;
     padding: 8px 15px;
     font-size: 14px;
@@ -151,7 +158,7 @@ button:hover {
 }
 
 .shortcut-list li .deleteBtn:hover {
-    background-color: #e66a6a;
+    background-color: #D85A5A;
 }
 
 .shortcut-list li .expanded-text {
@@ -200,14 +207,30 @@ button:hover {
 .action-buttons button {
     padding: 10px 15px;
     font-size: 14px;
-    background-color: #4CAF50;
-    color: white;
+    background-color: #fff7a3; 
+    color: #444444;
     border: none;
     border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.3s;
-}
+    border: 1px solid #444444;
+}s
 
 .action-buttons button:hover {
-    background-color: #45a049;
+    background-color: #fde591; 
+}
+
+/* GitHub Icon Positioning */
+.github-icon {
+    position: absolute;
+    top: 10px; 
+    right: 10px;
+    width: 70px;
+    height: 70px; 
+    cursor: pointer;
+    transition: opacity 0.3s;
+}
+
+.github-icon:hover {
+    opacity: 0.6; 
 }
