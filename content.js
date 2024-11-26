@@ -1,7 +1,6 @@
 document.addEventListener("input", (event) => {
     const target = event.target;
 
-    // Process text areas, input fields, or content-editable elements
     if (
         target &&
         (target.tagName === "TEXTAREA" ||
@@ -17,88 +16,13 @@ document.addEventListener("input", (event) => {
             const shortcuts = data.shortcuts || {};
 
             for (const [shortcut, expanded] of Object.entries(shortcuts)) {
-                // Check if input ends with the shortcut
                 if (inputText.endsWith(shortcut)) {
-                    console.log(`Shortcut matched: ${shortcut}`); // Debugging: log matched shortcut
-
-                    // Utility function to strip HTML tags
-                    const stripHTML = (html) => {
-                        const div = document.createElement("div");
-                        div.innerHTML = html;
-
-                        // Replace <br> tags with newlines
-                        div.innerHTML = div.innerHTML.replace(/<br\s*\/?>/gi, "\n");
-
-                        // Replace <p> tags with double newlines
-                        div.innerHTML = div.innerHTML.replace(/<\/p>/gi, "\n\n").replace(/<p[^>]*>/gi, "");
-
-                        // Remove any remaining HTML tags
-                        return div.textContent || div.innerText || "";
-                    };
-
-                    if (target.tagName === "TEXTAREA" || target.tagName === "INPUT") {
-                        // Replace shortcut with plain text
-                        const plainText = stripHTML(expanded);
-                        const replacementText = inputText.slice(0, -shortcut.length) + plainText;
-
-                        target.value = replacementText;
-
-                        // Trigger input and change events to ensure the website registers the change
-                        const inputEvent = new Event("input", { bubbles: true });
-                        const changeEvent = new Event("change", { bubbles: true });
-                        target.dispatchEvent(inputEvent);
-                        target.dispatchEvent(changeEvent);
-
-                        // Move caret to the end of the expanded text
-                        const newCaretPosition = replacementText.length;
-                        setTimeout(() => {
-                            target.setSelectionRange(newCaretPosition, newCaretPosition);
-                        }, 0);
-                    } else if (target.isContentEditable) {
-                        const selection = window.getSelection();
-                        const range = selection.getRangeAt(0);
-                        const node = range.startContainer;
-
-                        if (node.nodeType === Node.TEXT_NODE) {
-                            const fullText = node.nodeValue;
-                            const precedingText = fullText.slice(0, -shortcut.length);
-
-                            // Decide what to insert: plain text for non-rich text fields or expanded HTML for content-editable
-                            const fragment = document.createDocumentFragment();
-                            const tempDiv = document.createElement("div");
-                            tempDiv.innerHTML = expanded;
-
-                            // Append child nodes (HTML content) to the fragment
-                            while (tempDiv.firstChild) {
-                                fragment.appendChild(tempDiv.firstChild);
-                            }
-
-                            // Update the text node to remove the shortcut
-                            node.nodeValue = precedingText;
-
-                            // Adjust the range to delete the shortcut and insert the fragment
-                            range.setStart(node, precedingText.length);
-                            range.deleteContents(); // Remove shortcut text
-                            range.insertNode(fragment); // Insert the expanded content
-
-                            // Move the caret to the end of the inserted content
-                            const lastNode = fragment.lastChild;
-                            if (lastNode) {
-                                const newRange = document.createRange();
-                                newRange.setStart(lastNode, lastNode.textContent?.length || 0);
-                                newRange.setEnd(lastNode, lastNode.textContent?.length || 0);
-
-                                const newSelection = window.getSelection();
-                                newSelection.removeAllRanges();
-                                newSelection.addRange(newRange);
-                            }
-                        }
-
-                        // Trigger input and change events for content-editable areas
-                        const inputEvent = new Event("input", { bubbles: true });
-                        const changeEvent = new Event("change", { bubbles: true });
-                        target.dispatchEvent(inputEvent);
-                        target.dispatchEvent(changeEvent);
+                    if (expanded.includes("{")) {
+                        showPlaceholderPopup(expanded, (finalText) => {
+                            replaceShortcut(target, shortcut, finalText);
+                        });
+                    } else {
+                        replaceShortcut(target, shortcut, expanded);
                     }
                     break;
                 }
@@ -106,3 +30,89 @@ document.addEventListener("input", (event) => {
         });
     }
 });
+
+// Function to replace the shortcut text
+function replaceShortcut(target, shortcut, replacementText) {
+    if (target.tagName === "TEXTAREA" || target.tagName === "INPUT") {
+        const inputText = target.value;
+        target.value = inputText.slice(0, -shortcut.length) + replacementText;
+    } else if (target.isContentEditable) {
+        const selection = window.getSelection();
+        const range = selection.getRangeAt(0);
+        const node = range.startContainer;
+
+        if (node.nodeType === Node.TEXT_NODE) {
+            const fullText = node.nodeValue;
+            const precedingText = fullText.slice(0, -shortcut.length);
+            node.nodeValue = precedingText + replacementText;
+
+            // Move caret to the end of the inserted content
+            const newRange = document.createRange();
+            newRange.selectNodeContents(node);
+            newRange.collapse(false);
+
+            const newSelection = window.getSelection();
+            newSelection.removeAllRanges();
+            newSelection.addRange(newRange);
+        }
+    }
+}
+
+// Function to show the placeholder popup
+function showPlaceholderPopup(template, callback) {
+    const placeholderRegex = /{(.*?)}/g;
+    const placeholders = Array.from(template.matchAll(placeholderRegex)).map(match => match[1]);
+
+    // Create the popup HTML dynamically
+    const popup = document.createElement("div");
+    popup.id = "placeholder-popup";
+    popup.style = `
+        position: fixed; top: 20%; left: 50%; transform: translate(-50%, -20%);
+        background: white; border: 1px solid #ccc; padding: 20px; z-index: 10000;
+    `;
+
+    const form = document.createElement("form");
+
+    placeholders.forEach((placeholder) => {
+        const label = document.createElement("label");
+        label.textContent = `${placeholder}: `;
+        const input = document.createElement("input");
+        input.type = "text";
+        input.name = placeholder;
+        input.required = true;
+        label.appendChild(input);
+        form.appendChild(label);
+        form.appendChild(document.createElement("br"));
+    });
+
+    const confirmButton = document.createElement("button");
+    confirmButton.type = "submit";
+    confirmButton.textContent = "Confirm";
+    confirmButton.style = "margin-right: 10px;";
+
+    const cancelButton = document.createElement("button");
+    cancelButton.type = "button";
+    cancelButton.textContent = "Cancel";
+
+    form.appendChild(confirmButton);
+    form.appendChild(cancelButton);
+    popup.appendChild(form);
+    document.body.appendChild(popup);
+
+    form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const formData = new FormData(form);
+        let finalText = template;
+
+        placeholders.forEach((placeholder) => {
+            finalText = finalText.replace(`{${placeholder}}`, formData.get(placeholder));
+        });
+
+        document.body.removeChild(popup);
+        callback(finalText);
+    });
+
+    cancelButton.addEventListener("click", () => {
+        document.body.removeChild(popup);
+    });
+}
