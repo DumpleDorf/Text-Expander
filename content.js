@@ -260,46 +260,99 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
     });
 }
 
-// Function to replace the shortcut text
 function replaceShortcut(target, shortcut, replacementText) {
-    // Strip any unwanted HTML tags from the replacementText
-    const cleanReplacementText = stripHTML(replacementText);
+    console.log("replaceShortcut called with target:", target, "shortcut:", shortcut, "replacementText:", replacementText);
 
     if (target.tagName === "TEXTAREA" || target.tagName === "INPUT") {
+        // Handle plain text inputs
+        console.log("Handling as plain text input...");
         const inputText = target.value;
-        target.value = inputText.slice(0, -shortcut.length) + cleanReplacementText;
+        const plainText = stripHTML(replacementText); // Ensure no HTML for plain-text fields
+        console.log("inputText:", inputText, "plainText:", plainText);
+
+        target.value = inputText.slice(0, -shortcut.length) + plainText;
+        console.log("Updated input value:", target.value);
 
         // Set caret position at the end of the new text
         const newCaretPosition = target.value.length;
         setTimeout(() => {
             target.setSelectionRange(newCaretPosition, newCaretPosition);
+            console.log("Caret set at position:", newCaretPosition);
         }, 0);
     } else if (target.isContentEditable) {
+        // Handle contentEditable elements
+        console.log("Handling contentEditable element...");
         const selection = window.getSelection();
+        console.log("Current selection:", selection);
+
+        if (!selection.rangeCount) {
+            console.log("No selection available.");
+            return;
+        }
+
         const range = selection.getRangeAt(0);
-        const node = range.startContainer;
+        console.log("Selection range:", range);
 
-        if (node.nodeType === Node.TEXT_NODE) {
-            const fullText = node.nodeValue;
-            const precedingText = fullText.slice(0, -shortcut.length);
+        let selectedText = range.toString();
+        console.log("Selected text:", selectedText);
 
-            // Replace the text with the cleaned replacement text
-            node.nodeValue = precedingText;
+        // If selection is empty, check the selected node type
+        if (!selectedText) {
+            const startNode = range.startContainer;
+            console.log("Selection start node:", startNode);
 
-            // Create a plain text node for the replacement
-            const textNode = document.createTextNode(cleanReplacementText);
+            // Traverse to find a text node if the selection is within an element
+            if (startNode.nodeType !== Node.TEXT_NODE) {
+                console.log("Traversing to find a text node...");
+                let textNode = startNode;
+                while (textNode && textNode.nodeType !== Node.TEXT_NODE) {
+                    textNode = textNode.firstChild;
+                }
 
-            range.deleteContents();
-            range.insertNode(textNode);
+                if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+                    selectedText = textNode.nodeValue;
+                    console.log("Found text node:", selectedText);
+                }
+            }
+        }
 
-            // Move caret to the end of the newly inserted text
+        // Trim any extra whitespace or line breaks from the selected text before comparison
+        selectedText = selectedText.trim();
+        console.log("Trimmed selected text:", selectedText);
+
+        // Check if the shortcut is in the entire contenteditable area, not just the selected text
+        const fullText = target.innerText.trim();
+        console.log("Full content of contentEditable:", fullText);
+
+        // If the selected text doesn't match exactly, try finding the shortcut in the full text
+        if (fullText.endsWith(shortcut)) {
+            console.log("Shortcut found in the full text!");
+            const precedingText = fullText.slice(0, fullText.length - shortcut.length);
+            console.log("Preceding text:", precedingText);
+
+            // Create a temporary div to store the formatted replacement content
+            const tempDiv = document.createElement("div");
+            tempDiv.innerHTML = replacementText; // Convert replacementText to HTML content
+            console.log("Replacement HTML:", tempDiv.innerHTML);
+
+            // Replace the content in the contentEditable area with the new HTML
+            target.innerHTML = precedingText + tempDiv.innerHTML;
+
+            // Re-select the contentEditable area and place the caret at the end of the inserted content
             const newRange = document.createRange();
-            newRange.setStart(textNode, cleanReplacementText.length);
-            newRange.setEnd(textNode, cleanReplacementText.length);
-
             const newSelection = window.getSelection();
+
+            // Move the range to the end of the inserted content
+            newRange.selectNodeContents(target); // Select all the contents of the element
+            newRange.collapse(false); // Collapse to the end of the content
+
             newSelection.removeAllRanges();
             newSelection.addRange(newRange);
+            console.log("Caret moved to the end of the inserted content");
+        } else {
+            console.log("Shortcut not found at the end of the selected text.");
         }
+    } else {
+        console.log("Target is neither a TEXTAREA, INPUT, nor contentEditable.");
     }
 }
