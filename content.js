@@ -330,10 +330,20 @@ function replaceShortcut(target, shortcut, replacementText) {
             const precedingText = fullText.slice(0, fullText.length - shortcut.length);
             console.log("Preceding text:", precedingText);
 
+            // Handle line breaks and paragraphs:
+            // 1. Split the replacementText by line breaks (\n).
+            // 2. Wrap each line in a <p> tag to ensure proper paragraph formatting.
+            let formattedText = replacementText.split('\n').map(line => {
+                return `<p style="margin: 10px 0;">${line}</p>`;
+            }).join(''); // Join all paragraphs back together
+
+            console.log("Formatted HTML with paragraphs and line breaks:", formattedText);
+
             // Create a temporary div to store the formatted replacement content
             const tempDiv = document.createElement("div");
-            tempDiv.innerHTML = replacementText; // Convert replacementText to HTML content
-            console.log("Replacement HTML:", tempDiv.innerHTML);
+            tempDiv.innerHTML = formattedText;
+
+            console.log("Replacement HTML with formatting:", tempDiv.innerHTML);
 
             // Replace the content in the contentEditable area with the new HTML
             target.innerHTML = precedingText + tempDiv.innerHTML;
