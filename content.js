@@ -16,17 +16,66 @@ document.addEventListener("input", (event) => {
             const shortcuts = data.shortcuts || {};
 
             for (const [shortcut, expanded] of Object.entries(shortcuts)) {
-                // Check if input text ends with a shortcut
                 if (inputText.endsWith(shortcut)) {
-                    // If expanded text contains placeholders, show popup
+                    const stripHTML = (html) => {
+                        const div = document.createElement("div");
+                        div.innerHTML = html;
+
+                        div.innerHTML = div.innerHTML.replace(/<br\s*\/?>/gi, "\n");
+                        div.innerHTML = div.innerHTML
+                            .replace(/<\/p>/gi, "\n\n")
+                            .replace(/<p[^>]*>/gi, "");
+                        return div.textContent || div.innerText || "";
+                    };
+
                     if (expanded.includes("{")) {
                         showPlaceholderPopup(expanded, shortcut, target, (finalText) => {
-                            replaceShortcut(target, shortcut, finalText); // Replace the shortcut with final text
+                            replaceShortcut(target, shortcut, finalText);
                         });
                     } else {
-                        // If no placeholders, directly replace the shortcut
-                        const finalText = stripHTML(expanded); // Strip HTML if any
-                        replaceShortcut(target, shortcut, finalText);
+                        const plainText = stripHTML(expanded);
+
+                        if (target.tagName === "TEXTAREA" || target.tagName === "INPUT") {
+                            const replacementText = inputText.slice(0, -shortcut.length) + plainText;
+                            target.value = replacementText;
+
+                            const newCaretPosition = replacementText.length;
+                            setTimeout(() => {
+                                target.setSelectionRange(newCaretPosition, newCaretPosition);
+                            }, 0);
+                        } else if (target.isContentEditable) {
+                            const selection = window.getSelection();
+                            const range = selection.getRangeAt(0);
+                            const node = range.startContainer;
+
+                            if (node.nodeType === Node.TEXT_NODE) {
+                                const precedingText = node.nodeValue.slice(0, -shortcut.length);
+                                node.nodeValue = precedingText;
+
+                                const fragment = document.createDocumentFragment();
+                                const tempDiv = document.createElement("div");
+                                tempDiv.innerHTML = expanded;
+
+                                Array.from(tempDiv.childNodes).forEach((child) =>
+                                    fragment.appendChild(child)
+                                );
+
+                                range.setStart(node, precedingText.length);
+                                range.deleteContents();
+                                range.insertNode(fragment);
+
+                                const lastNode = fragment.lastChild;
+                                if (lastNode) {
+                                    const newRange = document.createRange();
+                                    newRange.setStart(lastNode, lastNode.textContent?.length || 0);
+                                    newRange.setEnd(lastNode, lastNode.textContent?.length || 0);
+
+                                    const newSelection = window.getSelection();
+                                    newSelection.removeAllRanges();
+                                    newSelection.addRange(newRange);
+                                }
+                            }
+                        }
                     }
                     break;
                 }
