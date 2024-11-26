@@ -84,6 +84,24 @@ document.addEventListener("input", (event) => {
     }
 });
 
+// Utility function to strip HTML tags
+function stripHTML(html) {
+    const div = document.createElement("div");
+    div.innerHTML = html;
+
+    // Replace <br> tags with newlines
+    div.innerHTML = div.innerHTML.replace(/<br\s*\/?>/gi, "\n");
+
+    // Replace <p> tags with double newlines
+    div.innerHTML = div.innerHTML.replace(/<\/p>/gi, "\n\n").replace(/<p[^>]*>/gi, "");
+
+    // Remove <span> and other inline tags while preserving their content
+    div.innerHTML = div.innerHTML.replace(/<\/?span[^>]*>/gi, "");
+
+    // Strip any remaining HTML tags
+    return div.textContent || div.innerText || "";
+}
+
 // Function to show the popup with placeholders and inputs
 function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) {
     // Create background overlay
@@ -153,7 +171,7 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
         } else {
             // Add plain text part
             const span = document.createElement("span");
-            span.textContent = part;
+            span.textContent = stripHTML(part);
             previewContainer.appendChild(span);
         }
     });
@@ -244,9 +262,18 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
 
 // Function to replace the shortcut text
 function replaceShortcut(target, shortcut, replacementText) {
+    // Strip any unwanted HTML tags from the replacementText
+    const cleanReplacementText = stripHTML(replacementText);
+
     if (target.tagName === "TEXTAREA" || target.tagName === "INPUT") {
         const inputText = target.value;
-        target.value = inputText.slice(0, -shortcut.length) + replacementText;
+        target.value = inputText.slice(0, -shortcut.length) + cleanReplacementText;
+
+        // Set caret position at the end of the new text
+        const newCaretPosition = target.value.length;
+        setTimeout(() => {
+            target.setSelectionRange(newCaretPosition, newCaretPosition);
+        }, 0);
     } else if (target.isContentEditable) {
         const selection = window.getSelection();
         const range = selection.getRangeAt(0);
@@ -255,31 +282,24 @@ function replaceShortcut(target, shortcut, replacementText) {
         if (node.nodeType === Node.TEXT_NODE) {
             const fullText = node.nodeValue;
             const precedingText = fullText.slice(0, -shortcut.length);
-            node.nodeValue = precedingText + replacementText;
 
-            // Move caret to the end of the inserted content
+            // Replace the text with the cleaned replacement text
+            node.nodeValue = precedingText;
+
+            // Create a plain text node for the replacement
+            const textNode = document.createTextNode(cleanReplacementText);
+
+            range.deleteContents();
+            range.insertNode(textNode);
+
+            // Move caret to the end of the newly inserted text
             const newRange = document.createRange();
-            newRange.selectNodeContents(node);
-            newRange.collapse(false);
+            newRange.setStart(textNode, cleanReplacementText.length);
+            newRange.setEnd(textNode, cleanReplacementText.length);
 
             const newSelection = window.getSelection();
             newSelection.removeAllRanges();
             newSelection.addRange(newRange);
         }
     }
-}
-
-// Utility function to strip HTML tags
-function stripHTML(html) {
-    const div = document.createElement("div");
-    div.innerHTML = html;
-
-    // Replace <br> tags with newlines
-    div.innerHTML = div.innerHTML.replace(/<br\s*\/?>/gi, "\n");
-
-    // Replace <p> tags with double newlines
-    div.innerHTML = div.innerHTML.replace(/<\/p>/gi, "\n\n").replace(/<p[^>]*>/gi, "");
-
-    // Remove any remaining HTML tags
-    return div.textContent || div.innerText || "";
 }
