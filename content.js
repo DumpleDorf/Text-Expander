@@ -25,7 +25,8 @@ document.addEventListener("input", (event) => {
                         });
                     } else {
                         // If no placeholders, directly replace the shortcut
-                        replaceShortcut(target, shortcut, expanded);
+                        const finalText = stripHTML(expanded); // Strip HTML if any
+                        replaceShortcut(target, shortcut, finalText);
                     }
                     break;
                 }
@@ -61,7 +62,7 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
     popup.style.display = "flex";
     popup.style.flexDirection = "column";
     popup.style.gap = "15px";
-    popup.style.width = "500px"
+    popup.style.width = "500px";
 
     // Build content with placeholders replaced by input fields
     const previewContainer = document.createElement("div");
@@ -217,4 +218,19 @@ function replaceShortcut(target, shortcut, replacementText) {
             newSelection.addRange(newRange);
         }
     }
+}
+
+// Utility function to strip HTML tags
+function stripHTML(html) {
+    const div = document.createElement("div");
+    div.innerHTML = html;
+
+    // Replace <br> tags with newlines
+    div.innerHTML = div.innerHTML.replace(/<br\s*\/?>/gi, "\n");
+
+    // Replace <p> tags with double newlines
+    div.innerHTML = div.innerHTML.replace(/<\/p>/gi, "\n\n").replace(/<p[^>]*>/gi, "");
+
+    // Remove any remaining HTML tags
+    return div.textContent || div.innerText || "";
 }
