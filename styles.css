@@ -73,7 +73,7 @@ button {
     border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.3s;
-    border: 1px solid #444444; 
+    border: 2px solid #444444; 
 }
 
 button:hover {
@@ -213,7 +213,7 @@ button:hover {
     border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.3s;
-    border: 1px solid #444444;
+    border: 2px solid #444444;
 }s
 
 .action-buttons button:hover {
