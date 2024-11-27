@@ -173,8 +173,11 @@
                     const deleteBtn = document.createElement("button");
                     deleteBtn.classList.add("deleteBtn");
                     deleteBtn.textContent = "Delete";
-                    deleteBtn.addEventListener("click", () => {
-                        deleteShortcut(shortcut);
+                    deleteBtn.addEventListener("click", (event) => {
+                        event.stopPropagation(); // Prevent the listItem click from triggering edit
+                        if (confirm(`Are you sure you want to delete the shortcut "${shortcut}"?`)) {
+                            deleteShortcut(shortcut);
+                        }
                     });
                     listItem.appendChild(deleteBtn);
 
@@ -207,6 +210,7 @@
         document.getElementById("expandedTextInput").innerHTML = "";
     }
 
+    // Delete a shortcut
     function deleteShortcut(shortcut) {
         chrome.storage.local.get("shortcuts", (data) => {
             const shortcuts = data.shortcuts || {};
