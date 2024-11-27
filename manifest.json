@@ -5,8 +5,7 @@
   "description": "A Chrome extension for managing text shortcuts and expansions.",
     "permissions": [
         "storage",
-        "activeTab",
-        "clipboardWrite"
+        "activeTab"
     ],
   "background": {
       "service_worker": "background.js"
