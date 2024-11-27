@@ -43,6 +43,9 @@ document.addEventListener("input", (event) => {
                             setTimeout(() => {
                                 target.setSelectionRange(newCaretPosition, newCaretPosition);
                             }, 0);
+
+                            // Trigger an input event to update the field
+                            target.dispatchEvent(new Event("input", { bubbles: true, cancelable: true }));
                         } else if (target.isContentEditable) {
                             const selection = window.getSelection();
                             const range = selection.getRangeAt(0);
@@ -74,6 +77,9 @@ document.addEventListener("input", (event) => {
                                     newSelection.removeAllRanges();
                                     newSelection.addRange(newRange);
                                 }
+
+                                // Trigger an input event to update the contentEditable field
+                                target.dispatchEvent(new Event("input", { bubbles: true, cancelable: true }));
                             }
                         }
                     }
@@ -264,101 +270,34 @@ function replaceShortcut(target, shortcut, replacementText) {
     console.log("replaceShortcut called with target:", target, "shortcut:", shortcut, "replacementText:", replacementText);
 
     if (target.tagName === "TEXTAREA" || target.tagName === "INPUT") {
-        // Handle plain text inputs
-        console.log("Handling as plain text input...");
         const inputText = target.value;
-        const plainText = stripHTML(replacementText); // Ensure no HTML for plain-text fields
-        console.log("inputText:", inputText, "plainText:", plainText);
-
+        const plainText = stripHTML(replacementText);
         target.value = inputText.slice(0, -shortcut.length) + plainText;
-        console.log("Updated input value:", target.value);
 
-        // Set caret position at the end of the new text
         const newCaretPosition = target.value.length;
         setTimeout(() => {
             target.setSelectionRange(newCaretPosition, newCaretPosition);
-            console.log("Caret set at position:", newCaretPosition);
         }, 0);
+
+        target.dispatchEvent(new Event("input", { bubbles: true, cancelable: true }));
     } else if (target.isContentEditable) {
-        // Handle contentEditable elements
-        console.log("Handling contentEditable element...");
-        const selection = window.getSelection();
-        console.log("Current selection:", selection);
-
-        if (!selection.rangeCount) {
-            console.log("No selection available.");
-            return;
-        }
-
-        const range = selection.getRangeAt(0);
-        console.log("Selection range:", range);
-
-        let selectedText = range.toString();
-        console.log("Selected text:", selectedText);
-
-        // If selection is empty, check the selected node type
-        if (!selectedText) {
-            const startNode = range.startContainer;
-            console.log("Selection start node:", startNode);
-
-            // Traverse to find a text node if the selection is within an element
-            if (startNode.nodeType !== Node.TEXT_NODE) {
-                console.log("Traversing to find a text node...");
-                let textNode = startNode;
-                while (textNode && textNode.nodeType !== Node.TEXT_NODE) {
-                    textNode = textNode.firstChild;
-                }
-
-                if (textNode && textNode.nodeType === Node.TEXT_NODE) {
-                    selectedText = textNode.nodeValue;
-                    console.log("Found text node:", selectedText);
-                }
-            }
-        }
-
-        // Trim any extra whitespace or line breaks from the selected text before comparison
-        selectedText = selectedText.trim();
-        console.log("Trimmed selected text:", selectedText);
-
-        // Check if the shortcut is in the entire contenteditable area, not just the selected text
         const fullText = target.innerText.trim();
-        console.log("Full content of contentEditable:", fullText);
-
-        // If the selected text doesn't match exactly, try finding the shortcut in the full text
         if (fullText.endsWith(shortcut)) {
-            console.log("Shortcut found in the full text!");
             const precedingText = fullText.slice(0, fullText.length - shortcut.length);
-            console.log("Preceding text:", precedingText);
+            const formattedText = replacementText.replace(/\n/g, "<br>");
+            target.innerHTML = precedingText + formattedText;
 
-            // Handle line breaks and insert as <br> tags for each new line
-            let formattedText = replacementText.replace(/\n/g, '<br>'); // Replace newlines with <br> tags
-
-            console.log("Formatted HTML with line breaks:", formattedText);
-
-            // Create a temporary div to store the formatted replacement content
-            const tempDiv = document.createElement("div");
-            tempDiv.innerHTML = formattedText;
-
-            console.log("Replacement HTML with formatting:", tempDiv.innerHTML);
-
-            // Replace the content in the contentEditable area with the new HTML
-            target.innerHTML = precedingText + tempDiv.innerHTML;
-
-            // Re-select the contentEditable area and place the caret at the end of the inserted content
             const newRange = document.createRange();
-            const newSelection = window.getSelection();
+            newRange.selectNodeContents(target);
+            newRange.collapse(false);
 
-            // Move the range to the end of the inserted content
-            newRange.selectNodeContents(target); // Select all the contents of the element
-            newRange.collapse(false); // Collapse to the end of the content
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(newRange);
 
-            newSelection.removeAllRanges();
-            newSelection.addRange(newRange);
-            console.log("Caret moved to the end of the inserted content");
-        } else {
-            console.log("Shortcut not found at the end of the selected text.");
+            target.dispatchEvent(new Event("input", { bubbles: true, cancelable: true }));
         }
     } else {
-        console.log("Target is neither a TEXTAREA, INPUT, nor contentEditable.");
+        console.error("Target is neither a TEXTAREA, INPUT, nor contentEditable.");
     }
 }
