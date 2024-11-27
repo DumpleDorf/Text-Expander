@@ -123,6 +123,36 @@
         document.getElementById("bulletListBtn").addEventListener("click", () => {
             document.execCommand("insertUnorderedList");
         });
+
+        // Insert Placeholder button
+        document.getElementById("insertPlaceholderBtn").addEventListener("click", () => {
+            const placeholderName = prompt("Enter the placeholder name:");
+            if (placeholderName) {
+                const input = document.getElementById("expandedTextInput");
+
+                // If using a contenteditable div, use selectionStart/selectionEnd
+                const selection = window.getSelection();
+                const caretPosition = selection.anchorOffset;
+
+                const textBefore = input.innerHTML.substring(0, caretPosition);
+                const textAfter = input.innerHTML.substring(caretPosition);
+
+                const placeholder = `{${placeholderName}} `;
+                
+                // Update the content inside the contenteditable div
+                input.innerHTML = textBefore + placeholder + textAfter;
+
+                // Set the caret position to the end of the inserted placeholder
+                const range = document.createRange();
+                range.setStart(input.firstChild, textBefore.length + placeholder.length);
+                range.setEnd(input.firstChild, textBefore.length + placeholder.length);
+                selection.removeAllRanges();
+                selection.addRange(range);
+
+                // Focus the input again to maintain the caret
+                input.focus();
+            }
+        });
         
         document.getElementById("linkBtn").addEventListener("click", () => {
             const url = prompt("Enter URL:", "https://");
