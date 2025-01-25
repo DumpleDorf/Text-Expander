@@ -259,3 +259,90 @@
         selection.removeAllRanges();
         selection.addRange(range);
     }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        const settingsIcon = document.querySelector('.settings-icon');
+        const popup = document.getElementById('settings-popup');
+        const teamsFilterCheckbox = document.getElementById('teams-filter');
+        const saveButton = document.getElementById('save');
+        const restoreButton = document.getElementById('restore');
+    
+        // Restore options from Chrome storage on page load
+        chrome.storage.sync.get({ teamsFilter: false }, (items) => {
+            if (teamsFilterCheckbox) {
+                teamsFilterCheckbox.checked = items.teamsFilter;
+            }
+        });
+    
+        // Save options to Chrome storage
+        const saveOptions = () => {
+            if (teamsFilterCheckbox) {
+                const teamsFilter = teamsFilterCheckbox.checked;
+                chrome.storage.sync.set({ teamsFilter }, () => {
+                    console.log("Settings saved.");
+                });
+            }
+        };
+    
+        // Restore options to defaults
+        const restoreOptions = () => {
+            chrome.storage.sync.clear(() => {
+                if (teamsFilterCheckbox) {
+                    teamsFilterCheckbox.checked = false;
+                }
+                console.log("Settings restored to defaults.");
+            });
+        };
+    
+        // Toggle settings popup visibility
+        if (settingsIcon && popup) {
+            settingsIcon.addEventListener('click', () => {
+                popup.style.display = popup.style.display === 'none' || popup.style.display === '' ? 'block' : 'none';
+            });
+    
+            // Close popup if clicked outside
+            document.addEventListener('click', (event) => {
+                if (!popup.contains(event.target) && event.target !== settingsIcon) {
+                    popup.style.display = 'none';
+                }
+            });
+        }
+    
+        // Handle Teams Filter checkbox toggle
+        if (teamsFilterCheckbox) {
+            teamsFilterCheckbox.addEventListener('change', () => {
+                if (teamsFilterCheckbox.checked) {
+                    if (window.location.href.startsWith('https://customerconnect.tesla.com/')) {
+                        loadTeamsFilterScript();
+                    } else {
+                        console.warn("Teams Filter is enabled but not on a supported domain.");
+                    }
+                } else {
+                    console.log("Teams Filter disabled.");
+                }
+                saveOptions(); // Save setting on toggle
+            });
+        }
+    
+        // Save button event
+        if (saveButton) {
+            saveButton.addEventListener('click', saveOptions);
+        }
+    
+        // Restore button event
+        if (restoreButton) {
+            restoreButton.addEventListener('click', restoreOptions);
+        }
+    
+        // Function to dynamically load the teamsfilter.js script
+        const loadTeamsFilterScript = () => {
+            const script = document.createElement('script');
+            script.src = 'teamsfilter.js';
+            script.type = 'text/javascript';
+            script.onload = () => {
+                console.log("Teams Filter script loaded successfully.");
+            };
+            document.body.appendChild(script);
+        };
+    });
+    
