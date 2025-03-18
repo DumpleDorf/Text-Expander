@@ -1,41 +1,32 @@
 {
-    "manifest_version": 3,
-    "name": "Text Expander",
-    "version": "1.1",
-    "description": "A Chrome extension for managing text shortcuts and expansions.",
-    "permissions": [
-      "storage",
-      "activeTab"
-    ],
-    "background": {
-      "service_worker": "background.js"
-    },
-    "action": {
-      "default_icon": {
-        "16": "icons/16x16.png",
-        "48": "icons/48x48.png",
-        "128": "icons/128x128.png"
-      }
-    },
-    "icons": {
-      "16": "icons/16x16.png",
-      "48": "icons/48x48.png",
-      "128": "icons/128x128.png"
-    },
-    "host_permissions": [
-      "http://*/*",
-      "https://*/*"
-    ],
-    "content_scripts": [
-      {
-        "matches": ["https://customerconnect.tesla.com/*"],
-        "js": ["teamsfilter.js"]
-      },
-      {
-        "matches": ["<all_urls>"],
-        "js": ["content.js"]
-      }
-    ],
-    "options_page": "options.html"
-  }
-  
+  "manifest_version": 3,
+  "name": "Towbook Data Extractor",
+  "description": "Extracts data from Towbook and displays it in the options page.",
+  "version": "1.0",
+  "permissions": [
+    "tabs",
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://app.towbook.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_icon": {
+      "16": "icons/icon.png",
+      "48": "icons/icon.png",
+      "128": "icons/icon.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://app.towbook.com/DS4/"],
+      "js": ["content.js"]
+    }
+  ],
+  "options_page": "options.html"
+}
