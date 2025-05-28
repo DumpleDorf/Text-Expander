@@ -261,6 +261,7 @@
     }
     
     document.addEventListener('DOMContentLoaded', () => {
+        const towbookAudioCheckbox = document.getElementById('towbook-audio-notifier');  // HERE
         const settingsIcon = document.querySelector('.settings-icon');
         const popup = document.getElementById('settings-popup');
         const teamsFilterCheckbox = document.getElementById('teams-filter');
@@ -268,32 +269,50 @@
         const restoreButton = document.getElementById('restore');
     
         // Restore options from Chrome storage on page load
-        chrome.storage.sync.get({ teamsFilter: false }, (items) => {
+        chrome.storage.sync.get({ teamsFilter: false, towbookAudioNotifier: false }, (items) => {
             if (teamsFilterCheckbox) {
                 teamsFilterCheckbox.checked = items.teamsFilter;
+            }
+            if (towbookAudioCheckbox) {
+                towbookAudioCheckbox.checked = items.towbookAudioNotifier;
             }
         });
     
         // Save options to Chrome storage
         const saveOptions = () => {
+            const settings = {};
             if (teamsFilterCheckbox) {
-                const teamsFilter = teamsFilterCheckbox.checked;
-                chrome.storage.sync.set({ teamsFilter }, () => {
-                    console.log("Settings saved.");
-                });
+                settings.teamsFilter = teamsFilterCheckbox.checked;
             }
+            if (towbookAudioCheckbox) {
+                settings.towbookAudioNotifier = towbookAudioCheckbox.checked;
+            }
+            chrome.storage.sync.set(settings, () => {
+                console.log("Settings saved.");
+            });
         };
     
         // Restore options to defaults
         const restoreOptions = () => {
             chrome.storage.sync.clear(() => {
-                if (teamsFilterCheckbox) {
-                    teamsFilterCheckbox.checked = false;
-                }
+                if (teamsFilterCheckbox) teamsFilterCheckbox.checked = false;
+                if (towbookAudioCheckbox) towbookAudioCheckbox.checked = false;
                 console.log("Settings restored to defaults.");
             });
         };
-    
+
+        if (towbookAudioCheckbox) {
+            towbookAudioCheckbox.addEventListener('change', () => {
+            if (towbookAudioCheckbox.checked) {
+                console.log("Towbook Audio Notifier enabled.");
+                loadTowbookNotifierScript();
+            } else {
+                console.log("Towbook Audio Notifier disabled.");
+            }
+            saveOptions();
+            });
+        }
+
         // Toggle settings popup visibility
         if (settingsIcon && popup) {
             settingsIcon.addEventListener('click', () => {
@@ -344,5 +363,19 @@
             };
             document.body.appendChild(script);
         };
+
+        const loadTowbookNotifierScript = () => {
+        const existingScript = document.querySelector('script[src="towbooknotifier.js"]');
+        if (!existingScript) {
+            const script = document.createElement('script');
+            script.src = 'towbooknotifier.js';
+            script.type = 'text/javascript';
+            script.onload = () => {
+            console.log("Towbook Notifier script loaded successfully.");
+            };
+            document.body.appendChild(script);
+        }
+        };
+
     });
     
