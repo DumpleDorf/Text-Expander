@@ -11,7 +11,7 @@ function filterDropdownOptions() {
 
         // Define the list of labels to keep
         // hardcoded - is probably best to update this eventually
-        const labelsToKeep = ['Pacific Tesla Support', 'Roadside', 'Service Center', 'Wall Connector Support']; 
+        const labelsToKeep = ['Charging Support', 'Commerce Support', 'Pacific Tesla Support', 'Roadside', 'Service Center']; 
         const labelsToKeepSet = new Set(labelsToKeep);
 
         // Find the dropdown options within the dropdown element
