@@ -266,22 +266,27 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
 
     // Confirm button logic
     confirmButton.addEventListener("click", () => {
-        // Get the values from the input fields and handle blank fields
-        const values = inputs.map((input) => input.value.trim() === "" ? "" : input.value);
+        const values = inputs.map((input) =>
+            input.value.trim() === "" ? "" : input.value
+        );
 
-        // Replace the placeholders in the target element with the input values
         let updatedText = expandedText;
         values.forEach((value, index) => {
-            const placeholder = inputs[index].placeholder; // Get the placeholder from the input
-            const placeholderPattern = new RegExp(`\\{${placeholder}\\}`, 'g');
+            const placeholder = inputs[index].placeholder;
+            const placeholderPattern = new RegExp(`\\{${placeholder}\\}`, "g");
             updatedText = updatedText.replace(placeholderPattern, value);
         });
 
-        // Call the onConfirm callback with the updated text
         onConfirm(updatedText);
 
-        document.body.removeChild(overlay); // Remove the popup and overlay
+        // Always ensure cleanup happens after confirm, regardless of input type
+        setTimeout(() => {
+            if (document.body.contains(overlay)) {
+                document.body.removeChild(overlay);
+            }
+        }, 50);
     });
+
 
     const cancelButton = document.createElement("button");
     cancelButton.textContent = "Cancel";
@@ -323,56 +328,116 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
 }
 
 function replaceShortcut(target, shortcut, replacementText) {
-    console.log("replaceShortcut called with target:", target, "shortcut:", shortcut, "replacementText:", replacementText);
+    console.log("[Shortcut Expander] Rich text replacement starting...");
 
-    if (target.tagName === "TEXTAREA" || target.tagName === "INPUT") {
-        const inputText = target.value;
-        const plainText = stripHTML(replacementText);
-        target.value = inputText.slice(0, -shortcut.length) + plainText;
+    if (!target.isContentEditable) {
+        console.error("Target is not contentEditable.");
+        return;
+    }
 
-        const newCaretPosition = target.value.length;
-        setTimeout(() => {
-            target.setSelectionRange(newCaretPosition, newCaretPosition);
-        }, 0);
+    // Find the Range that matches the shortcut text inside the contentEditable
+    const range = findRangeForText(target, shortcut);
 
-        target.dispatchEvent(new Event("input", { bubbles: true, cancelable: true }));
-    } else if (target.isContentEditable) {
-    const fullText = target.innerText;
-    if (fullText.endsWith(shortcut)) {
-        const precedingText = fullText.slice(0, fullText.length - shortcut.length);
-        const formattedText = replacementText.replace(/\n/g, "<br>");
-        target.innerHTML = precedingText + formattedText;
+    if (!range) {
+        console.warn("[Shortcut Expander] Shortcut not found in contentEditable.");
+        return;
+    }
 
-        // Place cursor at the end of the last text node
-        const selection = window.getSelection();
-        selection.removeAllRanges();
+    // Delete the contents of the shortcut text
+    range.deleteContents();
 
-        const lastNode = target.lastChild;
-        const range = document.createRange();
+    // Create replacement nodes from replacementText (replace newlines with <br>)
+    const tempDiv = document.createElement("div");
+    const MARKER_ID = "__caret_marker";
+    tempDiv.innerHTML = replacementText.replace(/\n/g, "<br>") + `<span id="${MARKER_ID}" style="display:none;"></span>`;
 
-        function placeCursorAtEnd(node) {
-            if (!node) return;
+    const fragment = document.createDocumentFragment();
+    while (tempDiv.firstChild) {
+        fragment.appendChild(tempDiv.firstChild);
+    }
 
-            if (node.nodeType === Node.TEXT_NODE) {
-                range.setStart(node, node.textContent.length);
-                range.collapse(true);
-                selection.addRange(range);
-            } else if (node.nodeType === Node.ELEMENT_NODE && node.childNodes.length > 0) {
-                placeCursorAtEnd(node.lastChild);
-            } else {
-                // fallback to placing at end of node
-                range.selectNodeContents(node);
-                range.collapse(false);
-                selection.addRange(range);
-            }
+    // Insert the replacement fragment at the range start
+    range.insertNode(fragment);
+
+    // Move the caret after the inserted content
+    setTimeout(() => {
+        const marker = document.getElementById(MARKER_ID);
+        if (marker) {
+            const selection = window.getSelection();
+            const newRange = document.createRange();
+
+            newRange.setStartAfter(marker);
+            newRange.collapse(true);
+
+            selection.removeAllRanges();
+            selection.addRange(newRange);
+
+            marker.remove();
         }
 
-        placeCursorAtEnd(lastNode);
-
-        // Dispatch input event
         target.dispatchEvent(new Event("input", { bubbles: true, cancelable: true }));
+    }, 0);
+}
+
+function findRangeForText(node, textToFind) {
+    const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT, null);
+    let currentNode;
+    let accumulatedText = "";
+    let startNode = null;
+    let startOffset = 0;
+
+    while ((currentNode = walker.nextNode())) {
+        const nodeText = currentNode.nodeValue;
+        const startIndex = accumulatedText.length;
+        const endIndex = startIndex + nodeText.length;
+
+        const shortcutIndex = textToFind ? accumulatedText.indexOf(textToFind) : -1;
+
+        // Instead of accumulatedText, do this below:
+
+        const fullText = accumulatedText + nodeText;
+        const index = fullText.indexOf(textToFind);
+
+        if (index !== -1) {
+            // Found shortcut spanning potentially multiple nodes
+
+            // Calculate start node and offset
+            if (!startNode) {
+                startNode = currentNode;
+                startOffset = index - accumulatedText.length;
+            }
+
+            // Now find end node and offset (where the shortcut ends)
+            const endPos = index + textToFind.length;
+
+            // We now have start and end in full text, but we need nodes
+            // To do this, we must continue walking nodes until accumulatedText >= endPos
+
+            let endNode = currentNode;
+            let endOffset;
+
+            let tempNode = currentNode;
+            let tempAccum = fullText.length;
+
+            while (tempAccum < endPos) {
+                tempNode = walker.nextNode();
+                if (!tempNode) break;
+                tempAccum += tempNode.nodeValue.length;
+                endNode = tempNode;
+            }
+
+            endOffset = endPos - (tempAccum - endNode.nodeValue.length);
+
+            // Create range
+            const range = document.createRange();
+            range.setStart(startNode, startOffset);
+            range.setEnd(endNode, endOffset);
+
+            return range;
+        }
+
+        accumulatedText += nodeText;
     }
-    } else {
-        console.error("Target is neither a TEXTAREA, INPUT, nor contentEditable.");
-    }
+
+    return null; // not found
 }
