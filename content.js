@@ -34,8 +34,8 @@ document.addEventListener("input", (event) => {
 
                             target.value = replacementText;
 
-                            const newCaretPosition = beforeShortcut.length + plainText.length;
                             setTimeout(() => {
+                                const newCaretPosition = replacementText.length;
                                 target.setSelectionRange(newCaretPosition, newCaretPosition);
                             }, 0);
 
@@ -45,6 +45,8 @@ document.addEventListener("input", (event) => {
                     }
                 } else if (target.isContentEditable) {
                     const selection = window.getSelection();
+                    if (!selection.rangeCount) return;
+
                     const range = selection.getRangeAt(0);
                     const node = range.startContainer;
 
@@ -55,40 +57,66 @@ document.addEventListener("input", (event) => {
                         if (shortcutIndex !== -1) {
                             if (expanded.includes("{")) {
                                 showPlaceholderPopup(expanded, shortcut, target, (finalText) => {
-                                    // Placeholder logic could be enhanced to target proper node/index
-                                    // For now, fall back to full replacement
                                     replaceShortcut(target, shortcut, finalText);
                                 });
                             } else {
                                 const beforeShortcut = text.slice(0, shortcutIndex);
                                 const afterShortcut = text.slice(shortcutIndex + shortcut.length);
 
+                                // Replace current text node with text before shortcut
                                 node.nodeValue = beforeShortcut;
 
-                                const fragment = document.createDocumentFragment();
+                                // Insert expanded HTML + caret marker span
                                 const tempDiv = document.createElement("div");
-                                tempDiv.innerHTML = expanded;
+                                const MARKER_ID = "__caret_marker";
+                                tempDiv.innerHTML = expanded + `<span id="${MARKER_ID}" style="display:none;"></span>`;
 
-                                Array.from(tempDiv.childNodes).forEach((child) =>
-                                    fragment.appendChild(child)
-                                );
-
-                                range.setStart(node, beforeShortcut.length);
-                                range.deleteContents();
-                                range.insertNode(fragment);
-
-                                const lastNode = fragment.lastChild;
-                                if (lastNode) {
-                                    const newRange = document.createRange();
-                                    const endOffset = lastNode.textContent?.length || 0;
-                                    newRange.setStart(lastNode, endOffset);
-                                    newRange.collapse(false); // ⬅️ This ensures no selection, just a cursor
-
-                                    selection.removeAllRanges();
-                                    selection.addRange(newRange);
+                                const fragment = document.createDocumentFragment();
+                                while (tempDiv.firstChild) {
+                                    fragment.appendChild(tempDiv.firstChild);
                                 }
 
-                                target.dispatchEvent(new Event("input", { bubbles: true, cancelable: true }));
+                                const nextSibling = node.nextSibling;
+                                if (node.parentNode) {
+                                    node.parentNode.insertBefore(fragment, nextSibling);
+                                }
+
+                                // Insert leftover text after inserted content
+                                if (afterShortcut.length > 0 && node.parentNode) {
+                                    const afterNode = document.createTextNode(afterShortcut);
+                                    node.parentNode.appendChild(afterNode);
+                                }
+
+                                console.log("[Shortcut Expander] Attempting to move caret after inserted content");
+
+                                setTimeout(() => {
+                                    const marker = document.getElementById(MARKER_ID);
+                                    if (marker && marker.parentNode) {
+                                        const range = document.createRange();
+                                        const selection = window.getSelection();
+
+                                        range.setStartAfter(marker);
+                                        range.collapse(true);
+
+                                        selection.removeAllRanges();
+                                        selection.addRange(range);
+
+                                        // Remove the marker from the DOM
+                                        marker.remove();
+
+                                        console.log("[Shortcut Expander] Caret moved after marker.");
+                                    } else {
+                                        console.warn("[Shortcut Expander] Marker not found, placing caret at end of contenteditable.");
+                                        const range = document.createRange();
+                                        range.selectNodeContents(target);
+                                        range.collapse(false);
+                                        const selection = window.getSelection();
+                                        selection.removeAllRanges();
+                                        selection.addRange(range);
+                                    }
+
+                                    target.dispatchEvent(new Event("input", { bubbles: true, cancelable: true }));
+                                }, 0);
                             }
                             break;
                         }
@@ -309,22 +337,41 @@ function replaceShortcut(target, shortcut, replacementText) {
 
         target.dispatchEvent(new Event("input", { bubbles: true, cancelable: true }));
     } else if (target.isContentEditable) {
-        const fullText = target.innerText.trim();
-        if (fullText.endsWith(shortcut)) {
-            const precedingText = fullText.slice(0, fullText.length - shortcut.length);
-            const formattedText = replacementText.replace(/\n/g, "<br>");
-            target.innerHTML = precedingText + formattedText;
+    const fullText = target.innerText;
+    if (fullText.endsWith(shortcut)) {
+        const precedingText = fullText.slice(0, fullText.length - shortcut.length);
+        const formattedText = replacementText.replace(/\n/g, "<br>");
+        target.innerHTML = precedingText + formattedText;
 
-            const newRange = document.createRange();
-            newRange.selectNodeContents(target);
-            newRange.collapse(false);
+        // Place cursor at the end of the last text node
+        const selection = window.getSelection();
+        selection.removeAllRanges();
 
-            const selection = window.getSelection();
-            selection.removeAllRanges();
-            selection.addRange(newRange);
+        const lastNode = target.lastChild;
+        const range = document.createRange();
 
-            target.dispatchEvent(new Event("input", { bubbles: true, cancelable: true }));
+        function placeCursorAtEnd(node) {
+            if (!node) return;
+
+            if (node.nodeType === Node.TEXT_NODE) {
+                range.setStart(node, node.textContent.length);
+                range.collapse(true);
+                selection.addRange(range);
+            } else if (node.nodeType === Node.ELEMENT_NODE && node.childNodes.length > 0) {
+                placeCursorAtEnd(node.lastChild);
+            } else {
+                // fallback to placing at end of node
+                range.selectNodeContents(node);
+                range.collapse(false);
+                selection.addRange(range);
+            }
         }
+
+        placeCursorAtEnd(lastNode);
+
+        // Dispatch input event
+        target.dispatchEvent(new Event("input", { bubbles: true, cancelable: true }));
+    }
     } else {
         console.error("Target is neither a TEXTAREA, INPUT, nor contentEditable.");
     }
