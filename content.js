@@ -191,12 +191,13 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
     popup.style.display = "flex";
     popup.style.flexDirection = "column";
     popup.style.gap = "15px";
-    popup.style.width = "500px";
+    popup.style.width = "700px";
 
     // Build content with placeholders replaced by input fields
     const previewContainer = document.createElement("div");
     previewContainer.style.fontSize = "16px";
     previewContainer.style.lineHeight = "1.5";
+    previewContainer.style.whiteSpace = "pre-wrap";
 
     const inputs = [];
     let focusFirstInput = true;
@@ -206,7 +207,6 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
         if (part.startsWith("{") && part.endsWith("}")) {
             const placeholder = part.slice(1, -1);
 
-            // Create input field for the placeholder
             const input = document.createElement("input");
             input.type = "text";
             input.placeholder = placeholder;
@@ -214,27 +214,30 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
             input.style.borderRadius = "8px";
             input.style.padding = "5px 10px";
             input.style.fontSize = "14px";
-            input.style.minWidth = "100px"; // Set a minimum width
-            input.style.width = "auto"; // Automatically adjust width based on input
+            input.style.minWidth = "100px";
+            input.style.width = "auto";
+            input.style.display = "inline-block"; // Ensure inline display
+            input.style.verticalAlign = "middle"; // Align with surrounding text
 
-            // Adjust width dynamically as user types
             input.addEventListener("input", () => {
-                input.style.width = `${Math.max(100, input.value.length * 10)}px`; // Dynamically adjust the width based on input length
+                input.style.width = `${Math.max(100, input.value.length * 10)}px`;
             });
 
-            // Automatically focus the first input field
             if (focusFirstInput) {
                 setTimeout(() => input.focus(), 0);
                 focusFirstInput = false;
             }
 
-            previewContainer.appendChild(input);
+            const inlineWrapper = document.createElement("span");
+            inlineWrapper.appendChild(input);
+
+            previewContainer.appendChild(inlineWrapper);
             inputs.push(input);
         } else {
-            // Add plain text part
-            const span = document.createElement("span");
-            span.textContent = stripHTML(part);
-            previewContainer.appendChild(span);
+            const wrapper = document.createElement("span"); // Changed from <div> to <span> for inline flow
+            wrapper.innerHTML = part;
+            wrapper.style.whiteSpace = "pre-wrap"; // Preserve spacing and newlines
+            previewContainer.appendChild(wrapper);
         }
     });
 
