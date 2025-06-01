@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Text Expander",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "A Chrome extension for managing text shortcuts and expansions.",
   "permissions": [
     "storage",

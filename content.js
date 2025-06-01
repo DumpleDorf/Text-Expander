@@ -416,11 +416,6 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
   });
 }
 
-// Helper to escape special characters for RegExp (used in replacement)
-function escapeRegExp(string) {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
 function replaceShortcut(target, shortcut, replacementText) {
     console.log("[Shortcut Expander] Rich text replacement starting...");
 
@@ -534,12 +529,4 @@ function findRangeForText(node, textToFind) {
     }
 
     return null; // not found
-}
-
-function fixPlaceholdersInHtml(html) {
-  return html.replace(/\{([^{}]*?)\}/g, (match) => {
-    // Remove any HTML tags inside the placeholder braces
-    const cleaned = match.replace(/<\/?[^>]+>/g, '');
-    return cleaned;
-  });
 }
