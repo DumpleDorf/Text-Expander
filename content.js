@@ -240,6 +240,19 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
     existingOverlay.remove();
   }
 
+  // Fix placeholders broken by HTML tags inside {...}
+  function fixBrokenPlaceholders(html) {
+    // Remove tags inside {...} placeholders so they become clean
+    return html.replace(/\{([^}]*)\}/g, (match) => {
+      // Remove any HTML tags inside the matched placeholder
+      const cleaned = match.replace(/<\/?[^>]+>/g, '');
+      return cleaned;
+    });
+  }
+
+  // Apply fix before processing further
+  expandedText = fixBrokenPlaceholders(expandedText);
+
   // Create overlay
   const overlay = document.createElement("div");
   overlay.className = "placeholder-popup-overlay"; // Add a class for easier management
@@ -281,8 +294,27 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
   const inputs = [];
   const focusFirstInputRef = { value: true };
 
-  // Preprocess expandedText to wrap placeholders with <placeholder>
-  const processedHTML = preprocessPlaceholders(expandedText);
+  // Strip HTML first, detect raw placeholders
+  const plainText = stripHTML(expandedText);
+
+  // Extract unique placeholder names like `{tire}`, `{eta}`
+  const placeholders = [...new Set([...plainText.matchAll(/\{([^{}]+)\}/g)].map(m => m[1]))];
+
+  if (placeholders.length === 0) {
+    return; // nothing to replace
+  }
+
+  // Rebuild HTML with placeholder tags on clean versions
+  const sanitized = expandedText.replace(/\{([^{}]*)\}/g, (match, inner) => {
+    const stripped = stripHTML(inner);
+    return `{${stripped}}`;
+  });
+
+  const processedHTML = preprocessPlaceholders(sanitized);
+
+  console.log("[Popup] Raw expandedText:", expandedText);
+  console.log("[Popup] Sanitized text:", sanitized);
+  console.log("[Popup] Processed HTML:", processedHTML);
 
   // Parse processed HTML and replace <placeholder> with inputs
   const tempDiv = document.createElement("div");
@@ -502,4 +534,12 @@ function findRangeForText(node, textToFind) {
     }
 
     return null; // not found
+}
+
+function fixPlaceholdersInHtml(html) {
+  return html.replace(/\{([^{}]*?)\}/g, (match) => {
+    // Remove any HTML tags inside the placeholder braces
+    const cleaned = match.replace(/<\/?[^>]+>/g, '');
+    return cleaned;
+  });
 }
