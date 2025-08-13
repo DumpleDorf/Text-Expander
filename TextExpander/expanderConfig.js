@@ -226,9 +226,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function loadTowbookNotifierScript() {
-    if (!document.querySelector('script[src="towbooknotifier.js"]')) {
+    if (!document.querySelector('script[src="TowbookAudioNotifier/towbookAudioNotification.js"]')) {
       const script = document.createElement("script");
-      script.src = "towbooknotifier.js";
+      script.src = "TowbookAudioNotifier/towbookAudioNotification.js";
       script.type = "text/javascript";
       script.onload = () => console.log("Towbook Notifier script loaded.");
       document.body.appendChild(script);

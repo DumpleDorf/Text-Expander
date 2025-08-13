@@ -1,29 +1,25 @@
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.storage.local.get("shortcuts", (data) => {
-    if (!data.shortcuts) {
-      chrome.storage.local.set({ shortcuts: {} });
-    }
-  });
+// Towbook Audio Notifier
+
+let towbookAudioNotifierEnabled = false;
+
+// Initialize cached setting
+chrome.storage.sync.get('towbookAudioNotifier', (data) => {
+  towbookAudioNotifierEnabled = !!data.towbookAudioNotifier;
+  console.log('Initial towbookAudioNotifier:', towbookAudioNotifierEnabled);
 });
 
-// Open options page on icon click
-chrome.action.onClicked.addListener(() => {
-  chrome.tabs.create({ url: chrome.runtime.getURL("options.html") });
-});
-
-// Check the setting on startup and add listeners accordingly
-chrome.storage.sync.get("towbookAudioNotifier", (data) => {
-  if (data.towbookAudioNotifier) {
-    // Add your towbook audio notifier logic here directly,
-    // or import it synchronously at the top of the file instead of here.
-    // For example:
-    setupTowbookAudioNotifier();
+// Listen for changes to update cache
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'sync' && 'towbookAudioNotifier' in changes) {
+    towbookAudioNotifierEnabled = !!changes.towbookAudioNotifier.newValue;
+    console.log('Updated towbookAudioNotifier:', towbookAudioNotifierEnabled);
   }
 });
 
-function setupTowbookAudioNotifier() {
-  chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if (changeInfo.audible && tab.url && isTowbookUrl(tab.url)) {
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.audible && tab.url && isTowbookUrl(tab.url)) {
+    if (towbookAudioNotifierEnabled) {
+      console.log("Towbook audible tab detected and notifier enabled, sending notification.");
       chrome.notifications.create({
         type: "basic",
         iconUrl: chrome.runtime.getURL("icons/towbook_icon.png"),
@@ -31,9 +27,11 @@ function setupTowbookAudioNotifier() {
         message: "Incoming Towbook Alert",
         priority: 2,
       });
+    } else {
+      console.log("Towbook audible tab detected but notifier disabled, no notification.");
     }
-  });
-}
+  }
+});
 
 function isTowbookUrl(url) {
   try {

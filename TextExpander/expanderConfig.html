@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Expander Options</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="action-buttons">
+            <button id="saveShortcutsBtn">Download Shortcuts</button>
+            <button id="uploadShortcutsBtn">Upload Shortcuts</button>
+        </div>
+
+        <h1>Manage Shortcuts</h1>
+        
+        <div>
+            <label for="shortcutInput">Shortcut:</label>
+            <input type="text" id="shortcutInput" placeholder="Enter shortcut" />
+        </div>
+        
+        <div class="toolbar">
+            <button id="boldBtn"><b>B</b></button>
+            <button id="italicBtn"><i>I</i></button>
+            <button id="underlineBtn"><u>U</u></button>
+            <button id="numberedListBtn">1.</button>
+            <button id="bulletListBtn">•</button>
+            <button id="linkBtn">Link</button>
+            <button id="insertPlaceholderBtn">Insert Placeholder</button>
+            <button id="clearTextBtn">Clear</button>
+        </div>
+
+        <div>
+            <label for="expandedTextInput">Expanded Text (Paste images, links, etc.):</label>
+            <div contenteditable="true" id="expandedTextInput" class="expandedTextInput" aria-label="Expanded text editor"></div>
+        </div>
+
+        <button id="addShortcutBtn">Add Shortcut</button>
+
+        <h2>Saved Shortcuts</h2>
+        <ul id="shortcutList" class="shortcut-list">
+            <!-- Dynamically filled with saved shortcuts -->
+        </ul>
+    </div>
+
+    <script src="expanderConfig.js"></script>
+</body>
+
+<!-- GitHub Icon at Top Right -->
+<a href="https://github.com/DumpleDorf/Text-Expander" target="_blank">
+    <img src="../icons/github_icon.png" alt="GitHub" class="github-icon">
+</a>
+<img src="../icons/settings_icon.png" alt="Settings" class="settings-icon">
+
+<div id="settings-popup" class="settings-popup">
+    <ul>
+        <li>
+            <label>
+                <input type="checkbox" id="teams-filter">
+                Enable Teams Filter
+            </label>
+        </li>
+        <li>
+            <label>
+                <input type="checkbox" id="towbook-audio-notifier">
+                Towbook Audio Notifier
+            </label>
+        </li>
+    </ul>
+</div>
+
+</html>

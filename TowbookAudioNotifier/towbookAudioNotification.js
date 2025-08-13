@@ -1,0 +1,1 @@
+// Logic for this is located in background.js due to constant monitoring being required 
