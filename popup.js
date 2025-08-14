@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Tire Quote button
+  // Tyre Quote button
   document.getElementById('tireQuoteBtn').addEventListener('click', () => {
     landingPage.style.display = 'none';
     tireQuoteSection.style.display = 'block';
