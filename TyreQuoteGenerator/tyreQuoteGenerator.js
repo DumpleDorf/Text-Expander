@@ -58,9 +58,7 @@ async function detectVinFromPage() {
     if (!tab?.id) return null;
 
     // Skip pages that cannot be scripted
-    if (tab.url.startsWith("chrome://") || tab.url.startsWith("chrome-extension://")) {
-      return null;
-    }
+    if (!tab.url.startsWith("https://")) return null;
 
     const results = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
@@ -72,17 +70,16 @@ async function detectVinFromPage() {
     });
 
     return results[0]?.result || null;
-  } catch (err) {
-    // Fail silently instead of logging an error for restricted pages
+  } catch {
     return null;
   }
 }
 
 async function handleVinAutoSelect() {
   const vin = await detectVinFromPage();
-  console.log("[Tyre Quote] VIN detected:", vin);
-
   if (!vin) return;
+
+  console.log("[Tyre Quote] VIN detected:", vin);
 
   const modelCode = vin.charAt(3).toUpperCase();
   let modelName = null;
@@ -91,21 +88,34 @@ async function handleVinAutoSelect() {
     case "Y": modelName = "Model Y"; break;
     case "S": modelName = "Model S"; break;
     case "X": modelName = "Model X"; break;
-    default: return console.log("[Tyre Quote] Unknown model code:", modelCode);
+    default:
+      console.log("[Tyre Quote] Unknown model code:", modelCode);
+      return;
   }
 
   console.log(`[Tyre Quote] Auto-selecting: ${modelName}`);
 
   const modelDropdown = document.getElementById('modelSelect');
-  if (modelDropdown) {
-    modelDropdown.value = modelName;
-    modelDropdown.dispatchEvent(new Event("change"));
-  }
 
-  // Optional: auto-select Brand/Size if only one option
+  // Wait until options are populated
+  const waitForOptions = () => new Promise((resolve) => {
+    const interval = setInterval(() => {
+      if (modelDropdown.options.length > 1) { // first option is placeholder
+        clearInterval(interval);
+        resolve();
+      }
+    }, 50);
+  });
+
+  await waitForOptions();
+
+  modelDropdown.value = modelName;
+  modelDropdown.dispatchEvent(new Event("change"));
+
+  // Optional: auto-select brand/size if only one option
   setTimeout(() => {
     const brandSelect = document.getElementById('brandSelect');
-    if (brandSelect && brandSelect.options.length === 2) { // default + 1
+    if (brandSelect && brandSelect.options.length === 2) {
       brandSelect.selectedIndex = 1;
       brandSelect.dispatchEvent(new Event("change"));
     }
@@ -152,13 +162,9 @@ function populateModels() {
   const modelSelect = document.getElementById('modelSelect');
   modelSelect.innerHTML = '<option value="">Select Model</option>';
 
-  // Desired order
   const desiredOrder = ["Model S", "Model 3", "Model X", "Model Y"];
-
-  // Find which models exist in CSV
   const csvModels = [...new Set(window.tyreData.map(item => item.Model))];
 
-  // Add only the ones present, in your desired order
   desiredOrder.forEach(model => {
     if (csvModels.includes(model)) {
       const option = document.createElement('option');
@@ -257,10 +263,10 @@ function resetDownstreamSelects(types) {
   quoteSection.style.display = 'none';
 }
 
-  // -------------------------
-  // QUOTE GENERATION
-  // -------------------------
-  function generateQuote() {
+// -------------------------
+// QUOTE GENERATION
+// -------------------------
+function generateQuote() {
   const selections = {
     model: document.getElementById("modelSelect").value,
     brand: document.getElementById("brandSelect").value,
@@ -283,41 +289,51 @@ function resetDownstreamSelects(types) {
     return;
   }
 
-  const singleTyre = parseFloat(matchingTyre["Single Tyre Labour + Disposal"] || 0) + parseFloat(matchingTyre["SCA Price"] || 0);
-  const twoTyreSet = parseFloat(matchingTyre["2x Set Tyre Labour + Disposal"] || 0) + (parseFloat(matchingTyre["SCA Price"] || 0) * 2);
-  const fourTyreSet = parseFloat(matchingTyre["4x Set Tyre Labour + Disposal"] || 0) + (parseFloat(matchingTyre["SCA Price"] || 0) * 4);
+  // Get region from storage
+  chrome.storage.local.get({ region: 'AU' }, (data) => {
+    const isNZ = data.region === 'NZ';
+    const currencyLabel = isNZ ? '$NZD' : '$';
 
-  const currentDate = new Date().toLocaleDateString();
+    const singleTyre = parseFloat(matchingTyre["Single Tyre Labour + Disposal"] || 0) +
+                        parseFloat(matchingTyre["SCA Price"] || 0);
+    const twoTyreSet = parseFloat(matchingTyre["2x Set Tyre Labour + Disposal"] || 0) +
+                       (parseFloat(matchingTyre["SCA Price"] || 0) * 2);
+    const fourTyreSet = parseFloat(matchingTyre["4x Set Tyre Labour + Disposal"] || 0) +
+                        (parseFloat(matchingTyre["SCA Price"] || 0) * 4);
 
-  const quoteText = document.getElementById("quoteText");
-  quoteText.textContent = `TESLA TYRE ESTIMATE
-  Date: ${currentDate}
+    const currentDate = new Date().toLocaleDateString();
 
-  Tyre Information:
-  • Model: Tesla ${selections.model}
-  • Brand: ${selections.brand}
-  • Size: ${selections.size}
-  • Part Number: ${matchingTyre["Part Number"]}
+    const quoteText = document.getElementById("quoteText");
+    quoteText.textContent = `TESLA TYRE ESTIMATE
+Date: ${currentDate}
 
-  Pricing:
-  • Single Tyre: $${singleTyre.toFixed(2)}
-  • 2x Set Tyres: $${twoTyreSet.toFixed(2)}
-  • 4x Set Tyres: $${fourTyreSet.toFixed(2)}
+Tyre Information:
+• Model: Tesla ${selections.model}
+• Brand: ${selections.brand}
+• Size: ${selections.size}
+• Part Number: ${matchingTyre["Part Number"]}
 
-  Additional Information:
-  • Installation, labour, and tyre disposal included
-  • Final estimate may vary onsite depending on service and availability
+Pricing:
+• Single Tyre: ${isNZ ? '$NZD' : '$' + singleTyre.toFixed(2)}
+• 2x Set Tyres: ${isNZ ? '$NZD' : '$' + twoTyreSet.toFixed(2)}
+• 4x Set Tyres: ${isNZ ? '$NZD' : '$' + fourTyreSet.toFixed(2)}
 
-  Thank you for helping to accelerate the world's transition to sustainable energy,
-  Tesla Support`;
+Additional Information:
+• Installation, labour, and tyre disposal included
+• Final estimate may vary onsite depending on service and availability
 
-  document.getElementById("quoteSection").style.display = "block";
-  quoteText.scrollIntoView({ behavior: "smooth" });
+Thank you for helping to accelerate the world's transition to sustainable energy,
+Tesla Support`;
+
+    document.getElementById("quoteSection").style.display = "block";
+    quoteText.scrollIntoView({ behavior: "smooth" });
+  });
 }
+
 
 // -------------------------
 // COPY QUOTE
-// -----------  --------------
+// -------------------------
 function copyQuoteToClipboard() {
   const quoteText = document.getElementById('quoteText').innerText || "";
   const notification = document.getElementById('copyNotification');
@@ -356,7 +372,6 @@ function copyQuoteToClipboard() {
 document.addEventListener('DOMContentLoaded', () => {
   const regionToggle = document.getElementById('regionToggle');
 
-  // Load saved setting from chrome.storage
   chrome.storage.local.get({ region: 'AU' }, (data) => {
     regionToggle.checked = data.region === 'NZ';
   });
@@ -366,10 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.storage.local.set({ region: selectedRegion });
     console.log('[Tyre Quote] Region set to:', selectedRegion);
 
-    // Optional: re-generate quote if one is already displayed
     const quoteSection = document.getElementById('quoteSection');
-    if (quoteSection.style.display === 'block') {
-      generateQuote();
-    }
+    if (quoteSection.style.display === 'block') generateQuote();
   });
 });
