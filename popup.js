@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
   const landingPage = document.getElementById('landingPage');
-  const tireQuoteSection = document.getElementById('tireQuoteSection');
+  const tyreQuoteSection = document.getElementById('tyreQuoteSection');
   const backBtn = document.getElementById('backBtn');
 
   const towbookToggle = document.getElementById('towbookToggle');
@@ -17,14 +17,14 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Tyre Quote button
-  document.getElementById('tireQuoteBtn').addEventListener('click', () => {
+  document.getElementById('tyreQuoteBtn').addEventListener('click', () => {
     landingPage.style.display = 'none';
-    tireQuoteSection.style.display = 'block';
+    tyreQuoteSection.style.display = 'block';
   });
 
-  // Back button for tire quote section
+  // Back button for tyre quote section
   backBtn.addEventListener('click', () => {
-    tireQuoteSection.style.display = 'none';
+    tyreQuoteSection.style.display = 'none';
     landingPage.style.display = 'flex';
   });
 

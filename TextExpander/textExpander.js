@@ -297,7 +297,7 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
   // Strip HTML first, detect raw placeholders
   const plainText = stripHTML(expandedText);
 
-  // Extract unique placeholder names like `{tire}`, `{eta}`
+  // Extract unique placeholder names like `{tyre}`, `{eta}`
   const placeholders = [...new Set([...plainText.matchAll(/\{([^{}]+)\}/g)].map(m => m[1]))];
 
   if (placeholders.length === 0) {

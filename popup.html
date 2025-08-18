@@ -344,6 +344,42 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.quote-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.region-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.region-label {
+  font-size: 14px;
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+/* AU/NZ slider only */
+.region-switch .slider:before {
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  top: 1.5px;
+}
+
+.region-switch input:checked + .slider:before {
+  transform: translateX(15px);
+}
 
 </style>
 </head>
@@ -357,7 +393,7 @@
     </div>
 
   <button id="textExpanderBtn">Text Expander</button>
-  <button id="tireQuoteBtn">Tyre Quote Generator</button>
+  <button id="tyreQuoteBtn">Tyre Quote Generator</button>
 
   <div class="menu-item">
     <span>Towbook Notifier</span>
@@ -377,10 +413,21 @@
 </div>
 
 
-  <div id="tireQuoteSection" style="display:none;">
+  <div id="tyreQuoteSection" style="display:none;">
     <button id="backBtn">Back</button>
     <div class="container">
-      <h1>🚗 Tesla Tyre Quote</h1>
+  <div class="header-row">
+    <div class="quote-title">🚗 Tesla Tyre Quote</div>
+    <div class="region-container">
+      <span class="region-label">AU</span>
+      <label class="switch region-switch">
+        <input type="checkbox" id="regionToggle" />
+        <span class="slider"></span>
+      </label>
+      <span class="region-label">NZ</span>
+    </div>
+  </div>
+
 
       <div class="step">
         <div class="step-title">1. Select Tesla Model</div>
@@ -422,7 +469,7 @@
 
   <div id="copyNotification">Quote copied to clipboard!</div>
 
-  <script src="TireQuoteGenerator/tireQuoteGenerator.js"></script>
+  <script src="TyreQuoteGenerator/tyreQuoteGenerator.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
