@@ -1,12 +1,14 @@
-document.addEventListener("input", (event) => {
-    const target = event.target;
+// -----------------------------
+// 1️⃣ Attach input listener to editors (textarea, input, contentEditable)
+// -----------------------------
+function attachExpander(el) {
+    if (!el || el.dataset.expanderAttached) return;
+    el.dataset.expanderAttached = "true";
 
-    if (
-        target &&
-        (target.tagName === "TEXTAREA" ||
-            target.tagName === "INPUT" ||
-            target.isContentEditable)
-    ) {
+    el.addEventListener("input", (event) => {
+        const target = event.target;
+        if (!target) return;
+
         const inputText =
             target.tagName === "TEXTAREA" || target.tagName === "INPUT"
                 ? target.value
@@ -16,116 +18,58 @@ document.addEventListener("input", (event) => {
             const shortcuts = data.shortcuts || {};
 
             for (const [shortcut, expanded] of Object.entries(shortcuts)) {
-                if (target.tagName === "TEXTAREA" || target.tagName === "INPUT") {
-                    const caretPos = target.selectionStart;
-                    const textBeforeCaret = inputText.slice(0, caretPos);
-                    const shortcutIndex = textBeforeCaret.lastIndexOf(shortcut);
-
-                    if (shortcutIndex !== -1) {
-                        if (expanded.includes("{")) {
-                            showPlaceholderPopup(expanded, shortcut, target, (finalText) => {
-                                replaceShortcutAtIndex(target, shortcut, finalText, shortcutIndex);
-                            });
-                        } else {
-                            const plainText = stripHTML(expanded);
-                            const beforeShortcut = inputText.slice(0, shortcutIndex);
-                            const afterShortcut = inputText.slice(shortcutIndex + shortcut.length);
-                            const replacementText = beforeShortcut + plainText + afterShortcut;
-
-                            target.value = replacementText;
-
-                            setTimeout(() => {
-                                const newCaretPosition = replacementText.length;
-                                target.setSelectionRange(newCaretPosition, newCaretPosition);
-                            }, 0);
-
-                            target.dispatchEvent(new Event("input", { bubbles: true, cancelable: true }));
-                        }
-                        break;
-                    }
-                } else if (target.isContentEditable) {
-                    const selection = window.getSelection();
-                    if (!selection.rangeCount) return;
-
-                    const range = selection.getRangeAt(0);
-                    const node = range.startContainer;
-
-                    if (node.nodeType === Node.TEXT_NODE) {
-                        const text = node.nodeValue;
-                        const shortcutIndex = text.lastIndexOf(shortcut);
-
-                        if (shortcutIndex !== -1) {
-                            if (expanded.includes("{")) {
-                                showPlaceholderPopup(expanded, shortcut, target, (finalText) => {
-                                    replaceShortcut(target, shortcut, finalText);
-                                });
+                if (inputText.includes(shortcut)) {
+                    if (expanded.includes("{")) {
+                        showPlaceholderPopup(expanded, shortcut, target, (finalText) => {
+                            if (target.isContentEditable) {
+                                replaceShortcut(target, shortcut, finalText);
                             } else {
-                                const beforeShortcut = text.slice(0, shortcutIndex);
-                                const afterShortcut = text.slice(shortcutIndex + shortcut.length);
-
-                                // Replace current text node with text before shortcut
-                                node.nodeValue = beforeShortcut;
-
-                                // Insert expanded HTML + caret marker span
-                                const tempDiv = document.createElement("div");
-                                const MARKER_ID = "__caret_marker";
-                                tempDiv.innerHTML = expanded + `<span id="${MARKER_ID}" style="display:none;"></span>`;
-
-                                const fragment = document.createDocumentFragment();
-                                while (tempDiv.firstChild) {
-                                    fragment.appendChild(tempDiv.firstChild);
-                                }
-
-                                const nextSibling = node.nextSibling;
-                                if (node.parentNode) {
-                                    node.parentNode.insertBefore(fragment, nextSibling);
-                                }
-
-                                // Insert leftover text after inserted content
-                                if (afterShortcut.length > 0 && node.parentNode) {
-                                    const afterNode = document.createTextNode(afterShortcut);
-                                    node.parentNode.appendChild(afterNode);
-                                }
-
-                                console.log("[Shortcut Expander] Attempting to move caret after inserted content");
-
-                                setTimeout(() => {
-                                    const marker = document.getElementById(MARKER_ID);
-                                    if (marker && marker.parentNode) {
-                                        const range = document.createRange();
-                                        const selection = window.getSelection();
-
-                                        range.setStartAfter(marker);
-                                        range.collapse(true);
-
-                                        selection.removeAllRanges();
-                                        selection.addRange(range);
-
-                                        // Remove the marker from the DOM
-                                        marker.remove();
-
-                                        console.log("[Shortcut Expander] Caret moved after marker.");
-                                    } else {
-                                        console.warn("[Shortcut Expander] Marker not found, placing caret at end of contenteditable.");
-                                        const range = document.createRange();
-                                        range.selectNodeContents(target);
-                                        range.collapse(false);
-                                        const selection = window.getSelection();
-                                        selection.removeAllRanges();
-                                        selection.addRange(range);
-                                    }
-
-                                    target.dispatchEvent(new Event("input", { bubbles: true, cancelable: true }));
-                                }, 0);
+                                const index = target.value.lastIndexOf(shortcut);
+                                replaceShortcutAtIndex(target, shortcut, finalText, index);
                             }
-                            break;
+                        });
+                    } else {
+                        if (target.isContentEditable) {
+                            replaceShortcut(target, shortcut, expanded);
+                        } else {
+                            const index = target.value.lastIndexOf(shortcut);
+                            replaceShortcutAtIndex(target, shortcut, expanded, index);
                         }
                     }
+                    break;
                 }
             }
         });
+    });
+}
+
+// -----------------------------
+// 2️⃣ Find all editors recursively (including shadow DOM)
+// -----------------------------
+function findAllEditors(root) {
+    const editors = [];
+    function traverse(node) {
+        if (!node) return;
+        if (node.shadowRoot) traverse(node.shadowRoot);
+        if (node.matches?.("[contenteditable='true'], textarea, input")) editors.push(node);
+        node.querySelectorAll?.("[contenteditable='true'], textarea, input").forEach(traverse);
     }
+    traverse(root);
+    return editors;
+}
+
+// -----------------------------
+// 3️⃣ Attach to all existing editors
+// -----------------------------
+findAllEditors(document).forEach(attachExpander);
+
+// -----------------------------
+// 4️⃣ Observe DOM for new editors (dynamic content)
+// -----------------------------
+const observer = new MutationObserver(() => {
+    findAllEditors(document).forEach(attachExpander);
 });
+observer.observe(document, { childList: true, subtree: true });
 
 function replaceShortcutAtIndex(target, shortcut, replacementText, index) {
     if (target.tagName === "TEXTAREA" || target.tagName === "INPUT") {
@@ -282,14 +226,25 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
     display: "flex",
     flexDirection: "column",
     gap: "15px",
-    width: "700px",
-    whiteSpace: "pre-wrap"
+    width: "min(700px, 92vw)",   // responsive width
+    maxHeight: "90vh",           // cap overall height
+    boxSizing: "border-box",
+    overflow: "hidden"           // content scrolls inside the preview area
   });
 
   // Container to hold the preview content
   const previewContainer = document.createElement("div");
-  previewContainer.style.fontSize = "16px";
-  previewContainer.style.lineHeight = "1.5";
+  Object.assign(previewContainer.style, {
+    fontSize: "16px",
+    lineHeight: "1.5",
+    whiteSpace: "pre-wrap",
+    overflowY: "auto",      // shows a scrollbar only if content is too long
+    flex: "1 1 auto",       // let this section grow/shrink
+    minHeight: "0",         // critical so flexed children can actually shrink
+    paddingRight: "8px",    // room for scrollbar so text doesn’t clip
+    wordBreak: "break-word",
+    overflowWrap: "anywhere"
+  });
 
   const inputs = [];
   const focusFirstInputRef = { value: true };
@@ -530,3 +485,4 @@ function findRangeForText(node, textToFind) {
 
     return null; // not found
 }
+
