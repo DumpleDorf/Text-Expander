@@ -31,16 +31,26 @@
     "https://*/*"
   ],
   "content_scripts": [
-    {
-      "matches": ["https://customerconnect.tesla.com/*"],
-      "js": ["TeamsDropdownFilter/teamsFilter.js"]
-    },
-    {
-      "matches": ["<all_urls>"],
-      "js": ["TextExpander/textExpander.js"]
-    }
-  ],
-  "web_accessible_resources": [
+  {
+    "matches": ["<all_urls>"],
+    "js": ["TextExpander/textExpander.js"],
+    "all_frames": true,
+    "match_about_blank": true
+  },
+  {
+    "matches": ["https://customerconnect.tesla.com/*"],
+    "js": ["TextExpander/textExpander.js"],
+    "all_frames": true,
+    "match_about_blank": true
+  },
+  {
+    "matches": ["https://customerconnect.tesla.com/*"],
+    "js": ["TeamsDropdownFilter/teamsFilter.js"],
+    "all_frames": true,
+    "match_about_blank": true
+  }
+],
+"web_accessible_resources": [
     {
       "resources": ["icons/*.png", "TyreQuoteGenerator/tyre_prices.csv"],
       "matches": ["<all_urls>"]
