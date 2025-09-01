@@ -1,61 +1,74 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const landingPage = document.getElementById('landingPage');
-  const tyreQuoteSection = document.getElementById('tyreQuoteSection');
+  // Buttons
+  const textExpanderBtn = document.getElementById('textExpanderBtn');
+  const tyreQuoteBtn = document.getElementById('tyreQuoteBtn');
   const backBtn = document.getElementById('backBtn');
 
+  // Sections
+  const landingPage = document.getElementById('landingPage');
+  const tyreQuoteSection = document.getElementById('tyreQuoteSection');
+
+  // Toggles
   const towbookToggle = document.getElementById('towbookToggle');
-  const towbookToggleWrapper = document.getElementById('towbookToggleWrapper');
-
   const teamsToggle = document.getElementById('teamsToggle');
-  const teamsToggleWrapper = document.getElementById('teamsToggleWrapper');
+  const scAutoMessagerToggle = document.getElementById('scAutoMessagerToggle');
 
-  // Text Expander button
-  document.getElementById('textExpanderBtn').addEventListener('click', () => {
-    if (chrome.runtime.openOptionsPage) {
+  // --- Button handlers ---
+  if (textExpanderBtn) {
+    textExpanderBtn.addEventListener('click', () => {
       window.open(chrome.runtime.getURL('TextExpander/expanderConfig.html'));
-    }
-  });
-
-  // Tyre Quote button
-  document.getElementById('tyreQuoteBtn').addEventListener('click', () => {
-    landingPage.style.display = 'none';
-    tyreQuoteSection.style.display = 'block';
-  });
-
-  // Back button for tyre quote section
-  backBtn.addEventListener('click', () => {
-    tyreQuoteSection.style.display = 'none';
-    landingPage.style.display = 'flex';
-  });
-
-  // Load both toggles settings on popup open
-  chrome.storage.sync.get(
-    { towbookAudioNotifier: false, teamsFilter: false },
-    (items) => {
-      towbookToggle.checked = items.towbookAudioNotifier;
-      towbookToggleWrapper.classList.add('visible');
-      console.log(`Towbook Audio Notifier is ${items.towbookAudioNotifier ? 'enabled' : 'disabled'} on load.`);
-
-      teamsToggle.checked = items.teamsFilter;
-      teamsToggleWrapper.classList.add('visible');
-      console.log(`Teams Filter is ${items.teamsFilter ? 'enabled' : 'disabled'} on load.`);
-    }
-  );
-
-  // Save toggle changes immediately
-  towbookToggle.addEventListener('change', () => {
-    const enabled = towbookToggle.checked;
-    console.log(`Towbook Audio Notifier ${enabled ? 'enabled' : 'disabled'}.`);
-    chrome.storage.sync.set({ towbookAudioNotifier: enabled }, () => {
-      console.log('Towbook Audio Notifier setting saved.');
     });
+  }
+
+  if (tyreQuoteBtn && landingPage && tyreQuoteSection) {
+    tyreQuoteBtn.addEventListener('click', () => {
+      landingPage.style.display = 'none';
+      tyreQuoteSection.style.display = 'block';
+    });
+  }
+
+  if (backBtn && landingPage && tyreQuoteSection) {
+    backBtn.addEventListener('click', () => {
+      tyreQuoteSection.style.display = 'none';
+      landingPage.style.display = 'flex';
+    });
+  }
+
+  // --- Load toggle states from storage ---
+  chrome.storage.sync.get({
+    towbookAudioNotifier: false,
+    teamsFilter: false,
+    scAutoMessagerEnabled: false
+  }, (items) => {
+    if (towbookToggle) towbookToggle.checked = items.towbookAudioNotifier;
+    if (teamsToggle) teamsToggle.checked = items.teamsFilter;
+    if (scAutoMessagerToggle) scAutoMessagerToggle.checked = items.scAutoMessagerEnabled;
   });
 
-  teamsToggle.addEventListener('change', () => {
-    const enabled = teamsToggle.checked;
-    console.log(`Teams Filter ${enabled ? 'enabled' : 'disabled'}.`);
-    chrome.storage.sync.set({ teamsFilter: enabled }, () => {
-      console.log('Teams Filter setting saved.');
+  // --- Save toggle changes ---
+  if (towbookToggle) {
+    towbookToggle.addEventListener('change', () => {
+      chrome.storage.sync.set({ towbookAudioNotifier: towbookToggle.checked });
     });
+  }
+
+  if (teamsToggle) {
+    teamsToggle.addEventListener('change', () => {
+      chrome.storage.sync.set({ teamsFilter: teamsToggle.checked });
+    });
+  }
+
+if (scAutoMessagerBtn) {
+  scAutoMessagerBtn.addEventListener('click', () => {
+    window.open(chrome.runtime.getURL('SCA_AutoMessager/scConfig.html'));
   });
+}
+
+if (scAutoMessagerToggle) {
+  scAutoMessagerToggle.addEventListener('change', () => {
+    chrome.storage.sync.set({ scAutoMessagerEnabled: scAutoMessagerToggle.checked });
+    console.log(`SC AutoMessager toggle is now ${scAutoMessagerToggle.checked ? 'ON' : 'OFF'}`);
+  });
+}
+
 });

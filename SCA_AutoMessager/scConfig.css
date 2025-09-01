@@ -1,0 +1,115 @@
+:root {
+    --vertical-gap: 6px;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
+    margin: 0;
+    padding: 40px 20px;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-size: cover;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.container {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    width: 900px;
+    max-width: 95%;
+}
+
+.info-message {
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 12px;
+    text-align: center;
+    background: #f0f4f8;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #d1dbe5;
+}
+
+h1 {
+    margin: 0 0 20px 0;
+    font-size: 28px;
+    text-align: center;
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+#searchInput {
+    width: calc(100% - 20px);
+    max-width: 100%;
+    padding: 10px;
+    margin: 0 auto 15px auto;
+    display: block;
+    border: 2px solid #e1e8ed;
+    border-radius: 8px;
+    font-size: 16px;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+#searchInput:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 16px;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+th, td {
+    padding: 10px;
+    text-align: left;
+}
+
+th {
+    background: #3498db;
+    color: white;
+    font-weight: 600;
+}
+
+tr:nth-child(even) {
+    background: #f8f9fa;
+}
+
+tr:hover {
+    background: #e1ecf7;
+}
+
+td a {
+    color: #007aff;
+    text-decoration: none;
+}
+
+td a:hover {
+    text-decoration: underline;
+}
+
+/* Rounded edges for table */
+table th:first-child {
+    border-top-left-radius: 12px;
+}
+table th:last-child {
+    border-top-right-radius: 12px;
+}
+table tr:last-child td:first-child {
+    border-bottom-left-radius: 12px;
+}
+table tr:last-child td:last-child {
+    border-bottom-right-radius: 12px;
+}

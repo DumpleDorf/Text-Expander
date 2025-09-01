@@ -5,8 +5,10 @@ console.log("tyreQuoteGenerator.js loaded");
 // -------------------------
 document.addEventListener('DOMContentLoaded', async () => {
   try {
-    const response = await fetch(chrome.runtime.getURL("../TyreQuoteGenerator/tyre_prices.csv"));
-    if (!response.ok) throw new Error('Failed to fetch CSV');
+    console.log("[Tyre Quote] Fetching CSV from:", chrome.runtime.getURL("TyreQuoteGenerator/tyre_prices.csv"));
+    const response = await fetch(chrome.runtime.getURL("TyreQuoteGenerator/tyre_prices.csv"));
+    console.log("[Tyre Quote] Fetch status:", response.status);
+
 
     const csvText = await response.text();
     console.log('CSV text:', csvText.slice(0, 200));
@@ -289,17 +291,18 @@ function generateQuote() {
     return;
   }
 
-  // Get region from storage
   chrome.storage.local.get({ region: 'AU' }, (data) => {
     const isNZ = data.region === 'NZ';
     const currencyLabel = isNZ ? '$NZD' : '$';
 
-    const singleTyre = parseFloat(matchingTyre["Single Tyre Labour + Disposal"] || 0) +
-                        parseFloat(matchingTyre["SCA Price"] || 0);
-    const twoTyreSet = parseFloat(matchingTyre["2x Set Tyre Labour + Disposal"] || 0) +
-                       (parseFloat(matchingTyre["SCA Price"] || 0) * 2);
-    const fourTyreSet = parseFloat(matchingTyre["4x Set Tyre Labour + Disposal"] || 0) +
-                        (parseFloat(matchingTyre["SCA Price"] || 0) * 4);
+    const basePrice = parseFloat(matchingTyre["SCA Price"] || 0);
+    const singleLabour = parseFloat(matchingTyre["Single Tyre Labour + Disposal"] || 0);
+
+    // Single tyre replacement (pre-GST)
+    let singleTyreReplacement = basePrice + singleLabour;
+
+    // Apply GST only for AU
+    if (!isNZ) singleTyreReplacement *= 1.1;
 
     const currentDate = new Date().toLocaleDateString();
 
@@ -313,14 +316,13 @@ Tyre Information:
 • Size: ${selections.size}
 • Part Number: ${matchingTyre["Part Number"]}
 
-Pricing:
-• Single Tyre: ${isNZ ? '$NZD' : '$' + singleTyre.toFixed(2)}
-• 2x Set Tyres: ${isNZ ? '$NZD' : '$' + twoTyreSet.toFixed(2)}
-• 4x Set Tyres: ${isNZ ? '$NZD' : '$' + fourTyreSet.toFixed(2)}
+Pricing: 
+• Tyre Repair: ${currencyLabel}112.67
+• Tyre Replacement: ${currencyLabel}${singleTyreReplacement.toFixed(2)}
 
 Additional Information:
-• Installation, labour, and tyre disposal included
-• Final estimate may vary onsite depending on service and availability
+• GST, Installation, labour, and tyre disposal included.
+• Final estimate may vary onsite depending on service and availability.
 
 Thank you for helping to accelerate the world's transition to sustainable energy,
 Tesla Support`;
@@ -329,6 +331,7 @@ Tesla Support`;
     quoteText.scrollIntoView({ behavior: "smooth" });
   });
 }
+
 
 
 // -------------------------

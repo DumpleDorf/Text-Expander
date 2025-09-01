@@ -8,13 +8,21 @@ chrome.storage.sync.get('towbookAudioNotifier', (data) => {
   console.log('Initial towbookAudioNotifier:', towbookAudioNotifierEnabled);
 });
 
-// Listen for changes to update cache
+// Listen for toggle changes from popup or storage
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'sync' && 'towbookAudioNotifier' in changes) {
-    towbookAudioNotifierEnabled = !!changes.towbookAudioNotifier.newValue;
-    console.log('Updated towbookAudioNotifier:', towbookAudioNotifierEnabled);
-  }
+    if (area === "sync" && "scAutoMessagerEnabled" in changes) {
+        // Notify all Towbook tabs about the change
+        chrome.tabs.query({ url: "*://app.towbook.com/*" }, (tabs) => {
+            tabs.forEach(tab => {
+                chrome.tabs.sendMessage(tab.id, {
+                    action: "toggleAutoMessager",
+                    enabled: changes.scAutoMessagerEnabled.newValue
+                });
+            });
+        });
+    }
 });
+
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.audible && tab.url && isTowbookUrl(tab.url)) {

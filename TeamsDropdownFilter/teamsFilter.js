@@ -1,56 +1,67 @@
 console.log("TeamsFilter script loaded.");
 
+// Labels to keep
+const labelsToKeep = ['Charging Support', 'Commerce Support', 'Pacific Tesla Support', 'Roadside', 'Service Center'];
+const labelsToKeepSet = new Set(labelsToKeep);
+
+// Filter function
 function filterDropdownOptions() {
   const dropdown = document.querySelector('#tcc-header-team-id');
-  if (dropdown) {
-    const labelsToKeep = ['Charging Support', 'Commerce Support', 'Pacific Tesla Support', 'Roadside', 'Service Center'];
-    const labelsToKeepSet = new Set(labelsToKeep);
+  if (!dropdown) return;
 
-    const optionList = dropdown.querySelector('div.tds-form-input');
-    if (optionList) {
-      Array.from(optionList.querySelectorAll('li')).forEach((item) => {
-        const label = item.getAttribute('data-tds-label');
-        if (!labelsToKeepSet.has(label)) {
-          item.style.display = 'none';
-        }
-      });
-    }
-  } else {
-    console.log("TeamsFilter: Dropdown not found.");
-  }
+  const optionList = dropdown.querySelector('div.tds-form-input');
+  if (!optionList) return;
+
+  Array.from(optionList.querySelectorAll('li')).forEach(item => {
+    const label = item.getAttribute('data-tds-label');
+    item.style.display = labelsToKeepSet.has(label) ? '' : 'none';
+  });
 }
 
-// Check the setting before running the filter
-function handlePageClick() {
+// Reset visibility if filter is disabled
+function resetDropdownVisibility() {
+  const dropdown = document.querySelector('#tcc-header-team-id');
+  if (!dropdown) return;
+
+  const optionList = dropdown.querySelector('div.tds-form-input');
+  if (!optionList) return;
+
+  Array.from(optionList.querySelectorAll('li')).forEach(item => {
+    item.style.display = '';
+  });
+}
+
+// Apply filter if enabled
+function applyFilter() {
+  if (!window.chrome || !chrome.storage || !chrome.storage.sync) return;
+
   chrome.storage.sync.get({ teamsFilter: false }, (items) => {
     if (items.teamsFilter) {
       filterDropdownOptions();
     } else {
-      // Optional: If disabled, you might want to reset visibility for all options if needed
       resetDropdownVisibility();
     }
   });
 }
 
-// Optional helper to reset visibility if filter disabled
-function resetDropdownVisibility() {
-  const dropdown = document.querySelector('#tcc-header-team-id');
-  if (dropdown) {
-    const optionList = dropdown.querySelector('div.tds-form-input');
-    if (optionList) {
-      Array.from(optionList.querySelectorAll('li')).forEach((item) => {
-        item.style.display = ''; // Reset to default
-      });
-    }
-  }
-}
-
-// Throttle clicks
+// Throttled click handler
 let clickTimeout = null;
 document.addEventListener('click', () => {
   if (clickTimeout) clearTimeout(clickTimeout);
-  clickTimeout = setTimeout(handlePageClick, 100);
+  clickTimeout = setTimeout(applyFilter, 100);
 });
 
-// Run once on load if enabled
-handlePageClick();
+// Wait for dropdown to exist before running filter
+function waitForDropdown() {
+  if (window.top !== window.self) return; // Only run in top frame
+
+  const dropdown = document.querySelector('#tcc-header-team-id');
+  if (dropdown) {
+    applyFilter();
+  } else {
+    setTimeout(waitForDropdown, 500); // Retry every 500ms
+  }
+}
+
+// Start observing
+waitForDropdown();

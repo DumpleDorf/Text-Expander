@@ -6,333 +6,281 @@
 <title>Extension Popup</title>
 <style>
   :root {
-    --vertical-gap: 6px; /* Change this to adjust vertical spacing globally */
-  }
+  --vertical-gap: 6px; /* Global vertical spacing */
+}
 
-  body {
-      width: 400px;
-      height: auto;
-      margin: 0;
-      padding: 20px;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-  }
+body {
+  width: 400px;
+  margin: 0;
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
 
-  .container {
-      background: rgba(255, 255, 255, 0.95);
-      border-radius: 15px;
-      padding: 20px;
-      color: #333;
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-  }
+.container {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 15px;
+  padding: 20px;
+  color: #333;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
 
-  h1 {
-      margin: 0 0 20px 0;
-      font-size: 24px;
-      text-align: center;
-      color: #2c3e50;
-      font-weight: 600;
-  }
+h1 {
+  margin: 0 0 20px 0;
+  font-size: 24px;
+  text-align: center;
+  color: #2c3e50;
+  font-weight: 600;
+}
 
-  .step {
-      margin-bottom: 20px;
-      padding: 15px;
-      border-left: 4px solid #3498db;
-      background: #f8f9fa;
-      border-radius: 0 8px 8px 0;
-  }
+.step {
+  margin-bottom: 20px;
+  padding: 15px;
+  border-left: 4px solid #3498db;
+  background: #f8f9fa;
+  border-radius: 0 8px 8px 0;
+}
 
-  .step-title {
-      font-weight: bold;
-      margin-bottom: 10px;
-      color: #2c3e50;
-      font-size: 14px;
-  }
+.step-title {
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #2c3e50;
+  font-size: 14px;
+}
 
-  select, input, button {
-      width: 100%;
-      padding: 10px;
-      margin: 5px 0;
-      border: 2px solid #e1e8ed;
-      border-radius: 6px;
-      font-size: 16px;
-      transition: all 0.3s ease;
-  }
+select,
+input,
+button {
+  width: 100%;
+  padding: 10px;
+  margin: 5px 0;
+  border: 2px solid #e1e8ed;
+  border-radius: 6px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
 
-  select:focus, input:focus {
-      outline: none;
-      border-color: #3498db;
-      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
-  }
+select:focus,
+input:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
 
-  select:disabled, input:disabled {
-      background-color: #f5f5f5;
-      color: #999;
-      cursor: not-allowed;
-  }
+select:disabled,
+input:disabled {
+  background-color: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+}
 
-  button {
-      background: linear-gradient(135deg, #3498db, #2980b9);
-      color: white;
-      border: none;
-      cursor: pointer;
-      font-weight: bold;
-      margin-top: var(--vertical-gap);
-      transition: all 0.3s ease;
-      border-radius: 6px;
-  }
+button {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  margin-top: var(--vertical-gap);
+  transition: all 0.3s ease;
+  border-radius: 6px;
+}
 
-  button:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
-  }
+button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
+}
 
-  button:disabled {
-      background: #bdc3c7;
-      cursor: not-allowed;
-      transform: none;
-      box-shadow: none;
-  }
+button:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
 
-  .quote-section {
-      background: #2c3e50;
-      color: white;
-      padding: 20px;
-      border-radius: 8px;
-      margin-top: 20px;
-      display: none;
-  }
+.quote-section {
+  background: #2c3e50;
+  color: white;
+  padding: 20px;
+  border-radius: 8px;
+  margin-top: 20px;
+  display: none;
+}
 
-  .quote-section h3 {
-      margin: 0 0 15px 0;
-      color: #ecf0f1;
-  }
+.quote-section h3 {
+  margin: 0 0 15px 0;
+  color: #ecf0f1;
+}
 
-  .quote-text {
-      background: #34495e;
-      padding: 15px;
-      border-radius: 6px;
-      font-family: 'Courier New', monospace;
-      font-size: 18px;
-      line-height: 1.4;
-      white-space: pre-wrap;
-      margin-bottom: 15px;
-  }
+.quote-text {
+  background: #34495e;
+  padding: 15px;
+  border-radius: 6px;
+  font-family: 'Courier New', monospace;
+  font-size: 18px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  margin-bottom: 15px;
+}
 
-  .copy-btn {
-      background: #27ae60;
-      margin-top: var(--vertical-gap);
-  }
+.copy-btn {
+  background: #27ae60;
+  margin-top: var(--vertical-gap);
+}
 
-  .copy-btn:hover {
-      background: #229954;
-  }
+.copy-btn:hover {
+  background: #229954;
+}
 
-  /* Landing page container - white box */
-  #landingPage {
-    display: flex;
-    flex-direction: column;
-    gap: var(--vertical-gap);
-    justify-content: center;
-    align-items: center;
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 15px;
-    padding: 20px;
-    color: #333;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-  }
+/* Landing page container */
+#landingPage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vertical-gap);
+  justify-content: center;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 15px;
+  padding: 20px;
+  color: #333;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
 
-  /* Style for all buttons inside landingPage */
-  #landingPage button {
-    width: 80%;
-    font-size: 16px;
-    padding: 12px 15px;
-    background: linear-gradient(135deg, #3498db, #2980b9);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: all 0.3s ease;
-    text-align: left;
-    margin-top: 0; /* spacing handled by gap on container */
-  }
+/* Buttons inside landing page */
+#landingPage button {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 0;
+  font-size: 16px;
+  text-align: center;
+  margin: 0;
+}
 
-  #landingPage button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
-  }
+/* Menu items (sliders) */
+.menu-item {
+  height: 45px;
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+  border-radius: 6px;
+  padding: 8px 8px 8px 16px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  margin: 0;
+}
 
-  /* Menu item (slider container) */
-  .menu-item {
-    height: 42px;
-    box-sizing: border-box;
-    width: 80%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center; 
-    background: linear-gradient(135deg, #3498db, #2980b9);
-    color: white;
-    border-radius: 6px;
-    padding: 12px 15px;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: bold;
-    transition: all 0.3s ease;
-    margin-bottom: 5px;
-    margin-top: 0px;
-  }
+.menu-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
+}
 
-  /* We'll wrap buttons and .menu-item in a common container to get consistent gap */
-  #landingPage,
-  .menu-container {
-    gap: var(--vertical-gap);
-  }
+.menu-item span {
+  padding-left: 16px;   /* more space from the left edge */
+}
+.menu-item .switch-wrapper {
+  margin-right: 20px; /* pushes slider inward from the right edge */
+}
 
-  /* Hover effects */
-  .menu-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
-  }
+/* Switch styles */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 22px;
+  margin: 0;
+}
 
-  /* Switch styles */
-  .switch {
-    position: relative;
-    display: inline-block;
-    width: 42px;
-    height: 22px;
-    margin: 0; 
-  }
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
 
-  .switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 3px;
+  left: 6px;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 22px;
+}
 
-  .slider {
-    position: absolute;
-    cursor: pointer;
-    top: 3px; left: 0; right: 0; bottom: 0;
-    background-color: #ccc;
-    transition: 0.4s;
-    border-radius: 22px;
-  }
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  top: 2px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
 
-  .slider:before {
-    position: absolute;
-    content: "";
-    height: 16px;
-    width: 16px;
-    left: 3px;
-    top: 1px;
-    background-color: white;
-    transition: 0.4s;
-    border-radius: 50%;
-  }
+input:checked + .slider {
+  background-color: #27ae60;
+}
 
-  input:checked + .slider {
-    background-color: #27ae60;
-  }
+input:checked + .slider:before {
+  transform: translateX(22px);
+}
 
-  input:checked + .slider:before {
-    transform: translateX(20px);
-  }
+#copyNotification {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #27ae60;
+  color: white;
+  padding: 12px 25px;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 14px;
+  box-shadow: 0 4px 12px rgba(39, 174, 96, 0.6);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+  z-index: 9999;
+}
 
-  #copyNotification {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #27ae60;
-    color: white;
-    padding: 12px 25px;
-    border-radius: 8px;
-    font-weight: bold;
-    font-size: 14px;
-    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.6);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.5s ease;
-    z-index: 9999;
-  }
+#copyNotification.show {
+  opacity: 1;
+  pointer-events: auto;
+}
 
-  #copyNotification.show {
-    opacity: 1;
-    pointer-events: auto;
-  }
+.switch-wrapper {
+  display: none;
+  width: 50px;
+  flex-shrink: 0;
+  position: relative;
+}
 
-  .switch-wrapper {
-    display: none;
-    width: 50px;         /* fixed width to avoid stretching */
-    flex-shrink: 0;      /* don't shrink */
-    position: relative;  /* for the slider positioning */
-  }
+.switch-wrapper.visible {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
 
-  .switch-wrapper.visible {
-    display: flex;       /* show as flex container */
-    justify-content: center;
-    align-items: center;
-  }
-
-  /* Keep your existing .switch styles */
-  .switch {
-    position: relative;
-    display: inline-block;
-    width: 42px;
-    height: 22px;
-    margin: 0; 
-  }
-
-  .switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-
-  .slider {
-    position: absolute;
-    cursor: pointer;
-    top: 3px;
-    left: 6px;     /* increase from 0 to 6px to shorten left side */
-    right: 0;
-    bottom: 0;
-    background-color: #ccc;
-    transition: 0.4s;
-    border-radius: 22px;
-  }
-
-  .slider:before {
-    position: absolute;
-    content: "";
-    height: 16px;
-    width: 16px;
-    left: 3px;
-    top: 2px;
-    background-color: white;
-    transition: 0.4s;
-    border-radius: 50%;
-  }
-
-  input:checked + .slider {
-    background-color: #27ae60;
-  }
-
-  input:checked + .slider:before {
-    transform: translateX(22px);
-  }
-
-  #logoSection {
+/* Logo section */
+#logoSection {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 15px; /* space below logo and text before buttons */
+  margin-bottom: 15px;
   gap: 4px;
 }
 
 #teslaLogo {
-  width: 225px; /* adjust size as needed */
+  width: 225px;
   height: auto;
   user-select: none;
 }
@@ -340,7 +288,7 @@
 #supportText {
   font-size: 18px;
   font-weight: 600;
-  color: #333; /* same dark text as container */
+  color: #333;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
@@ -369,7 +317,7 @@
   color: #2c3e50;
 }
 
-/* AU/NZ slider only */
+/* AU/NZ slider */
 .region-switch .slider:before {
   height: 16px;
   width: 16px;
@@ -381,53 +329,117 @@
   transform: translateX(15px);
 }
 
+/* Sections */
+.section {
+  width: 100%;
+  margin-bottom: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.section-header {
+  font-weight: bold;
+  font-size: 16px;
+  color: #2c3e50;
+  margin-bottom: 6px;
+}
+
+.section button,
+.section .menu-item {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 10px 0;
+  text-align: center;
+}
+
+/* Compact slider inside section */
+.section .slider {
+  height: 18px;
+}
+
+.section .slider:before {
+  height: 14px;
+  width: 14px;
+  top: 2px;
+  left: 2px;
+}
+
 </style>
 </head>
 <body>
-
+  <!-- Landing Page -->
   <div id="landingPage">
-
+    <!-- Logo Section -->
     <div id="logoSection">
       <img src="icons/tesla_wordmark_icon.png" alt="Tesla Logo" id="teslaLogo" />
       <div id="supportText">Support Tool</div>
     </div>
 
-  <button id="textExpanderBtn">Text Expander</button>
-  <button id="tyreQuoteBtn">Tyre Quote Generator</button>
+    <!-- General Section -->
+    <div class="section">
+      <div class="section-header">General</div>
+      <button class="full-width-btn" id="textExpanderBtn">Text Expander</button>
+      <button class="full-width-btn" id="tyreQuoteBtn">Tyre Quote Generator</button>
+    </div>
 
-  <div class="menu-item">
-    <span>Towbook Notifier</span>
-    <label class="switch-wrapper" id="towbookToggleWrapper">
-      <input type="checkbox" id="towbookToggle" />
-      <span class="slider"></span>
-    </label>
-  </div>
+    <!-- Customer Support Section -->
+    <div class="section">
+      <div class="section-header">Customer Support</div>
+      <div class="menu-item">
+        <span>TCC Teams Filter</span>
+        <label class="switch-wrapper visible" id="teamsToggleWrapper">
+          <input type="checkbox" id="teamsToggle" />
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
 
-  <div class="menu-item">
-    <span>TCC Teams Filter</span>
-    <label class="switch-wrapper" id="teamsToggleWrapper">
-      <input type="checkbox" id="teamsToggle" />
-      <span class="slider"></span>
-    </label>
-  </div>
-</div>
+    <!-- Service Section -->
+    <div class="section">
+      <div class="section-header">Service</div>
+      <div class="menu-item">
+        <span id="scAutoMessagerBtn">SC AutoMessager</span>
+        <label class="switch-wrapper visible" id="scAutoMessagerWrapper">
+          <input type="checkbox" id="scAutoMessagerToggle" />
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
 
-
-  <div id="tyreQuoteSection" style="display:none;">
-    <button id="backBtn">Back</button>
-    <div class="container">
-  <div class="header-row">
-    <div class="quote-title">🚗 Tesla Tyre Quote</div>
-    <div class="region-container">
-      <span class="region-label">AU</span>
-      <label class="switch region-switch">
-        <input type="checkbox" id="regionToggle" />
-        <span class="slider"></span>
-      </label>
-      <span class="region-label">NZ</span>
+    <!-- Other Section -->
+    <div class="section">
+      <div class="section-header">Other</div>
+      <div class="menu-item">
+        <span>Towbook Notifier</span>
+        <label class="switch-wrapper visible" id="towbookToggleWrapper">
+          <input type="checkbox" id="towbookToggle" />
+          <span class="slider"></span>
+        </label>
+      </div>
     </div>
   </div>
 
+  <!-- Tyre Quote Section (separate from landingPage) -->
+  <div id="tyreQuoteSection" style="display:none;">
+    <button id="backBtn">Back</button>
+    <div class="container">
+      <div class="header-row">
+        <div class="quote-title">🚗 Tesla Tyre Quote</div>
+        <div class="region-container">
+          <span class="region-label">AU</span>
+          <label class="switch region-switch">
+            <input type="checkbox" id="regionToggle" />
+            <span class="slider"></span>
+          </label>
+          <span class="region-label">NZ</span>
+        </div>
+      </div>
 
       <div class="step">
         <div class="step-title">1. Select Tesla Model</div>
@@ -435,13 +447,6 @@
           <option value="">Select Model</option>
         </select>
       </div>
-
-      <!-- <div class="step">
-        <div class="step-title">2. Select Year</div>
-        <select id="yearSelect" disabled>
-          <option value="">Select Year</option>
-        </select>
-      </div> -->
 
       <div class="step">
         <div class="step-title">2. Select Tyre Brand</div>
@@ -469,7 +474,6 @@
 
   <div id="copyNotification">Quote copied to clipboard!</div>
 
-  <script src="TyreQuoteGenerator/tyreQuoteGenerator.js"></script>
   <script src="popup.js"></script>
+  <script src="TyreQuoteGenerator/tyreQuoteGenerator.js"></script>
 </body>
-</html>

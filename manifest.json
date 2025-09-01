@@ -48,11 +48,17 @@
     "js": ["TeamsDropdownFilter/teamsFilter.js"],
     "all_frames": true,
     "match_about_blank": true
+  },
+  {
+  "matches": ["https://serviceapp.tesla.com/*"],
+  "js": ["SCA_AutoMessager/autoMessager.js"],
+  "all_frames": true,
+  "match_about_blank": true
   }
 ],
 "web_accessible_resources": [
     {
-      "resources": ["icons/*.png", "TyreQuoteGenerator/tyre_prices.csv"],
+      "resources": ["icons/*.png", "TyreQuoteGenerator/tyre_prices.csv", "SCA_AutoMessager/scConfig.csv"],
       "matches": ["<all_urls>"]
     }
   ],
