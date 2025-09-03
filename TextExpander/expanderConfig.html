@@ -7,36 +7,48 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
+    <div class="container" id="landingPage">
         <div class="action-buttons">
             <button id="saveShortcutsBtn">Download Shortcuts</button>
             <button id="uploadShortcutsBtn">Upload Shortcuts</button>
         </div>
 
         <h1>Manage Shortcuts</h1>
-        
-        <div>
-            <label for="shortcutInput">Shortcut:</label>
-            <input type="text" id="shortcutInput" placeholder="Enter shortcut" />
-        </div>
-        
-        <div class="toolbar">
-            <button id="boldBtn"><b>B</b></button>
-            <button id="italicBtn"><i>I</i></button>
-            <button id="underlineBtn"><u>U</u></button>
-            <button id="numberedListBtn">1.</button>
-            <button id="bulletListBtn">•</button>
-            <button id="linkBtn">Link</button>
-            <button id="insertPlaceholderBtn">Insert Placeholder</button>
-            <button id="clearTextBtn">Clear</button>
+
+        <!-- Search + Add Shortcut Button -->
+        <div id="shortcutSearchWrapper">
+            <input type="text" id="shortcutSearch" placeholder="Search shortcuts..." />
+            <button id="showAddShortcutBtn">Add New Shortcut</button>
         </div>
 
-        <div>
-            <label for="expandedTextInput">Expanded Text (Paste images, links, etc.):</label>
-            <div contenteditable="true" id="expandedTextInput" class="expandedTextInput" aria-label="Expanded text editor"></div>
-        </div>
+        <!-- Add/Edit Shortcut Form -->
+        <div id="shortcutForm" style="display: none;">
+            <div>
+                <label for="shortcutInput">Shortcut:</label>
+                <input type="text" id="shortcutInput" placeholder="Enter shortcut" />
+            </div>
 
-        <button id="addShortcutBtn">Add Shortcut</button>
+            <div class="toolbar">
+                <button id="boldBtn"><b>B</b></button>
+                <button id="italicBtn"><i>I</i></button>
+                <button id="underlineBtn"><u>U</u></button>
+                <button id="numberedListBtn">1.</button>
+                <button id="bulletListBtn">•</button>
+                <button id="linkBtn">Link</button>
+                <button id="insertPlaceholderBtn">Insert Placeholder</button>
+                <button id="clearTextBtn">Clear</button>
+            </div>
+
+            <div>
+                <label for="expandedTextInput">Expanded Text:</label>
+                <div contenteditable="true" id="expandedTextInput" class="expandedTextInput"></div>
+            </div>
+
+            <div class="form-buttons">
+                <button id="addShortcutBtn">Save Shortcut</button>
+                <button id="cancelShortcutBtn">Cancel</button>
+            </div>
+        </div>
 
         <h2>Saved Shortcuts</h2>
         <ul id="shortcutList" class="shortcut-list">
@@ -44,7 +56,17 @@
         </ul>
     </div>
 
+    <div id="duplicateModal" class="modal">
+  <div class="modal-content">
+    <p id="duplicateMessage"></p>
+    <div class="modal-buttons">
+      <button id="overwriteBtn">Overwrite Existing</button>
+      <button id="skipBtn">Skip Duplicates</button>
+    </div>
+  </div>
+</div>
+
+
     <script src="expanderConfig.js"></script>
 </body>
-
 </html>

@@ -1,55 +1,112 @@
-/* General Body and Layout Styles */
+:root {
+    --vertical-gap: 6px;
+}
+
+/* Body & Layout */
 body {
-    font-family: 'Arial', sans-serif;
-    background-color: #FEFFDB;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
     margin: 0;
-    padding: 20px;
-    color: #444444;
-
-    background-color: #fff7a3;
-    background-image:  linear-gradient(30deg, #e5de92 12%, transparent 12.5%, transparent 87%, #e5de92 87.5%, #e5de92), linear-gradient(150deg, #e5de92 12%, transparent 12.5%, transparent 87%, #e5de92 87.5%, #e5de92), linear-gradient(30deg, #e5de92 12%, transparent 12.5%, transparent 87%, #e5de92 87.5%, #e5de92), linear-gradient(150deg, #e5de92 12%, transparent 12.5%, transparent 87%, #e5de92 87.5%, #e5de92), linear-gradient(60deg, #e5de9277 25%, transparent 25.5%, transparent 75%, #e5de9277 75%, #e5de9277), linear-gradient(60deg, #e5de9277 25%, transparent 25.5%, transparent 75%, #e5de9277 75%, #e5de9277);
-    background-size: 50px 88px;
-    background-position: 0 0, 0 0, 25px 44px, 25px 44px, 0 0, 25px 44px;
+    padding: 40px 20px;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-size: cover;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
 }
 
-h1 {
-    color: #444444; 
-    text-align: center;
-    margin-bottom: 30px;
-}
-
+/* Container */
 .container {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    width: min(1100px, 95%);
+    max-width: 95%;
     position: relative;
-    min-width: 700px;
-    max-width: 900px;
-    margin: 20px auto 0;
-    padding: 20px;
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    border: 3px solid #444444;
+    box-sizing: border-box;
 }
 
+/* Headings */
+h1, h2 {
+    margin: 0 0 20px 0;
+    font-size: 28px;
+    text-align: center;
+    color: #2c3e50;
+    font-weight: 600;
+    word-break: break-word; /* prevents clipping */
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    flex-wrap: wrap;         /* wraps buttons to new line if needed */
+    gap: 10px;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+
+.action-buttons button {
+    padding: 8px 15px;
+    font-size: 14px;
+    border-radius: 8px;
+    border: 2px solid #a1c4fd;
+    white-space: nowrap;     /* prevent button text from breaking */
+}
+
+/* Responsive adjustments for small screens */
+@media (max-width: 1125px) {
+    .container {
+        padding: 15px;
+    }
+
+    h1, h2 {
+        font-size: 1.5rem;
+    }
+
+    .action-buttons {
+        position: static;
+        justify-content: center;
+        margin-bottom: 15px;
+    }
+
+    .action-buttons button {
+        flex: 1 1 auto;       /* buttons grow/shrink equally */
+        text-align: center;
+    }
+}
+
+
+/* Labels and Inputs */
 label {
     font-size: 14px;
-    color: #444444;
+    color: #555;
     display: block;
     margin: 10px 0 5px;
 }
 
-/* Input Fields */
 input[type="text"], .expandedTextInput {
     width: 100%;
     padding: 10px;
     margin-bottom: 20px;
-    border: 1px solid #444444; 
-    border-radius: 4px;
-    font-size: 110%;
+    border: 2px solid #d6e3f3;
+    border-radius: 8px;
+    font-size: 16px;
+    outline: none;
+    transition: all 0.3s ease;
     box-sizing: border-box;
 }
 
+input[type="text"]:focus, .expandedTextInput:focus {
+    border-color: #80bfff;
+    box-shadow: 0 0 0 3px rgba(128, 191, 255, 0.2);
+}
+
 .expandedTextInput {
-    height: auto;
     min-height: 300px;
     max-height: 600px;
     white-space: pre-wrap;
@@ -66,20 +123,21 @@ input[type="text"], .expandedTextInput {
 /* Buttons */
 button {
     padding: 10px 20px;
-    background-color: #fff7a3;
-    color: #444444;
     font-size: 16px;
-    border: none;
-    border-radius: 4px;
+    border-radius: 8px;
+    border: 2px solid #a1c4fd;
     cursor: pointer;
-    transition: background-color 0.3s;
-    border: 2px solid #444444; 
+    transition: all 0.3s ease;
+    background-color: #ffffff;
+    color: #2c3e50;
 }
 
 button:hover {
-    background-color: #fde591; 
+    background-color: #3498db;
+    color: #fff;
 }
 
+/* Toolbar */
 .toolbar {
     margin-bottom: 10px;
     display: flex;
@@ -89,15 +147,15 @@ button:hover {
 
 .toolbar button {
     padding: 5px 10px;
-    background-color: #f0f0f0;
-    border: 1px solid #ddd;
-    cursor: pointer;
-    border-radius: 4px;
-    color: black;
+    font-size: 14px;
+    border: 2px solid #a1c4fd;
 }
 
-.toolbar button:hover {
-    background-color: #ddd;
+/* Form buttons */
+.form-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
 }
 
 /* Shortcut List */
@@ -105,51 +163,57 @@ button:hover {
     margin-top: 30px;
     list-style: none;
     padding: 0;
+
 }
 
 .shortcut-list li {
-    background-color: #FEFFDB;
+    background-color: #f0f4f8;
     padding: 15px;
     margin-bottom: 10px;
-    border: 1px solid #444444; 
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
+    border-radius: 12px;
     position: relative;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    transition: background-color 0.3s;
+    transition: all 0.3s ease;
+    cursor: pointer;
 }
 
 .shortcut-list li:hover {
-    background-color: #fff7a3;
+    background-color: #e1ecf7;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
 }
 
 .shortcut-list li .trigger {
     font-weight: bold;
-    color: #444444; 
-    margin-bottom: 10px;
-    background-color: #ffffff;
+    background-color: #e1ecf7;
     padding: 5px 10px;
-    position: relative;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    display: inline-block;
 }
 
-/* Delete Button (Positioned on Hover) */
+.shortcut-list li .expanded-text {
+    font-size: 16px;
+    white-space: pre-wrap;
+    background-color: #fff;
+    padding: 10px;
+    border-radius: 8px;
+}
+
 .shortcut-list li .deleteBtn {
     position: absolute;
     top: 10px;
     right: 10px;
-    background-color: #F18F8F; 
-    border-radius: 4px;
-    padding: 8px 15px;
+    background-color: #e74c3c;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 12px;
     font-size: 14px;
     cursor: pointer;
-    transition: background-color 0.3s;
-    border: none;
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.3s, visibility 0.3s;
-    color: #fafafa;
+    transition: all 0.3s ease;
 }
 
 .shortcut-list li:hover .deleteBtn {
@@ -158,64 +222,107 @@ button:hover {
 }
 
 .shortcut-list li .deleteBtn:hover {
-    background-color: #D85A5A;
+    background-color: #c0392b;
 }
 
-.shortcut-list li .expanded-text {
-    font-size: 110%;
-    white-space: pre-wrap;
-    margin-bottom: 20px;
-    background-color: #ffffff;
-    padding: 10px;
-    border-radius: 5px;
-}
-
-/* Empty List Message */
 .empty-list {
     text-align: center;
     color: #999;
 }
 
-/* Trigger and Separator Styling */
-.trigger {
-    width: 33%;
+/* subtle highlight for guidance */
+.highlight-focus {
+    animation: highlightPulse 1s ease;
+}
+
+@keyframes highlightPulse {
+    0% { box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.3); }
+    50% { box-shadow: 0 0 8px 4px rgba(52, 152, 219, 0.5); }
+    100% { box-shadow: 0 0 0 0 rgba(52, 152, 219, 0); }
+}
+
+/* Modal overlay */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.4);
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background: #fff;
+  padding: 20px 30px;
+  border-radius: 10px;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  font-size: 1rem;
+}
+
+.modal-content p .shortcut-name {
     font-weight: bold;
-    background-color: #f0f0f0;
-    padding: 10px;
-    border-radius: 5px;
 }
 
-.shortcut-divider {
-    margin: 10px 0;
-    border: 0;
-    border-top: 1px solid #ccc;
+
+.modal-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 15px;
 }
 
-.expanded-text {
-    padding: 10px;
+.modal-buttons button {
+  padding: 8px 15px;
+  border-radius: 6px;
+  border: 2px solid #a1c4fd;
+  cursor: pointer;
+  background-color: #fff;
 }
 
-/* Action Buttons */
-.action-buttons {
-    display: flex;
-    gap: 10px;
-    position: absolute;
-    top: 20px;
-    right: 20px;
+.modal-buttons button:hover {
+  background-color: #3498db;
+  color: #fff;
 }
 
-.action-buttons button {
-    padding: 10px 15px;
-    font-size: 14px;
-    background-color: #fff7a3; 
-    color: #444444;
-    border: none;
-    border-radius: 4px;
+/* Custom checkbox styling */
+.shortcut-item input[type="checkbox"] {
+    /* Hide the default checkbox */
+    appearance: none;
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #a1c4fd;
+    border-radius: 6px;
+    margin-right: 10px;
+    position: relative;
     cursor: pointer;
-    transition: background-color 0.3s;
-    border: 2px solid #444444;
-}s
+    transition: all 0.2s ease;
+    vertical-align: middle;
+    background-color: #fff;
+}
 
-.action-buttons button:hover {
-    background-color: #fde591; 
+.shortcut-item input[type="checkbox"]:hover {
+    border-color: #3498db;
+}
+
+.shortcut-item input[type="checkbox"]:checked {
+    background-color: #3498db;
+    border-color: #3498db;
+}
+
+.shortcut-item input[type="checkbox"]:checked::after {
+    content: "✓";
+    color: #fff;
+    font-weight: bold;
+    position: absolute;
+    top: 0;
+    left: 3px;
+    font-size: 16px;
+    line-height: 18px;
 }

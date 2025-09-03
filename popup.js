@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const textExpanderBtn = document.getElementById('textExpanderBtn');
   const tyreQuoteBtn = document.getElementById('tyreQuoteBtn');
   const backBtn = document.getElementById('backBtn');
+  const teamsFilterBtn = document.getElementById('teamsFilterBtn');
 
   // Sections
   const landingPage = document.getElementById('landingPage');
@@ -33,6 +34,21 @@ document.addEventListener('DOMContentLoaded', () => {
       landingPage.style.display = 'flex';
     });
   }
+
+  const aboutBtn = document.getElementById('aboutBtn');
+
+  if (aboutBtn) {
+    aboutBtn.addEventListener('click', () => {
+      window.open(chrome.runtime.getURL('About/about.html'));
+    });
+  }
+
+  if (teamsFilterBtn) {
+    teamsFilterBtn.addEventListener('click', () => {
+      window.open(chrome.runtime.getURL('TeamsDropdownFilter/teamsFilter.html'));
+    });
+  }
+
 
   // --- Load toggle states from storage ---
   chrome.storage.sync.get({

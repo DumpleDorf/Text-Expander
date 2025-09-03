@@ -1,225 +1,307 @@
 document.addEventListener("DOMContentLoaded", () => {
-  // Initial display of shortcuts
-  displayShortcuts();
+    const searchWrapper = document.getElementById("shortcutSearchWrapper");
+    const searchInput = document.getElementById("shortcutSearch");
+    const form = document.getElementById("shortcutForm");
+    const addShortcutBtn = document.getElementById("addShortcutBtn");
+    const cancelShortcutBtn = document.getElementById("cancelShortcutBtn");
 
-  // Add or update shortcut
-  document.getElementById("addShortcutBtn").addEventListener("click", () => {
-    const shortcut = document.getElementById("shortcutInput").value.trim();
-    const expandedText = document.getElementById("expandedTextInput").innerHTML.trim();
-
-    if (!shortcut || !expandedText) {
-      alert("Please fill in both fields (Shortcut and Expanded Text).");
-      return;
-    }
-
-    chrome.storage.local.get("shortcuts", ({ shortcuts = {} }) => {
-      if (shortcuts[shortcut] && !confirm(`Shortcut "${shortcut}" already exists. Overwrite?`)) {
-        return;
-      }
-      shortcuts[shortcut] = expandedText;
-      chrome.storage.local.set({ shortcuts }, () => {
-        displayShortcuts();
+    // Show add shortcut form
+    document.getElementById("showAddShortcutBtn").addEventListener("click", () => {
+        form.style.display = "block";
+        searchWrapper.style.display = "none";
         clearInputs();
-        setCaretToEnd();
-      });
+        window.scrollTo({ top: 0, behavior: "smooth" });
     });
-  });
 
-  // Save shortcuts to JSON file
-  document.getElementById("saveShortcutsBtn").addEventListener("click", () => {
-    chrome.storage.local.get("shortcuts", ({ shortcuts = {} }) => {
-      if (Object.keys(shortcuts).length === 0) {
-        alert("No shortcuts to save.");
-        return;
-      }
-      const blob = new Blob([JSON.stringify(shortcuts, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "shortcuts.json";
-      a.click();
-      URL.revokeObjectURL(url);
+    // Cancel add/edit shortcut
+    cancelShortcutBtn.addEventListener("click", () => {
+        form.style.display = "none";
+        searchWrapper.style.removeProperty("display");
+        clearInputs();
     });
-  });
 
-  // Upload shortcuts from JSON file
-  document.getElementById("uploadShortcutsBtn").addEventListener("click", () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "application/json";
+    // Add/Edit shortcut
+    addShortcutBtn.addEventListener("click", () => {
+        const shortcut = document.getElementById("shortcutInput").value.trim();
+        const expandedText = document.getElementById("expandedTextInput").innerHTML.trim();
 
-    input.addEventListener("change", (event) => {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const uploadedShortcuts = JSON.parse(reader.result);
-          if (typeof uploadedShortcuts !== "object" || Array.isArray(uploadedShortcuts)) {
-            alert("Invalid file format. Please upload a valid JSON file.");
+        if (!shortcut || !expandedText) {
+            alert("Please fill in both fields.");
             return;
-          }
-
-          chrome.storage.local.get("shortcuts", ({ shortcuts = {} }) => {
-            const updatedShortcuts = { ...shortcuts };
-            for (const [shortcut, expanded] of Object.entries(uploadedShortcuts)) {
-              let newShortcut = shortcut;
-              let count = 1;
-              while (updatedShortcuts[newShortcut]) {
-                newShortcut = `${shortcut}${count++}`;
-              }
-              updatedShortcuts[newShortcut] = expanded;
-            }
-            chrome.storage.local.set({ shortcuts: updatedShortcuts }, () => {
-              displayShortcuts();
-              alert("Shortcuts uploaded successfully!");
-            });
-          });
-        } catch {
-          alert("Failed to upload shortcuts. Please ensure the file is a valid JSON.");
         }
-      };
-      reader.readAsText(file);
+
+        chrome.storage.local.get("shortcuts", ({ shortcuts = {} }) => {
+            shortcuts[shortcut] = expandedText;
+            chrome.storage.local.set({ shortcuts }, () => {
+                displayShortcuts();
+                clearInputs();
+                form.style.display = "none";
+                searchWrapper.style.removeProperty("display");
+            });
+        });
     });
 
-    input.click();
-  });
+    // Download / Save Shortcuts
+    document.getElementById("saveShortcutsBtn").addEventListener("click", saveShortcuts);
 
-  // Rich text formatting buttons
-  [
-    { id: "boldBtn", command: "bold" },
-    { id: "italicBtn", command: "italic" },
-    { id: "underlineBtn", command: "underline" },
-    { id: "numberedListBtn", command: "insertOrderedList" },
-    { id: "bulletListBtn", command: "insertUnorderedList" },
-  ].forEach(({ id, command }) => {
-    const btn = document.getElementById(id);
-    if (btn) {
-      btn.addEventListener("click", () => document.execCommand(command));
-    }
-  });
+    // Upload Shortcuts
+    document.getElementById("uploadShortcutsBtn").addEventListener("click", uploadShortcuts);
 
-  // Insert Placeholder button
-  document.getElementById("insertPlaceholderBtn").addEventListener("click", () => {
-    const placeholderName = prompt("Enter the placeholder name:");
-    if (!placeholderName) return;
+    // Toolbar formatting
+    [
+        { id: "boldBtn", command: "bold" },
+        { id: "italicBtn", command: "italic" },
+        { id: "underlineBtn", command: "underline" },
+        { id: "numberedListBtn", command: "insertOrderedList" },
+        { id: "bulletListBtn", command: "insertUnorderedList" }
+    ].forEach(({ id, command }) => {
+        const btn = document.getElementById(id);
+        btn.addEventListener("click", () => document.execCommand(command));
+    });
 
-    const input = document.getElementById("expandedTextInput");
-    const selection = window.getSelection();
-    const caretPosition = selection.anchorOffset;
+    document.getElementById("insertPlaceholderBtn").addEventListener("click", insertPlaceholder);
+    document.getElementById("linkBtn").addEventListener("click", insertLink);
+    document.getElementById("clearTextBtn").addEventListener("click", () => {
+        document.getElementById("expandedTextInput").innerHTML = "";
+    });
 
-    const textBefore = input.innerHTML.substring(0, caretPosition);
-    const textAfter = input.innerHTML.substring(caretPosition);
-    const placeholder = `{${placeholderName}} `;
+    // Filter shortcuts
+    searchInput.addEventListener("input", filterShortcuts);
 
-    input.innerHTML = textBefore + placeholder + textAfter;
-
-    // Set caret position after inserted placeholder
-    const range = document.createRange();
-    range.setStart(input.firstChild, textBefore.length + placeholder.length);
-    range.setEnd(input.firstChild, textBefore.length + placeholder.length);
-
-    selection.removeAllRanges();
-    selection.addRange(range);
-    input.focus();
-  });
-
-  // Link button
-  document.getElementById("linkBtn").addEventListener("click", () => {
-    const url = prompt("Enter URL:", "https://");
-    if (!url) return;
-
-    const selection = window.getSelection();
-    if (!selection.rangeCount) return;
-
-    const range = selection.getRangeAt(0);
-    const link = document.createElement("a");
-    link.href = url;
-    link.textContent = url;
-    range.deleteContents();
-    range.insertNode(link);
-  });
-
-  // Clear text button
-  document.getElementById("clearTextBtn").addEventListener("click", () => {
-    document.getElementById("expandedTextInput").innerHTML = "";
-  });
-  
+    // Display existing shortcuts
+    displayShortcuts();
 });
 
-// --- Shortcut display and manipulation ---
-
 function displayShortcuts() {
-  chrome.storage.local.get("shortcuts", ({ shortcuts = {} }) => {
-    const shortcutList = document.getElementById("shortcutList");
-    shortcutList.innerHTML = "";
+    chrome.storage.local.get("shortcuts", ({ shortcuts = {} }) => {
+        const list = document.getElementById("shortcutList");
+        list.innerHTML = "";
 
-    if (Object.keys(shortcuts).length === 0) {
-      shortcutList.innerHTML = '<p class="empty-list">No shortcuts saved. Add one above.</p>';
-      return;
-    }
-
-    for (const [shortcut, expanded] of Object.entries(shortcuts)) {
-      const listItem = document.createElement("li");
-      listItem.classList.add("shortcut-item");
-
-      const trigger = document.createElement("div");
-      trigger.classList.add("trigger");
-      trigger.textContent = shortcut;
-
-      const hr = document.createElement("hr");
-      hr.classList.add("shortcut-divider");
-
-      const expandedTextDiv = document.createElement("div");
-      expandedTextDiv.classList.add("expanded-text");
-      expandedTextDiv.innerHTML = expanded;
-
-      const deleteBtn = document.createElement("button");
-      deleteBtn.classList.add("deleteBtn");
-      deleteBtn.textContent = "Delete";
-      deleteBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        if (confirm(`Are you sure you want to delete the shortcut "${shortcut}"?`)) {
-          deleteShortcut(shortcut);
+        if (!Object.keys(shortcuts).length) {
+            list.innerHTML = '<p class="empty-list">No shortcuts saved.</p>';
+            return;
         }
-      });
 
-      listItem.append(trigger, hr, expandedTextDiv, deleteBtn);
+        // Add Select All / Deselect All button
+        let selectAllBtn = document.getElementById("selectAllBtn");
+        if (!selectAllBtn) {
+            selectAllBtn = document.createElement("button");
+            selectAllBtn.id = "selectAllBtn";
+            selectAllBtn.textContent = "Select All";
+            selectAllBtn.style.marginBottom = "10px";
+            selectAllBtn.addEventListener("click", () => {
+                const checkboxes = list.querySelectorAll("input[type='checkbox']");
+                const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+                checkboxes.forEach(cb => cb.checked = !allChecked);
+                updateDownloadButtonLabel();
+            });
+            list.parentNode.insertBefore(selectAllBtn, list);
+        }
 
-      listItem.addEventListener("click", () => editShortcut(shortcut, expanded));
+        for (const [shortcut, expanded] of Object.entries(shortcuts)) {
+            const li = document.createElement("li");
+            li.classList.add("shortcut-item");
+            li.dataset.key = shortcut;
 
-      shortcutList.appendChild(listItem);
-    }
-  });
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.dataset.key = shortcut;
+            checkbox.style.marginRight = "10px";
+            checkbox.addEventListener("change", updateDownloadButtonLabel);
+
+            const trigger = document.createElement("div");
+            trigger.classList.add("trigger");
+            trigger.textContent = shortcut;
+
+            const expandedDiv = document.createElement("div");
+            expandedDiv.classList.add("expanded-text");
+            expandedDiv.innerHTML = expanded;
+
+            const deleteBtn = document.createElement("button");
+            deleteBtn.classList.add("deleteBtn");
+            deleteBtn.textContent = "Delete";
+            deleteBtn.addEventListener("click", e => {
+                e.stopPropagation();
+                if (confirm(`Delete "${shortcut}"?`)) deleteShortcut(shortcut);
+            });
+
+            li.append(checkbox, trigger, expandedDiv, deleteBtn);
+
+            // Only open edit when clicking outside the checkbox
+            li.addEventListener("click", (e) => {
+                if (e.target.tagName.toLowerCase() === "input" && e.target.type === "checkbox") return;
+                editShortcut(shortcut, expanded);
+            });
+
+            list.appendChild(li);
+        }
+
+        updateDownloadButtonLabel();
+    });
+}
+
+// Update download button label depending on selection
+function updateDownloadButtonLabel() {
+    const downloadBtn = document.getElementById("saveShortcutsBtn");
+    const anyChecked = document.querySelectorAll(".shortcut-item input[type='checkbox']:checked").length > 0;
+    downloadBtn.textContent = anyChecked ? "Download Selected Shortcuts" : "Download Shortcuts";
 }
 
 function editShortcut(shortcut, expandedText) {
-  document.getElementById("shortcutInput").value = shortcut;
-  document.getElementById("expandedTextInput").innerHTML = expandedText;
-  document.getElementById("addShortcutBtn").dataset.editing = shortcut;
-  window.scrollTo(0, 0);
-}
+    const searchWrapper = document.getElementById("shortcutSearchWrapper");
+    const form = document.getElementById("shortcutForm");
 
-function clearInputs() {
-  document.getElementById("shortcutInput").value = "";
-  document.getElementById("expandedTextInput").innerHTML = "";
+    searchWrapper.style.display = "none";
+    form.style.display = "block";
+
+    document.getElementById("shortcutInput").value = shortcut;
+    document.getElementById("expandedTextInput").innerHTML = expandedText;
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function deleteShortcut(shortcut) {
-  chrome.storage.local.get("shortcuts", ({ shortcuts = {} }) => {
-    delete shortcuts[shortcut];
-    chrome.storage.local.set({ shortcuts }, displayShortcuts);
-  });
+    chrome.storage.local.get("shortcuts", ({ shortcuts = {} }) => {
+        delete shortcuts[shortcut];
+        chrome.storage.local.set({ shortcuts }, displayShortcuts);
+    });
 }
 
-function setCaretToEnd() {
-  const input = document.getElementById("expandedTextInput");
-  input.focus();
-  const range = document.createRange();
-  range.selectNodeContents(input);
-  range.collapse(false);
-  const selection = window.getSelection();
-  selection.removeAllRanges();
-  selection.addRange(range);
+function clearInputs() {
+    document.getElementById("shortcutInput").value = "";
+    document.getElementById("expandedTextInput").innerHTML = "";
+}
+
+function saveShortcuts() {
+    const checkedBoxes = document.querySelectorAll(".shortcut-item input[type='checkbox']:checked");
+    const selectAllBtn = document.getElementById("selectAllBtn");
+
+    if (checkedBoxes.length === 0) {
+        alert("Select shortcuts to download first.");
+        if (selectAllBtn) {
+            // temporarily highlight the button
+            selectAllBtn.classList.add("highlight-focus");
+            // remove highlight after animation ends
+            setTimeout(() => selectAllBtn.classList.remove("highlight-focus"), 1000);
+            // optionally focus for accessibility
+            selectAllBtn.focus({ preventScroll: true });
+        }
+        return;
+    }
+
+    chrome.storage.local.get("shortcuts", ({ shortcuts = {} }) => {
+        const dataToSave = {};
+        checkedBoxes.forEach(cb => {
+            const key = cb.dataset.key;
+            if (shortcuts[key]) dataToSave[key] = shortcuts[key];
+        });
+
+        const blob = new Blob([JSON.stringify(dataToSave, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "shortcuts.json";
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+}
+
+
+function uploadShortcuts() {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "application/json";
+
+  input.addEventListener("change", e => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const uploaded = JSON.parse(reader.result);
+        if (typeof uploaded !== "object" || Array.isArray(uploaded)) throw new Error();
+
+        chrome.storage.local.get("shortcuts", ({ shortcuts = {} }) => {
+          const duplicates = [];
+          const newShortcuts = {};
+
+          for (const [key, value] of Object.entries(uploaded)) {
+            if (shortcuts[key]) duplicates.push(key);
+            else newShortcuts[key] = value;
+          }
+
+          if (duplicates.length) {
+              // Show custom modal
+              const modal = document.getElementById("duplicateModal");
+              const message = document.getElementById("duplicateMessage");
+
+              // Format duplicates with bold
+              const formattedShortcuts = duplicates.map(s => `<span class="shortcut-name">${s}</span>`).join(", ");
+              message.innerHTML = `These shortcuts already exist: ${formattedShortcuts}. What do you want to do?`;
+
+              modal.style.display = "flex";
+
+              document.getElementById("overwriteBtn").onclick = () => {
+                  Object.assign(shortcuts, uploaded); // overwrite all
+                  chrome.storage.local.set({ shortcuts }, () => displayShortcuts());
+                  modal.style.display = "none";
+              };
+
+              document.getElementById("skipBtn").onclick = () => {
+                  Object.assign(shortcuts, newShortcuts); // add only new
+                  chrome.storage.local.set({ shortcuts }, () => displayShortcuts());
+                  modal.style.display = "none";
+              };
+          } else {
+              // No duplicates, just add
+              Object.assign(shortcuts, newShortcuts);
+              chrome.storage.local.set({ shortcuts }, () => displayShortcuts());
+          }
+        });
+
+      } catch {
+        alert("Invalid JSON file.");
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  input.click();
+}
+
+
+// --- Toolbar / Placeholder / Link ---
+function insertPlaceholder() {
+    const placeholderName = prompt("Enter placeholder name:");
+    if (!placeholderName) return;
+    const input = document.getElementById("expandedTextInput");
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
+    const range = selection.getRangeAt(0);
+    const placeholder = `{${placeholderName}}`;
+    range.deleteContents();
+    range.insertNode(document.createTextNode(placeholder));
+}
+
+function insertLink() {
+    const url = prompt("Enter URL:", "https://");
+    if (!url) return;
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
+    const range = selection.getRangeAt(0);
+    const a = document.createElement("a");
+    a.href = url;
+    a.textContent = url;
+    range.deleteContents();
+    range.insertNode(a);
+}
+
+// --- Search/filter shortcuts ---
+function filterShortcuts() {
+    const filter = document.getElementById("shortcutSearch").value.toLowerCase();
+    document.querySelectorAll(".shortcut-item").forEach(item => {
+        const text = item.querySelector(".trigger").textContent.toLowerCase();
+        item.style.display = text.includes(filter) ? "" : "none";
+    });
 }
