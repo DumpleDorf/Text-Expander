@@ -47,7 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Upload Shortcuts
     document.getElementById("uploadShortcutsBtn").addEventListener("click", uploadShortcuts);
 
-    // Toolbar formatting
+    // Toolbar formatting buttons
     [
         { id: "boldBtn", command: "bold" },
         { id: "italicBtn", command: "italic" },
@@ -72,6 +72,7 @@ document.addEventListener("DOMContentLoaded", () => {
     displayShortcuts();
 });
 
+// Display shortcuts list
 function displayShortcuts() {
     chrome.storage.local.get("shortcuts", ({ shortcuts = {} }) => {
         const list = document.getElementById("shortcutList");
@@ -82,7 +83,6 @@ function displayShortcuts() {
             return;
         }
 
-        // Add Select All / Deselect All button
         let selectAllBtn = document.getElementById("selectAllBtn");
         if (!selectAllBtn) {
             selectAllBtn = document.createElement("button");
@@ -127,7 +127,6 @@ function displayShortcuts() {
 
             li.append(checkbox, trigger, expandedDiv, deleteBtn);
 
-            // Only open edit when clicking outside the checkbox
             li.addEventListener("click", (e) => {
                 if (e.target.tagName.toLowerCase() === "input" && e.target.type === "checkbox") return;
                 editShortcut(shortcut, expanded);
@@ -140,13 +139,14 @@ function displayShortcuts() {
     });
 }
 
-// Update download button label depending on selection
+// Update download button label
 function updateDownloadButtonLabel() {
     const downloadBtn = document.getElementById("saveShortcutsBtn");
     const anyChecked = document.querySelectorAll(".shortcut-item input[type='checkbox']:checked").length > 0;
     downloadBtn.textContent = anyChecked ? "Download Selected Shortcuts" : "Download Shortcuts";
 }
 
+// Edit a shortcut
 function editShortcut(shortcut, expandedText) {
     const searchWrapper = document.getElementById("shortcutSearchWrapper");
     const form = document.getElementById("shortcutForm");
@@ -155,11 +155,16 @@ function editShortcut(shortcut, expandedText) {
     form.style.display = "block";
 
     document.getElementById("shortcutInput").value = shortcut;
-    document.getElementById("expandedTextInput").innerHTML = expandedText;
+
+    // Normalize spacing/line breaks
+    document.getElementById("expandedTextInput").innerHTML = expandedText
+        .replace(/\r\n|\r|\n/g, "<br>")
+        .replace(/[ \t]{2,}/g, " ");
 
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+// Delete a shortcut
 function deleteShortcut(shortcut) {
     chrome.storage.local.get("shortcuts", ({ shortcuts = {} }) => {
         delete shortcuts[shortcut];
@@ -167,11 +172,13 @@ function deleteShortcut(shortcut) {
     });
 }
 
+// Clear inputs
 function clearInputs() {
     document.getElementById("shortcutInput").value = "";
     document.getElementById("expandedTextInput").innerHTML = "";
 }
 
+// Save selected shortcuts
 function saveShortcuts() {
     const checkedBoxes = document.querySelectorAll(".shortcut-item input[type='checkbox']:checked");
     const selectAllBtn = document.getElementById("selectAllBtn");
@@ -179,11 +186,8 @@ function saveShortcuts() {
     if (checkedBoxes.length === 0) {
         alert("Select shortcuts to download first.");
         if (selectAllBtn) {
-            // temporarily highlight the button
             selectAllBtn.classList.add("highlight-focus");
-            // remove highlight after animation ends
             setTimeout(() => selectAllBtn.classList.remove("highlight-focus"), 1000);
-            // optionally focus for accessibility
             selectAllBtn.focus({ preventScroll: true });
         }
         return;
@@ -206,82 +210,70 @@ function saveShortcuts() {
     });
 }
 
-
+// Upload shortcuts
 function uploadShortcuts() {
-  const input = document.createElement("input");
-  input.type = "file";
-  input.accept = "application/json";
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "application/json";
 
-  input.addEventListener("change", e => {
-    const file = e.target.files[0];
-    if (!file) return;
+    input.addEventListener("change", e => {
+        const file = e.target.files[0];
+        if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const uploaded = JSON.parse(reader.result);
-        if (typeof uploaded !== "object" || Array.isArray(uploaded)) throw new Error();
+        const reader = new FileReader();
+        reader.onload = () => {
+            try {
+                const uploaded = JSON.parse(reader.result);
+                if (typeof uploaded !== "object" || Array.isArray(uploaded)) throw new Error();
 
-        chrome.storage.local.get("shortcuts", ({ shortcuts = {} }) => {
-          const duplicates = [];
-          const newShortcuts = {};
+                chrome.storage.local.get("shortcuts", ({ shortcuts = {} }) => {
+                    const duplicates = [];
+                    const newShortcuts = {};
 
-          for (const [key, value] of Object.entries(uploaded)) {
-            if (shortcuts[key]) duplicates.push(key);
-            else newShortcuts[key] = value;
-          }
+                    for (const [key, value] of Object.entries(uploaded)) {
+                        if (shortcuts[key]) duplicates.push(key);
+                        else newShortcuts[key] = value;
+                    }
 
-          if (duplicates.length) {
-              // Show custom modal
-              const modal = document.getElementById("duplicateModal");
-              const message = document.getElementById("duplicateMessage");
+                    if (duplicates.length) {
+                        const modal = document.getElementById("duplicateModal");
+                        const message = document.getElementById("duplicateMessage");
+                        const formattedShortcuts = duplicates.map(s => `<span class="shortcut-name">${s}</span>`).join(", ");
+                        message.innerHTML = `These shortcuts already exist: ${formattedShortcuts}. What do you want to do?`;
+                        modal.style.display = "flex";
 
-              // Format duplicates with bold
-              const formattedShortcuts = duplicates.map(s => `<span class="shortcut-name">${s}</span>`).join(", ");
-              message.innerHTML = `These shortcuts already exist: ${formattedShortcuts}. What do you want to do?`;
+                        document.getElementById("overwriteBtn").onclick = () => {
+                            Object.assign(shortcuts, uploaded);
+                            chrome.storage.local.set({ shortcuts }, displayShortcuts);
+                            modal.style.display = "none";
+                        };
 
-              modal.style.display = "flex";
+                        document.getElementById("skipBtn").onclick = () => {
+                            Object.assign(shortcuts, newShortcuts);
+                            chrome.storage.local.set({ shortcuts }, displayShortcuts);
+                            modal.style.display = "none";
+                        };
+                    } else {
+                        Object.assign(shortcuts, newShortcuts);
+                        chrome.storage.local.set({ shortcuts }, displayShortcuts);
+                    }
+                });
 
-              document.getElementById("overwriteBtn").onclick = () => {
-                  Object.assign(shortcuts, uploaded); // overwrite all
-                  chrome.storage.local.set({ shortcuts }, () => displayShortcuts());
-                  modal.style.display = "none";
-              };
+            } catch {
+                alert("Invalid JSON file.");
+            }
+        };
+        reader.readAsText(file);
+    });
 
-              document.getElementById("skipBtn").onclick = () => {
-                  Object.assign(shortcuts, newShortcuts); // add only new
-                  chrome.storage.local.set({ shortcuts }, () => displayShortcuts());
-                  modal.style.display = "none";
-              };
-          } else {
-              // No duplicates, just add
-              Object.assign(shortcuts, newShortcuts);
-              chrome.storage.local.set({ shortcuts }, () => displayShortcuts());
-          }
-        });
-
-      } catch {
-        alert("Invalid JSON file.");
-      }
-    };
-    reader.readAsText(file);
-  });
-
-  input.click();
+    input.click();
 }
-
 
 // --- Toolbar / Placeholder / Link ---
 function insertPlaceholder() {
     const placeholderName = prompt("Enter placeholder name:");
     if (!placeholderName) return;
-    const input = document.getElementById("expandedTextInput");
-    const selection = window.getSelection();
-    if (!selection.rangeCount) return;
-    const range = selection.getRangeAt(0);
-    const placeholder = `{${placeholderName}}`;
-    range.deleteContents();
-    range.insertNode(document.createTextNode(placeholder));
+    insertNormalizedText(`{${placeholderName}}`);
 }
 
 function insertLink() {
@@ -290,11 +282,41 @@ function insertLink() {
     const selection = window.getSelection();
     if (!selection.rangeCount) return;
     const range = selection.getRangeAt(0);
-    const a = document.createElement("a");
-    a.href = url;
-    a.textContent = url;
+    const selectedText = range.toString().trim() || url;
+    const linkHTML = `<a href="${url}" target="_blank">${selectedText}</a>`;
+    insertNormalizedHTML(linkHTML);
+}
+
+// --- Normalized insertion helpers ---
+function insertNormalizedText(text) {
+    const html = text.replace(/\r\n|\r|\n/g, "<br>").replace(/[ \t]{2,}/g, " ");
+    insertHTMLAtCursor(html);
+}
+
+function insertNormalizedHTML(html) {
+    insertHTMLAtCursor(html);
+}
+
+function insertHTMLAtCursor(html) {
+    const sel = window.getSelection();
+    if (!sel.rangeCount) return;
+    const range = sel.getRangeAt(0);
     range.deleteContents();
-    range.insertNode(a);
+
+    const el = document.createElement("div");
+    el.innerHTML = html;
+    const frag = document.createDocumentFragment();
+    let node, lastNode;
+    while ((node = el.firstChild)) lastNode = frag.appendChild(node);
+
+    range.insertNode(frag);
+
+    if (lastNode) {
+        range.setStartAfter(lastNode);
+        range.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(range);
+    }
 }
 
 // --- Search/filter shortcuts ---

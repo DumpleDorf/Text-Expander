@@ -1,31 +1,87 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>SC AutoMessager Config</title>
-  <link rel="stylesheet" href="scConfig.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SC AutoMessager</title>
+<link rel="stylesheet" href="scConfig.css">
 </head>
 <body>
-  <div class="container">
-    <h1>Service Center Configuration</h1>
-    
-    <!-- Info message -->
-    <p class="info-message">
-      To edit or make any changes to these service center configurations, please raise the request to <strong>Ronan Preston</strong> or <strong>Darian George</strong>.
-    </p>
+  <div class="page-wrapper">
 
-    <input type="text" id="searchInput" placeholder="Search service center...">
+    <!-- Top Menu Bar -->
+    <nav class="menu-bar">
+      <ul>
+        <li class="menu-item active" data-section="about">About</li>
+        <li class="menu-item" data-section="config">Configuration</li>
+      </ul>
+      <div class="menu-indicator"></div>
+    </nav>
 
-    <table id="scConfigTable">
-      <thead>
-        <tr>
-          <th>Service Center</th>
-          <th>Google Maps Link</th>
-          <th>Custom Instructions</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+    <!-- Main Container -->
+    <div class="container">
+
+      <h1>SCA AutoMessager</h1>
+
+      <!-- About Section Wrapper -->
+      <div id="aboutSectionWrapper">
+
+        <!-- Main About Section -->
+        <div id="aboutSection" class="section flex-row">
+          <div class="text-content">
+            <h2>About this feature</h2>
+            <p>
+              SCS AutoMessager allows service to send messages in the Communication Log that are specific to each customer and service center site by pulling data such as name, scheduled date and location.
+            </p>
+            <br>
+            <p>
+              The tool embeds a button natively within SCA which, when pressed, automatically enters the formatted message for the service team member.
+            </p>
+            <br>                    
+            <p>
+              This tool currently only supports the first initial contact message sent to customers, but with support, will be able to support multiple types of messages, such as:
+            </p>
+            <ul>
+              <li>First contact and check-in instructions</li>
+              <li>In-Service update messages</li>
+              <li>Checkout/pick-up instructions</li>
+            </ul>
+          </div>
+
+          <!-- Right-side vertical image -->
+          <div class="image-content">
+            <img src="messagerButton.png" alt="SC AutoMessager Button">
+          </div>
+        </div>
+
+        <!-- Bottom full-width image -->
+        <div class="bottom-image">
+          <img src="commLogExample.png" alt="Communication Log Example">
+        </div>
+
+      </div>
+
+      <!-- Configuration Section -->
+      <div id="configSection" class="section" style="display:none;">
+        <h2>Service Center Configuration</h2>
+        <p class="info-message">
+          To edit or make any changes to these service center configurations, please raise the request to 
+          <strong>Ronan Preston</strong> or <strong>Darian George</strong>.
+        </p>
+        <input type="text" id="searchInput" placeholder="Search service center...">
+        <table id="scConfigTable">
+          <thead>
+            <tr>
+              <th>Service Center</th>
+              <th>Google Maps Link</th>
+              <th>Custom Instructions</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+    </div>
   </div>
 
   <script src="scConfig.js"></script>

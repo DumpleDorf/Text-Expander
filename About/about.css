@@ -45,7 +45,6 @@ h1 {
 
 .section:hover {
     background: rgba(240, 244, 248, 1);
-    transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
 }
 
