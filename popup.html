@@ -5,17 +5,108 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Extension Popup</title>
 <style>
-  :root {
-  --vertical-gap: 6px; /* Global vertical spacing */
-}
-
+/* Root variables and body animation */
+/* Root variables and body animation */
+/* Root variables and body animation */
 body {
-  width: 420px;
+  width: 100%;
   margin: 0;
-  padding: 20px;
+  padding: 20px; /* keep the purple gradient visible */
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
+  opacity: 0;
+  transform: scale(0.95);
+  animation: popupOpen 0.25s ease forwards;
+  box-sizing: border-box;
+}
+
+/* Full background with padding */
+#popupWrapper {
+  width: 100%;                  /* full width container */
+  min-height: 100vh;            /* fill height */
+  box-sizing: border-box;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;      /* aligns popup to top */
+}
+
+/* Landing page fixed width popup */
+#landingPage {
+  width: 420px;                  /* fixed width like before */
+  max-width: 100%;               /* responsive fallback */
+  padding: 20px;
+  background: rgba(255,255,255,0.95);
+  border-radius: 15px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vertical-gap);
+  overflow: hidden;
+  opacity: 0;
+  animation: popupExpand 0.45s ease forwards;
+  box-sizing: border-box;
+}
+
+
+/* Keyframes */
+@keyframes popupOpen {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes popupExpand {
+  from { opacity: 0; max-height: 0; }
+  to { opacity: 1; max-height: 1000px; } /* keep height expansion only */
+}
+
+
+/* Sections */
+.section {
+  opacity: 0;
+  transform: translateY(8px); /* smaller offset for faster perception */
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+
+/* Explicit classes for proper staggering */
+.section-general { transition-delay: 0.1s; }
+.section-support { transition-delay: 0.18s; }
+.section-service { transition-delay: 0.26s; }
+.section-other { transition-delay: 0.34s; }
+.section-info { transition-delay: 0.42s; }
+
+/* When landing page opens */
+#landingPage.open .section {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Buttons inside sections */
+.section button,
+.section .menu-item {
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* Stagger buttons slightly after section */
+.section-general button,
+.section-general .menu-item { transition-delay: 0.15s; }
+.section-support button,
+.section-support .menu-item { transition-delay: 0.23s; }
+.section-service button,
+.section-service .menu-item { transition-delay: 0.31s; }
+.section-other button,
+.section-other .menu-item { transition-delay: 0.39s; }
+.section-info button,
+.section-info .menu-item { transition-delay: 0.47s; }
+
+/* When landing page opens */
+#landingPage.open .section button,
+#landingPage.open .section .menu-item {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .container {
@@ -373,66 +464,68 @@ input:checked + .slider:before {
 </style>
 </head>
 <body>
-  <!-- Landing Page -->
-  <div id="landingPage">
-    <!-- Logo Section -->
-    <div id="logoSection">
-      <img src="icons/tesla_wordmark_icon.png" alt="Tesla Logo" id="teslaLogo" />
-      <div id="supportText">Support Tool</div>
-    </div>
-
-    <!-- Info message above General section -->
-    <div style="width: 100%; text-align: right; margin-bottom: 4px; font-size: 12px; color: #555; font-weight: 500;">
-      Click on a tool to find out more
-    </div>
-
-    <!-- General Section -->
-    <div class="section">
-      <div class="section-header">General</div>
-      <button class="full-width-btn" id="textExpanderBtn">Text Expander</button>
-      <button class="full-width-btn" id="tyreQuoteBtn">Tyre Quote Generator</button>
-    </div>
-
-    <!-- Customer Support Section -->
-    <div class="section">
-      <div class="section-header">Customer Support</div>
-      <div class="menu-item">
-        <span id="teamsFilterBtn" class="clickable-text">TCC Teams Filter</span>
-        <label class="switch-wrapper visible" id="teamsToggleWrapper">
-          <input type="checkbox" id="teamsToggle" />
-          <span class="slider"></span>
-        </label>
+  <div id="popupWrapper">
+    <!-- Landing Page -->
+    <div id="landingPage">
+      <!-- Logo Section -->
+      <div id="logoSection">
+        <img src="icons/tesla_wordmark_icon.png" alt="Tesla Logo" id="teslaLogo" />
+        <div id="supportText">Support Tool</div>
       </div>
-    </div>
 
-    <!-- Service Section -->
-    <div class="section">
-      <div class="section-header">Service</div>
-      <div class="menu-item">
-        <span id="scAutoMessagerBtn">SC AutoMessager</span>
-        <label class="switch-wrapper visible" id="scAutoMessagerWrapper">
-          <input type="checkbox" id="scAutoMessagerToggle" />
-          <span class="slider"></span>
-        </label>
+      <!-- Info message above General section -->
+      <div style="width: 100%; text-align: right; margin-bottom: 4px; font-size: 12px; color: #555; font-weight: 500;">
+        Click on a tool to find out more
       </div>
-    </div>
 
-    <!-- Other Section -->
-    <div class="section">
-      <div class="section-header">Other</div>
-      <div class="menu-item">
-        <span>Towbook Notifier</span>
-        <label class="switch-wrapper visible" id="towbookToggleWrapper">
-          <input type="checkbox" id="towbookToggle" />
-          <span class="slider"></span>
-        </label>
+      <!-- General Section -->
+      <div class="section section-general">
+        <div class="section-header">General</div>
+        <button class="full-width-btn" id="textExpanderBtn">Text Expander</button>
+        <button class="full-width-btn" id="tyreQuoteBtn">Tyre Quote Generator</button>
       </div>
-    </div>
 
-    <!-- Info Section -->
-    <div class="section">
-      <div class="section-header">Info</div>
-      <button class="full-width-btn" id="aboutBtn">About</button>
+      <!-- Customer Support Section -->
+      <div class="section section-support">
+        <div class="section-header">Customer Support</div>
+        <div class="menu-item">
+          <span id="teamsFilterBtn" class="clickable-text">TCC Teams Filter</span>
+          <label class="switch-wrapper visible" id="teamsToggleWrapper">
+            <input type="checkbox" id="teamsToggle" />
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Service Section -->
+      <div class="section section-service">
+        <div class="section-header">Service</div>
+        <div class="menu-item">
+          <span id="scAutoMessagerBtn">SC AutoMessager</span>
+          <label class="switch-wrapper visible" id="scAutoMessagerWrapper">
+            <input type="checkbox" id="scAutoMessagerToggle" />
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Other Section -->
+      <div class="section section-other">
+        <div class="section-header">Other</div>
+        <div class="menu-item">
+          <span>Towbook Notifier</span>
+          <label class="switch-wrapper visible" id="towbookToggleWrapper">
+            <input type="checkbox" id="towbookToggle" />
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Info Section -->
+      <div class="section section-info">
+        <div class="section-header">Info</div>
+        <button class="full-width-btn" id="aboutBtn">About</button>
+      </div>
     </div>
   </div>
 

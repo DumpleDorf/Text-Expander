@@ -87,4 +87,8 @@ if (scAutoMessagerToggle) {
   });
 }
 
+setTimeout(() => {
+    landingPage.classList.add('open');
+  }, 50);
+
 });
