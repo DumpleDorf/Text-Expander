@@ -461,6 +461,27 @@ input:checked + .slider:before {
   left: 2px;
 }
 
+#tyreQuoteSection {
+  display: flex;
+  justify-content: center;  /* center container */
+  padding: 0;               /* remove extra padding */
+  width: 100%;
+}
+
+#tyreQuoteSection .container {
+  width: 420px;             /* same as landingPage */
+  max-width: 100%;
+  padding: 20px;
+  background: rgba(255,255,255,0.95);
+  border-radius: 15px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+
 </style>
 </head>
 <body>
@@ -527,56 +548,56 @@ input:checked + .slider:before {
         <button class="full-width-btn" id="aboutBtn">About</button>
       </div>
     </div>
-  </div>
+  
 
   <!-- Tyre Quote Section (separate from landingPage) -->
-  <div id="tyreQuoteSection" style="display:none;">
+  <!-- Tyre Quote Section -->
+<div id="tyreQuoteSection" style="display:none;">
+  <div class="container">
     <button id="backBtn">Back</button>
-    <div class="container">
-      <div class="header-row">
-        <div class="quote-title">🚗 Tesla Tyre Quote</div>
-        <div class="region-container">
-          <span class="region-label">AU</span>
-          <label class="switch region-switch">
-            <input type="checkbox" id="regionToggle" />
-            <span class="slider"></span>
-          </label>
-          <span class="region-label">NZ</span>
-        </div>
-      </div>
-
-      <div class="step">
-        <div class="step-title">1. Select Tesla Model</div>
-        <select id="modelSelect" disabled>
-          <option value="">Select Model</option>
-        </select>
-      </div>
-
-      <div class="step">
-        <div class="step-title">2. Select Tyre Brand</div>
-        <select id="brandSelect" disabled>
-          <option value="">Select Brand</option>
-        </select>
-      </div>
-
-      <div class="step">
-        <div class="step-title">3. Select Tyre Size</div>
-        <select id="sizeSelect" disabled>
-          <option value="">Select Size</option>
-        </select>
-      </div>
-
-      <button id="generateQuote" disabled>Generate Quote</button>
-
-      <div class="quote-section" id="quoteSection">
-        <h3>Your Tyre Quote</h3>
-        <div class="quote-text" id="quoteText"></div>
-        <button class="copy-btn" id="copyQuote">Copy to Clipboard</button>
+    <div class="header-row">
+      <div class="quote-title">🚗 Tesla Tyre Quote</div>
+      <div class="region-container">
+        <span class="region-label">AU</span>
+        <label class="switch region-switch">
+          <input type="checkbox" id="regionToggle" />
+          <span class="slider"></span>
+        </label>
+        <span class="region-label">NZ</span>
       </div>
     </div>
-  </div>
 
-  <div id="copyNotification">Quote copied to clipboard!</div>
+    <div class="step">
+      <div class="step-title">1. Select Tesla Model</div>
+      <select id="modelSelect" disabled>
+        <option value="">Select Model</option>
+      </select>
+    </div>
+
+    <div class="step">
+      <div class="step-title">2. Select Tyre Brand</div>
+      <select id="brandSelect" disabled>
+        <option value="">Select Brand</option>
+      </select>
+    </div>
+
+    <div class="step">
+      <div class="step-title">3. Select Tyre Size</div>
+      <select id="sizeSelect" disabled>
+        <option value="">Select Size</option>
+      </select>
+    </div>
+
+    <button id="generateQuote" disabled>Generate Quote</button>
+
+    <div class="quote-section" id="quoteSection">
+      <h3>Your Tyre Quote</h3>
+      <div class="quote-text" id="quoteText"></div>
+      <button class="copy-btn" id="copyQuote">Copy to Clipboard</button>
+    </div>
+  </div>
+</div>
+
 
   <script src="popup.js"></script>
   <script src="TyreQuoteGenerator/tyreQuoteGenerator.js"></script>
