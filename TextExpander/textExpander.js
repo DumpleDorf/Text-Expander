@@ -132,11 +132,41 @@ function preprocessPlaceholders(text) {
 // nodes can be text nodes or elements
 function replacePlaceholdersWithInputs(node, container, inputs, focusFirstInputRef) {
   if (node.nodeType === Node.TEXT_NODE) {
-    // Just append text nodes as is
-    container.appendChild(document.createTextNode(node.textContent));
+    const text = node.textContent;
+    const parts = text.split(/(\{[^}]+\})/g); // split text by {placeholder}
+    parts.forEach(part => {
+      const match = part.match(/^\{([^}]+)\}$/);
+      if (match) {
+        // It's a placeholder
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = match[1];
+        input.style.margin = '0 3px';
+        input.style.padding = '3px 6px';
+        input.style.fontSize = '14px';
+        input.style.borderRadius = '4px';
+        input.style.border = '1px solid #ccc';
+        input.style.minWidth = '80px';
+        container.appendChild(input);
+        inputs.push(input);
+
+        // Focus first input automatically
+        if (focusFirstInputRef.value) {
+          setTimeout(() => {
+            input.focus();
+            const length = input.value.length;
+            input.setSelectionRange(length, length);
+          }, 0);
+          focusFirstInputRef.value = false;
+        }
+      } else if (part) {
+        // Normal text
+        container.appendChild(document.createTextNode(part));
+      }
+    });
   } else if (node.nodeType === Node.ELEMENT_NODE) {
     if (node.tagName.toLowerCase() === 'placeholder') {
-      // Create an input for this placeholder
+      // In case you already have <placeholder> nodes
       const input = document.createElement('input');
       input.type = 'text';
       input.placeholder = node.textContent;
@@ -146,29 +176,23 @@ function replacePlaceholdersWithInputs(node, container, inputs, focusFirstInputR
       input.style.borderRadius = '4px';
       input.style.border = '1px solid #ccc';
       input.style.minWidth = '80px';
-
       container.appendChild(input);
       inputs.push(input);
 
-    // Focus first input automatically
-    if (focusFirstInputRef.value) {
-    setTimeout(() => {
-        input.focus();
-        const length = input.value.length;
-        input.setSelectionRange(length, length);
-    }, 0);
-    focusFirstInputRef.value = false;
-    }
-    } else {
-      // For other elements, clone without children then recurse on children
-      const elClone = document.createElement(node.tagName);
-      // Copy attributes if needed (optional)
-      for (const attr of node.attributes) {
-        elClone.setAttribute(attr.name, attr.value);
+      if (focusFirstInputRef.value) {
+        setTimeout(() => {
+          input.focus();
+          const length = input.value.length;
+          input.setSelectionRange(length, length);
+        }, 0);
+        focusFirstInputRef.value = false;
       }
+    } else {
+      // Clone element
+      const elClone = document.createElement(node.tagName);
+      for (const attr of node.attributes) elClone.setAttribute(attr.name, attr.value);
       container.appendChild(elClone);
 
-      // Recurse on children
       node.childNodes.forEach(child => {
         replacePlaceholdersWithInputs(child, elClone, inputs, focusFirstInputRef);
       });
@@ -176,13 +200,15 @@ function replacePlaceholdersWithInputs(node, container, inputs, focusFirstInputR
   }
 }
 
+
+
 // Main popup function:
 function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) {
-    // Remove any existing overlay
+    // Remove existing overlay
     const existingOverlay = document.querySelector(".placeholder-popup-overlay");
     if (existingOverlay) existingOverlay.remove();
 
-    // Create overlay
+    // Overlay
     const overlay = document.createElement("div");
     overlay.className = "placeholder-popup-overlay";
     overlay.style.cssText = `
@@ -196,7 +222,7 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
         animation: fadeIn 0.15s ease;
     `;
 
-    // Create popup
+    // Popup
     const popup = document.createElement("div");
     popup.style.cssText = `
         background: rgba(255,255,255,0.98);
@@ -204,7 +230,7 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
         padding: 25px;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         display: flex;
-        flex-wrap: wrap;
+        flex-direction: column;
         gap: 8px;
         width: min(650px, 90%);
         max-height: 80vh;
@@ -219,52 +245,68 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
         animation: popupIn 0.15s ease forwards;
     `;
 
-    // Process placeholders
     const inputs = [];
-    const sanitizedText = expandedText.replace(/\{([^{}]+)\}/g, (m, p) => `<placeholder>${p}</placeholder>`);
-    const tempDiv = document.createElement("div");
-    tempDiv.innerHTML = sanitizedText;
+    const focusFirstInputRef = { value: true };
 
-    function processNode(node, container) {
-        if (node.nodeType === Node.TEXT_NODE) {
-            container.appendChild(document.createTextNode(node.textContent));
-        } else if (node.nodeType === Node.ELEMENT_NODE) {
-            if (node.tagName.toLowerCase() === 'placeholder') {
-                const input = document.createElement("input");
-                input.type = "text";
-                input.placeholder = node.textContent;
-                input.style.cssText = `
-                    display: inline-block;
-                    margin: 0 4px;
-                    padding: 4px 8px;
-                    font-size: 14px;
-                    border-radius: 6px;
-                    border: 1px solid #ccc;
-                    outline: none;
-                    transition: all 0.2s ease;
-                    min-width: 70px;
-                    box-sizing: border-box;
-                `;
-                input.addEventListener("focus", () => {
-                    input.style.boxShadow = "0 0 6px rgba(128,191,255,0.25)";
-                    input.style.borderColor = "#80bfff";
-                });
-                input.addEventListener("blur", () => {
-                    input.style.boxShadow = "none";
-                    input.style.borderColor = "#ccc";
-                });
-                container.appendChild(input);
-                inputs.push(input);
-            } else {
-                const elClone = document.createElement(node.tagName);
-                for (const attr of node.attributes) elClone.setAttribute(attr.name, attr.value);
-                container.appendChild(elClone);
-                node.childNodes.forEach(child => processNode(child, elClone));
-            }
-        }
-    }
+    // Strip any HTML for clean preview
+    const cleanText = stripHTML(expandedText);
 
-    Array.from(tempDiv.childNodes).forEach(child => processNode(child, popup));
+    // Split paragraphs by double newline
+    const paragraphs = cleanText.split(/\n\s*\n/);
+
+    paragraphs.forEach(paragraphText => {
+        const pDiv = document.createElement("div");
+        pDiv.style.display = "block";
+
+        // Split by single newline for <br> line breaks
+        const lines = paragraphText.split(/\n/);
+
+        lines.forEach((lineText, lineIndex) => {
+            const parts = lineText.split(/(\{[^}]+\})/g);
+            parts.forEach(part => {
+                const match = part.match(/^\{([^}]+)\}$/);
+                if (match) {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.placeholder = match[1];
+                    input.style.cssText = `
+                        display: inline-block;
+                        margin: 0 3px 2px 3px; /* <-- add bottom margin for vertical spacing */
+                        padding: 4px 8px;
+                        font-size: 14px;
+                        border-radius: 6px;
+                        border: 1px solid #ccc;
+                        outline: none;
+                        transition: all 0.2s ease;
+                        min-width: 70px;
+                        box-sizing: border-box;
+                    `;
+                    input.addEventListener("focus", () => {
+                        input.style.boxShadow = "0 0 6px rgba(128,191,255,0.25)";
+                        input.style.borderColor = "#80bfff";
+                    });
+                    input.addEventListener("blur", () => {
+                        input.style.boxShadow = "none";
+                        input.style.borderColor = "#ccc";
+                    });
+                    pDiv.appendChild(input);
+                    inputs.push(input);
+
+                    if (focusFirstInputRef.value) {
+                        setTimeout(() => input.focus(), 0);
+                        focusFirstInputRef.value = false;
+                    }
+                } else if (part) {
+                    pDiv.appendChild(document.createTextNode(part));
+                }
+            });
+
+            // Add <br> if not last line in paragraph
+            if (lineIndex < lines.length - 1) pDiv.appendChild(document.createElement("br"));
+        });
+
+        popup.appendChild(pDiv);
+    });
 
     // Buttons container
     const buttonContainer = document.createElement("div");
@@ -276,6 +318,25 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
         margin-top: 15px;
     `;
 
+    const cancelButton = document.createElement("button");
+    cancelButton.textContent = "Cancel";
+    cancelButton.style.cssText = `
+        background: transparent;
+        color: #e74c3c;
+        border: 2px solid #e74c3c;
+        border-radius: 8px;
+        padding: 8px 16px;
+        cursor: pointer;
+        transition: all 0.25s ease;
+    `;
+    cancelButton.addEventListener("mouseover", () => cancelButton.style.background = "#e74c3c");
+    cancelButton.addEventListener("mouseover", () => cancelButton.style.color = "#fff");
+    cancelButton.addEventListener("mouseout", () => {
+        cancelButton.style.background = "transparent";
+        cancelButton.style.color = "#e74c3c";
+    });
+    cancelButton.addEventListener("click", closePopup);
+
     const confirmButton = document.createElement("button");
     confirmButton.textContent = "Confirm";
     confirmButton.style.cssText = `
@@ -285,13 +346,19 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
         border-radius: 8px;
         padding: 8px 16px;
         cursor: pointer;
-        transition: background 0.25s ease;
+        transition: all 0.25s ease;
     `;
-    confirmButton.addEventListener("mouseover", () => confirmButton.style.background = "#2c7ac9");
-    confirmButton.addEventListener("mouseout", () => confirmButton.style.background = "#3498db");
+    confirmButton.addEventListener("mouseover", () => {
+        confirmButton.style.background = "#2c7ac9";
+        confirmButton.style.color = "#fff"; // text always readable on hover
+    });
+    confirmButton.addEventListener("mouseout", () => {
+        confirmButton.style.background = "#3498db";
+        confirmButton.style.color = "#fff";
+    });
     confirmButton.addEventListener("click", () => {
         const values = inputs.map(input => input.value.trim());
-        let updatedText = expandedText;
+        let updatedText = cleanText;
         values.forEach((val, idx) => {
             const ph = inputs[idx].placeholder;
             updatedText = updatedText.replace(new RegExp(`\\{${escapeRegExp(ph)}\\}`, "g"), val);
@@ -300,23 +367,8 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
         closePopup();
     });
 
-    const cancelButton = document.createElement("button");
-    cancelButton.textContent = "Cancel";
-    cancelButton.style.cssText = `
-        background: #e74c3c;
-        color: #fff;
-        border: none;
-        border-radius: 8px;
-        padding: 8px 16px;
-        cursor: pointer;
-        transition: background 0.25s ease;
-    `;
-    cancelButton.addEventListener("mouseover", () => cancelButton.style.background = "#c0392b");
-    cancelButton.addEventListener("mouseout", () => cancelButton.style.background = "#e74c3c");
-    cancelButton.addEventListener("click", closePopup);
-
-    buttonContainer.appendChild(confirmButton);
     buttonContainer.appendChild(cancelButton);
+    buttonContainer.appendChild(confirmButton);
     popup.appendChild(buttonContainer);
 
     overlay.appendChild(popup);
@@ -339,7 +391,7 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
         if (e.key === "Escape") { closePopup(); document.removeEventListener("keydown", escHandler); }
     });
 
-    // Keyframes (inject once)
+    // Inject keyframes once
     if (!document.getElementById("popupKeyframes")) {
         const style = document.createElement("style");
         style.id = "popupKeyframes";
@@ -352,6 +404,9 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
         document.head.appendChild(style);
     }
 }
+
+
+
 
 function replaceShortcut(target, shortcut, replacementText) {
     console.log("[Shortcut Expander] Rich text replacement starting...");
