@@ -386,10 +386,16 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
         setTimeout(() => overlay.remove(), 150);
     }
 
-    // Escape key closes
-    document.addEventListener("keydown", function escHandler(e) {
-        if (e.key === "Escape") { closePopup(); document.removeEventListener("keydown", escHandler); }
-    });
+    // Close on Escape key
+    overlay.addEventListener("keydown", function escHandler(e) {
+        if (e.key === "Escape") {
+            closePopup();
+        }
+    }, { once: true });
+
+    // Make sure the overlay can receive focus to catch keydown
+    overlay.tabIndex = -1;
+    overlay.focus();
 
     // Inject keyframes once
     if (!document.getElementById("popupKeyframes")) {
