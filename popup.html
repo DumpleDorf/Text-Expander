@@ -5,23 +5,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Extension Popup</title>
 <style>
-/* Root variables and body animation */
-/* Root variables and body animation */
-/* Root variables and body animation */
+/* ==========================
+   Body & Root
+========================== */
 body {
   width: 100%;
   margin: 0;
-  padding: 20px; /* keep the purple gradient visible */
+  padding: 20px; /* keeps the purple gradient visible */
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
+
+  /* Popup open animation */
   opacity: 0;
   transform: scale(0.95);
   animation: popupOpen 0.25s ease forwards;
+
   box-sizing: border-box;
 }
 
-/* Full background with padding */
+/* ==========================
+   Full background wrapper
+========================== */
 #popupWrapper {
   width: 100%;                  /* full width container */
   min-height: 100vh;            /* fill height */
@@ -32,9 +37,11 @@ body {
   align-items: flex-start;      /* aligns popup to top */
 }
 
-/* Landing page fixed width popup */
+/* ==========================
+   Landing Page Container
+========================== */
 #landingPage {
-  width: 420px;                  /* fixed width like before */
+  width: 420px;                  /* fixed width */
   max-width: 100%;               /* responsive fallback */
   padding: 20px;
   background: rgba(255,255,255,0.95);
@@ -44,102 +51,139 @@ body {
   flex-direction: column;
   gap: var(--vertical-gap);
   overflow: hidden;
+
+  /* Animation for fade/expand */
   opacity: 0;
   animation: popupExpand 0.45s ease forwards;
   box-sizing: border-box;
+
+  /* Center content */
+  justify-content: center;
+  align-items: center;
+  color: #333;
 }
 
-
-/* Keyframes */
+/* ==========================
+   Keyframes
+========================== */
 @keyframes popupOpen {
   from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  to   { opacity: 1; transform: scale(1); }
 }
 
 @keyframes popupExpand {
   from { opacity: 0; max-height: 0; }
-  to { opacity: 1; max-height: 1000px; } /* keep height expansion only */
+  to   { opacity: 1; max-height: 1000px; } /* expand landing page */
 }
 
-
-/* Sections */
+/* ==========================
+   Sections
+========================== */
 .section {
+  width: 100%;
+  margin-bottom: 12px;
+  background: rgba(255,255,255,0.95);
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+
+  /* Section entrance animation */
   opacity: 0;
-  transform: translateY(8px); /* smaller offset for faster perception */
+  transform: translateY(8px);
   transition: opacity 0.22s ease, transform 0.22s ease;
 }
 
-/* Explicit classes for proper staggering */
+/* Section headers */
+.section-header {
+  font-weight: bold;
+  font-size: 16px;
+  color: #2c3e50;
+  margin-bottom: 6px;
+}
+
+/* Stagger section animation */
 .section-general { transition-delay: 0.1s; }
 .section-support { transition-delay: 0.18s; }
 .section-service { transition-delay: 0.26s; }
-.section-other { transition-delay: 0.34s; }
-.section-info { transition-delay: 0.42s; }
+.section-other   { transition-delay: 0.34s; }
+.section-info    { transition-delay: 0.42s; }
 
-/* When landing page opens */
+/* Animate sections when landingPage opens */
 #landingPage.open .section {
   opacity: 1;
   transform: translateY(0);
 }
 
-/* Buttons inside sections */
+/* ==========================
+   Buttons & Menu Items inside Sections
+========================== */
 .section button,
 .section .menu-item {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 10px 0;
+  text-align: center;
+
+  /* Animate buttons after sections */
   opacity: 0;
   transform: translateY(4px);
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-/* Stagger buttons slightly after section */
-.section-general button,
-.section-general .menu-item { transition-delay: 0.15s; }
-.section-support button,
-.section-support .menu-item { transition-delay: 0.23s; }
-.section-service button,
-.section-service .menu-item { transition-delay: 0.31s; }
-.section-other button,
-.section-other .menu-item { transition-delay: 0.39s; }
-.section-info button,
-.section-info .menu-item { transition-delay: 0.47s; }
+/* Button/m-item stagger */
+.section-general button, .section-general .menu-item { transition-delay: 0.15s; }
+.section-support button, .section-support .menu-item { transition-delay: 0.23s; }
+.section-service button, .section-service .menu-item { transition-delay: 0.31s; }
+.section-other button, .section-other .menu-item { transition-delay: 0.39s; }
+.section-info button, .section-info .menu-item { transition-delay: 0.47s; }
 
-/* When landing page opens */
+/* Animate buttons when landingPage opens */
 #landingPage.open .section button,
 #landingPage.open .section .menu-item {
   opacity: 1;
   transform: translateY(0);
 }
 
-.container {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 15px;
-  padding: 20px;
-  color: #333;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-}
-
-h1 {
-  margin: 0 0 20px 0;
-  font-size: 24px;
-  text-align: center;
-  color: #2c3e50;
-  font-weight: 600;
-}
-
-.step {
-  margin-bottom: 20px;
-  padding: 15px;
-  border-left: 4px solid #3498db;
-  background: #f8f9fa;
-  border-radius: 0 8px 8px 0;
-}
-
-.step-title {
+/* ==========================
+   Generic Buttons
+========================== */
+button {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+  border: none;
+  cursor: pointer;
   font-weight: bold;
-  margin-bottom: 10px;
-  color: #2c3e50;
-  font-size: 14px;
+  margin-top: var(--vertical-gap);
+  transition: all 0.3s ease;
+  border-radius: 6px;
 }
 
+button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(52,152,219,0.4);
+}
+
+button:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Buttons inside landingPage */
+#landingPage button {
+  padding: 12px 0;
+  font-size: 16px;
+  margin: 0;
+}
+
+/* ==========================
+   Forms: Inputs & Selects
+========================== */
 select,
 input,
 button {
@@ -156,7 +200,7 @@ select:focus,
 input:focus {
   outline: none;
   border-color: #3498db;
-  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+  box-shadow: 0 0 0 3px rgba(52,152,219,0.1);
 }
 
 select:disabled,
@@ -166,92 +210,11 @@ input:disabled {
   cursor: not-allowed;
 }
 
-button {
-  background: linear-gradient(135deg, #3498db, #2980b9);
-  color: white;
-  border: none;
-  cursor: pointer;
-  font-weight: bold;
-  margin-top: var(--vertical-gap);
-  transition: all 0.3s ease;
-  border-radius: 6px;
-}
-
-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
-}
-
-button:disabled {
-  background: #bdc3c7;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.quote-section {
-  background: #2c3e50;
-  color: white;
-  padding: 20px;
-  border-radius: 8px;
-  margin-top: 20px;
-  display: none;
-}
-
-.quote-section h3 {
-  margin: 0 0 15px 0;
-  color: #ecf0f1;
-}
-
-.quote-text {
-  background: #34495e;
-  padding: 15px;
-  border-radius: 6px;
-  font-family: 'Courier New', monospace;
-  font-size: 18px;
-  line-height: 1.4;
-  white-space: pre-wrap;
-  margin-bottom: 15px;
-}
-
-.copy-btn {
-  background: #27ae60;
-  margin-top: var(--vertical-gap);
-}
-
-.copy-btn:hover {
-  background: #229954;
-}
-
-/* Landing page container */
-#landingPage {
-  display: flex;
-  flex-direction: column;
-  gap: var(--vertical-gap);
-  justify-content: center;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 15px;
-  padding: 20px;
-  color: #333;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-}
-
-/* Buttons inside landing page */
-#landingPage button {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 12px 0;
-  font-size: 16px;
-  text-align: center;
-  margin: 0;
-}
-
-/* Menu items (sliders) */
+/* ==========================
+   Menu Items & Switches
+========================== */
 .menu-item {
   height: 45px;
-  box-sizing: border-box;
-  width: 100%;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -268,63 +231,46 @@ button:disabled {
 
 .menu-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
+  box-shadow: 0 4px 12px rgba(52,152,219,0.4);
 }
 
 .menu-item span {
-  padding-left: 16px;   /* more space from the left edge */
+  padding-left: 16px;
 }
 .menu-item .switch-wrapper {
-  margin-right: 20px; /* pushes slider inward from the right edge */
+  margin-right: 20px;
 }
+
+/* Switch wrapper */
+.switch-wrapper { display: none; width: 50px; flex-shrink: 0; position: relative; }
+.switch-wrapper.visible { display: flex; justify-content: center; align-items: center; }
 
 /* Switch styles */
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 42px;
-  height: 22px;
-  margin: 0;
-}
-
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
+.switch { position: relative; display: inline-block; width: 42px; height: 22px; margin: 0; }
+.switch input { opacity: 0; width: 0; height: 0; }
 .slider {
   position: absolute;
   cursor: pointer;
-  top: 3px;
-  left: 6px;
-  right: 0;
-  bottom: 0;
+  top: 3px; left: 6px; right: 0; bottom: 0;
   background-color: #ccc;
   transition: 0.4s;
   border-radius: 22px;
 }
-
 .slider:before {
   position: absolute;
   content: "";
-  height: 16px;
-  width: 16px;
-  left: 3px;
-  top: 2px;
+  height: 16px; width: 16px;
+  left: 3px; top: 2px;
   background-color: white;
   transition: 0.4s;
   border-radius: 50%;
 }
+input:checked + .slider { background-color: #27ae60; }
+input:checked + .slider:before { transform: translateX(22px); }
 
-input:checked + .slider {
-  background-color: #27ae60;
-}
-
-input:checked + .slider:before {
-  transform: translateX(22px);
-}
-
+/* ==========================
+   Copy Notification Toast
+========================== */
 #copyNotification {
   position: fixed;
   bottom: 20px;
@@ -342,26 +288,14 @@ input:checked + .slider:before {
   transition: opacity 0.5s ease;
   z-index: 9999;
 }
-
 #copyNotification.show {
   opacity: 1;
   pointer-events: auto;
 }
 
-.switch-wrapper {
-  display: none;
-  width: 50px;
-  flex-shrink: 0;
-  position: relative;
-}
-
-.switch-wrapper.visible {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-/* Logo section */
+/* ==========================
+   Logo Section
+========================== */
 #logoSection {
   display: flex;
   flex-direction: column;
@@ -369,20 +303,57 @@ input:checked + .slider:before {
   margin-bottom: 15px;
   gap: 4px;
 }
+#teslaLogo { width: 225px; height: auto; user-select: none; }
+#supportText { font-size: 18px; font-weight: 600; color: #333; }
 
-#teslaLogo {
-  width: 225px;
-  height: auto;
-  user-select: none;
+/* ==========================
+   Quote Section & Tyre Quote
+========================== */
+#tyreQuoteSection {
+  display: flex;
+  justify-content: center;
+  padding: 0;
+  width: 100%;
 }
 
-#supportText {
+#tyreQuoteSection .container {
+  width: 420px;
+  max-width: 100%;
+  padding: 20px;
+  background: rgba(255,255,255,0.95);
+  border-radius: 15px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+}
+
+.quote-section {
+  background: #2c3e50;
+  color: white;
+  padding: 20px;
+  border-radius: 8px;
+  margin-top: 20px;
+  display: none;
+}
+.quote-section h3 { margin: 0 0 15px 0; color: #ecf0f1; }
+.quote-text {
+  background: #34495e;
+  padding: 15px;
+  border-radius: 6px;
+  font-family: 'Courier New', monospace;
   font-size: 18px;
-  font-weight: 600;
-  color: #333;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  margin-bottom: 15px;
 }
+.copy-btn { background: #27ae60; margin-top: var(--vertical-gap); }
+.copy-btn:hover { background: #229954; }
 
+/* ==========================
+   Tyre Quote Section Header
+========================== */
 .header-row {
   display: flex;
   justify-content: space-between;
@@ -391,9 +362,9 @@ input:checked + .slider:before {
 }
 
 .quote-title {
-  font-size: 24px;
-  font-weight: 600;
-  color: #2c3e50;
+  font-size: 24px;        /* large, readable title */
+  font-weight: 600;       /* semi-bold */
+  color: #2c3e50;         /* dark blue/gray text */
 }
 
 .region-container {
@@ -408,7 +379,7 @@ input:checked + .slider:before {
   color: #2c3e50;
 }
 
-/* AU/NZ slider */
+/* AU/NZ toggle slider inside quote section */
 .region-switch .slider:before {
   height: 16px;
   width: 16px;
@@ -420,66 +391,12 @@ input:checked + .slider:before {
   transform: translateX(15px);
 }
 
-/* Sections */
-.section {
-  width: 100%;
-  margin-bottom: 12px;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 10px;
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
 
-.section-header {
-  font-weight: bold;
-  font-size: 16px;
-  color: #2c3e50;
-  margin-bottom: 6px;
-}
-
-.section button,
-.section .menu-item {
-  width: 100%;
-  box-sizing: border-box;
-  margin: 0;
-  padding: 10px 0;
-  text-align: center;
-}
-
-/* Compact slider inside section */
-.section .slider {
-  height: 18px;
-}
-
-.section .slider:before {
-  height: 14px;
-  width: 14px;
-  top: 2px;
-  left: 2px;
-}
-
-#tyreQuoteSection {
-  display: flex;
-  justify-content: center;  /* center container */
-  padding: 0;               /* remove extra padding */
-  width: 100%;
-}
-
-#tyreQuoteSection .container {
-  width: 420px;             /* same as landingPage */
-  max-width: 100%;
-  padding: 20px;
-  background: rgba(255,255,255,0.95);
-  border-radius: 15px;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
+/* ==========================
+   Misc Tyre Quote Form Styles
+========================== */
+.step {padding: 15px; border-left: 4px solid #3498db; background: #f8f9fa; border-radius: 0 8px 8px 0; }
+.step-title { font-weight: bold; margin-bottom: 10px; color: #2c3e50; font-size: 14px; }
 
 
 </style>
