@@ -225,10 +225,10 @@ button:disabled {
 
 .info-message p, 
 .info-message p a {
-    line-height: 2;     /* uniform line spacing */
-    font-weight: 400;     /* uniform weight */
-    font-size: 14px;      /* optional, matches rest */
-    vertical-align: middle; /* helps with emoji & inline elements */
+    line-height: 2;    
+    font-weight: 400;    
+    font-size: 14px;   
+    vertical-align: middle; 
 }
 .info-message a:hover {
     text-decoration: underline;
