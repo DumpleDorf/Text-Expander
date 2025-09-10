@@ -223,3 +223,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 50); // small delay to avoid instantly triggering on logo click
   }
 });
+
+const pdfGeneratorBtn = document.getElementById('pdfGeneratorBtn');
+
+if (pdfGeneratorBtn) {
+  pdfGeneratorBtn.addEventListener('click', () => {
+    window.open(chrome.runtime.getURL('HEICConverter/heicConverter.html'));
+  });
+}
+
+document.getElementById('openHeicPageBtn').addEventListener('click', () => {
+  const heicPageUrl = chrome.runtime.getURL('HEICConverter/heicConverter.html?openHeic=true');
+  window.open(heicPageUrl, '_blank');
+});

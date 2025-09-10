@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF Document Generator</title>
+<link rel="stylesheet" href="heicConverter.css">
+</head>
+<body>
+  
+  <div class="page-wrapper">
+
+    <!-- Top Menu Bar -->
+    <nav class="menu-bar">
+      <ul>
+        <li class="menu-item" data-section="converter">PDF Document Generator</li>
+        <li class="menu-item" data-section="heic-to-jpg">HEIC To JPEG</li>
+        <li class="menu-item" data-section="about">About</li>
+      </ul>
+      <div class="menu-indicator"></div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+      <h1>PDF Document Generator</h1>
+
+      <!-- Converter Section -->
+      <div id="converterSection" class="section flex-row">
+        <div class="text-content">
+          <h2>Convert and Combine your files</h2>
+          <p>Combine JPEG, PNG, PDF, and HEIC images into a single PDF. HEIC images will be compressed to keep file size below 5MB.</p>
+          <input type="file" id="fileInput" multiple>
+          <button id="convertBtn">Convert / Merge</button>
+          <div id="output" class="info-message"></div>
+        </div>
+
+        <div class="image-content">
+          <div id="pdfProgressContainer" class="progress-circle" style="display:none;">
+            <svg viewBox="0 0 36 36">
+              <defs>
+                <linearGradient id="gradientStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#667eea"/>
+                  <stop offset="100%" stop-color="#764ba2"/>
+                </linearGradient>
+              </defs>
+              <circle class="circle-bg" cx="18" cy="18" r="15.9155"/>
+              <circle class="circle" cx="18" cy="18" r="15.9155" stroke="url(#gradientStroke)" fill="none" stroke-width="3.8" stroke-linecap="round"/>
+            </svg>
+            <span id="pdfProgressText">0%</span>
+          </div>
+          <img id="pdfPreviewImg" src="pdfIcon.png" alt="PDF Preview">
+        </div>
+      </div>
+
+      <!-- HEIC to JPEG Section -->
+      <div id="heicToJpgSection" class="section flex-row" style="display:none;">
+        <div class="text-content">
+          <h2>Convert HEIC files to JPEG</h2>
+          <p>Select HEIC images below and convert them locally.</p>
+          <input type="file" id="heicFileInput" multiple accept=".heic">
+          <button id="heicConvertBtn">Convert to JPEG</button>
+          <div id="heicOutput" class="info-message"></div>
+        </div>
+
+        <div class="image-content">
+          <div id="heicProgressContainer" class="progress-circle" style="display:none;">
+            <svg viewBox="0 0 36 36">
+              <defs>
+                <linearGradient id="heicGradientStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#667eea"/>
+                  <stop offset="100%" stop-color="#764ba2"/>
+                </linearGradient>
+              </defs>
+              <circle class="circle-bg" cx="18" cy="18" r="15.9155"/>
+              <circle class="circle" cx="18" cy="18" r="15.9155" stroke="url(#heicGradientStroke)" fill="none" stroke-width="3.8" stroke-linecap="round"/>
+            </svg>
+            <span id="heicProgressText">0%</span>
+          </div>
+          <img id="heicPreviewImg" src="pdfIcon.png" alt="HEIC Preview">
+        </div>
+      </div>
+
+      <!-- About Section -->
+      <div id="aboutSection" class="section" style="display:none;">
+        <h2>About this tool</h2>
+        <p>This tool allows conversion of HEIC, JPEG, PNG, and PDFs into a single merged PDF. Works entirely in your browser.</p>
+        <ul>
+          <li>HEIC → JPEG conversion</li>
+          <li>Merge multiple PDFs</li>
+          <li>No server uploads required</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="pdf-lib.min.js"></script>
+  <script type="module" src="heicConverter.js"></script>
+  <script src="heicConverter-menu.js"></script>
+
+  <script>
+    // Read query param and mark the correct menu item active
+    const params = new URLSearchParams(window.location.search);
+    const openHeic = params.get('openHeic') === 'true';
+    if (openHeic) {
+      document.querySelector('.menu-item.active')?.classList.remove('active');
+      const heicMenu = document.querySelector('.menu-item[data-section="heic-to-jpg"]');
+      heicMenu?.classList.add('active');
+    }
+  </script>
+</body>
+</html>

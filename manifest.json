@@ -58,7 +58,7 @@
 ],
 "web_accessible_resources": [
     {
-      "resources": ["icons/*.png", "TyreQuoteGenerator/tyre_prices.csv", "SCA_AutoMessager/scConfig.csv", "SCA_AutoMessager/temp.js", "EasterEgg/lol.png"],
+      "resources": ["icons/*.png", "TyreQuoteGenerator/tyre_prices.csv", "SCA_AutoMessager/scConfig.csv", "SCA_AutoMessager/temp.js", "EasterEgg/lol.png", "HEICConverter/heic-to.js", "HEICConverter/pdf-lib.min.js"],
       "matches": ["<all_urls>"]
     }
   ],
