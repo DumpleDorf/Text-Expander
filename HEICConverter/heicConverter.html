@@ -76,7 +76,7 @@
             </svg>
             <span id="heicProgressText">0%</span>
           </div>
-          <img id="heicPreviewImg" src="pdfIcon.png" alt="HEIC Preview">
+          <img id="heicPreviewImg" src="heicIcon.png" alt="HEIC Preview">
         </div>
       </div>
 
@@ -98,15 +98,5 @@
   <script type="module" src="heicConverter.js"></script>
   <script src="heicConverter-menu.js"></script>
 
-  <script>
-    // Read query param and mark the correct menu item active
-    const params = new URLSearchParams(window.location.search);
-    const openHeic = params.get('openHeic') === 'true';
-    if (openHeic) {
-      document.querySelector('.menu-item.active')?.classList.remove('active');
-      const heicMenu = document.querySelector('.menu-item[data-section="heic-to-jpg"]');
-      heicMenu?.classList.add('active');
-    }
-  </script>
 </body>
 </html>

@@ -34,16 +34,18 @@ convertBtn.addEventListener('click', async () => {
   convertBtn.disabled = true;
   pdfProgressContainer.style.display = 'block';
   previewImg.style.display = 'none';
+  output.style.display = 'none'; // hide initially
+  output.innerHTML = '';
 
   initPdfProgress();
   setProgress(0);
 
   const totalBytes = files.reduce((sum, f) => sum + f.size, 0);
-  output.innerHTML = `<p>Total files: ${files.length} | Total size: ${(totalBytes/1024/1024).toFixed(2)} MB</p>`;
+  let firstImageBlob = null;
+  let outputShown = false; // track when output box is first shown
 
   try {
     const pdfDoc = await PDFLib.PDFDocument.create();
-    let firstImageBlob = null;
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -60,9 +62,24 @@ convertBtn.addEventListener('click', async () => {
         const copiedPages = await pdfDoc.copyPages(existingPdf, existingPdf.getPageIndices());
         copiedPages.forEach(page => pdfDoc.addPage(page));
         setProgress(((i+1)/files.length)*100);
+
+        // Show output box for PDF files too
+        if (!outputShown) {
+          output.style.display = 'block';
+          output.innerHTML = `<p>Processing files...</p>`;
+          outputShown = true;
+        }
+
         continue;
       } else {
         setProgress(((i+1)/files.length)*100);
+
+        if (!outputShown) {
+          output.style.display = 'block';
+          output.innerHTML = `<p>Skipping unsupported file(s)...</p>`;
+          outputShown = true;
+        }
+
         continue;
       }
 
@@ -76,7 +93,15 @@ convertBtn.addEventListener('click', async () => {
       const page = pdfDoc.addPage([image.width, image.height]);
       page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
 
+      // Show output box once we have the first processed file
+      if (!outputShown) {
+        output.style.display = 'block';
+        output.innerHTML = `<p>Processing files...</p>`;
+        outputShown = true;
+      }
+
       setProgress(((i+1)/files.length)*100);
+      await new Promise(r => setTimeout(r, 50)); // optional small delay for UI update
     }
 
     const pdfBytes = await pdfDoc.save();
@@ -92,6 +117,7 @@ convertBtn.addEventListener('click', async () => {
 
   } catch (err) {
     console.error('[ERROR]', err);
+    if (!outputShown) output.style.display = 'block';
     output.innerHTML += `<p style="color:red;">Error: ${err.message}</p>`;
     previewImg.src = PDF_ICON;
   } finally {
@@ -101,8 +127,9 @@ convertBtn.addEventListener('click', async () => {
   }
 });
 
+
 // Compress images
-async function compressImage(file, maxWidth=1200, quality=0.6) {
+async function compressImage(file, maxWidth=2000, quality=0.9) {
   return new Promise(async resolve => {
     let blob = file;
     if (file.type === 'image/heic') blob = await heicTo({ blob: file, type: 'image/jpeg', quality });
@@ -131,12 +158,12 @@ const heicProgressContainer = document.getElementById('heicProgressContainer');
 const heicProgressCircle = heicProgressContainer.querySelector('.circle');
 const heicProgressText = document.getElementById('heicProgressText');
 
-function initHeicProgress() {
-  if (!heicProgressCircle) return;
-  const length = heicProgressCircle.getTotalLength();
-  heicProgressCircle.style.strokeDasharray = length;
-  heicProgressCircle.style.strokeDashoffset = length;
-}
+// function initHeicProgress() {
+//   if (!heicProgressCircle) return;
+//   const length = heicProgressCircle.getTotalLength();
+//   heicProgressCircle.style.strokeDasharray = length;
+//   heicProgressCircle.style.strokeDashoffset = length;
+// }
 
 function setHeicProgress(percent) {
   if (!heicProgressCircle) return;
@@ -152,24 +179,22 @@ heicConvertBtn.addEventListener('click', async () => {
   if (!files.length) return alert('Please select HEIC files.');
 
   heicConvertBtn.disabled = true;
-  heicOutput.innerHTML = ''; // keep hidden for now
+  heicOutput.innerHTML = '';
+  heicOutput.style.display = 'block';
+  heicOutput.innerHTML = `<p>Processing files...</p>`;
   heicPreviewImg.style.display = 'none';
   heicProgressContainer.style.display = 'block';
   setHeicProgress(0);
 
   const convertedBlobs = [];
   let firstBlob = null;
-  let outputShown = false; // track if we’ve made the box visible
+  let totalBytes = 0;
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
 
     if (!(await isHeic(file))) {
       console.warn(file.name, 'is not a HEIC file. Skipping.');
-      if (!outputShown) {
-        heicOutput.style.display = 'block';
-        outputShown = true;
-      }
       heicOutput.innerHTML += `<p style="color:orange;">${file.name} is not a HEIC file. Skipped.</p>`;
       setHeicProgress(((i + 1) / files.length) * 100);
       continue;
@@ -181,27 +206,20 @@ heicConvertBtn.addEventListener('click', async () => {
       convertedBlobs.push({ blob: safeBlob, name: file.name.replace(/\.heic$/i, '.jpg') });
 
       if (!firstBlob) firstBlob = safeBlob;
+      totalBytes += safeBlob.size;
 
-      // Show the output box only when the first result is ready
-      if (!outputShown) {
-        heicOutput.style.display = 'block';
-        outputShown = true;
-      }
-
+      // Show converted file as link with size
+      const sizeMB = (safeBlob.size / (1024*1024)).toFixed(2);
       const url = URL.createObjectURL(safeBlob);
-      heicOutput.innerHTML += `<p>${file.name} → <a href="${url}" download="${file.name.replace(/\.heic$/i, '.jpg')}">Download JPEG</a></p>`;
+      heicOutput.innerHTML += `<p>${file.name} → <a href="${url}" download="${file.name.replace(/\.heic$/i, '.jpg')}">Download JPEG</a> (${sizeMB} MB)</p>`;
 
     } catch (err) {
       console.error('[ERROR]', file.name, err);
-      if (!outputShown) {
-        heicOutput.style.display = 'block';
-        outputShown = true;
-      }
       heicOutput.innerHTML += `<p style="color:red;">Failed to convert ${file.name}: ${err.message}</p>`;
     }
 
     setHeicProgress(((i + 1) / files.length) * 100);
-    await new Promise(r => setTimeout(r, 50));
+    await new Promise(r => setTimeout(r, 50)); // small delay for UI
   }
 
   heicProgressContainer.style.display = 'none';
@@ -210,12 +228,19 @@ heicConvertBtn.addEventListener('click', async () => {
     heicPreviewImg.style.display = 'block';
   }
 
-  // Download All button
+  // Show total summary + clickable "Download All" link
   if (convertedBlobs.length) {
-    const downloadAllBtn = document.createElement('button');
-    downloadAllBtn.textContent = 'Download All';
-    downloadAllBtn.style.marginTop = '10px';
-    downloadAllBtn.addEventListener('click', () => {
+    const totalSizeMB = (totalBytes / (1024*1024)).toFixed(2);
+    const combinedText = `<p>✅ Converted ${convertedBlobs.length} file(s) (${totalSizeMB} MB)</p>`;
+    heicOutput.innerHTML += combinedText;
+
+    const downloadAllLink = document.createElement('a');
+    downloadAllLink.href = '#';
+    downloadAllLink.textContent = 'Download All';
+    downloadAllLink.classList.add('download-all-link'); // optional class for additional styling
+
+    downloadAllLink.addEventListener('click', e => {
+      e.preventDefault();
       convertedBlobs.forEach(item => {
         const a = document.createElement('a');
         a.href = URL.createObjectURL(item.blob);
@@ -225,8 +250,10 @@ heicConvertBtn.addEventListener('click', async () => {
         document.body.removeChild(a);
       });
     });
-    heicOutput.appendChild(downloadAllBtn);
-  }
+
+    heicOutput.appendChild(downloadAllLink);
+    heicOutput.style.display = 'block'; // ensure box is visible
+  } 
 
   heicConvertBtn.disabled = false;
 });
