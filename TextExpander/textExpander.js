@@ -92,9 +92,9 @@ function replaceShortcutAtIndex(target, shortcut, replacementText, index) {
 
 // Utility: decode HTML entities (to handle &quot; etc.)
 function decodeHtmlEntities(text) {
-  const textarea = document.createElement('textarea');
-  textarea.innerHTML = text;
-  return textarea.value;
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
 }
 
 // Utility function to strip HTML tags
@@ -102,107 +102,92 @@ function stripHTML(html) {
     const div = document.createElement("div");
     div.innerHTML = html;
 
-    // Replace <br> tags with newlines
     div.innerHTML = div.innerHTML.replace(/<br\s*\/?>/gi, "\n");
-
-    // Replace <p> tags with double newlines
     div.innerHTML = div.innerHTML.replace(/<\/p>/gi, "\n\n").replace(/<p[^>]*>/gi, "");
-
-    // Remove <span> and other inline tags while preserving their content
     div.innerHTML = div.innerHTML.replace(/<\/?span[^>]*>/gi, "");
 
-    // Strip any remaining HTML tags
     return div.textContent || div.innerText || "";
 }
 
-// Utility to escape RegExp special characters (for placeholder replacement)
+// Utility to escape RegExp special characters
 function escapeRegExp(string) {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-// Wrap all {placeholder} occurrences with <placeholder> tags for easier parsing
+// Wrap all {placeholder} occurrences with <placeholder> tags
 function preprocessPlaceholders(text) {
-  // Escape HTML entities if needed? (depends on your input)
-  // Basic approach: replace {placeholder} with <placeholder>placeholder</placeholder>
-  // Use a global regex to capture {word} patterns (no nested {})
-  return text.replace(/\{([^{}]+)\}/g, (match, p1) => `<placeholder>${p1}</placeholder>`);
+    return text.replace(/\{([^{}]+)\}/g, (match, p1) => `<placeholder>${p1}</placeholder>`);
 }
 
-// Recursively replaces <placeholder> elements with <input> fields in the container
-// nodes can be text nodes or elements
+// Recursively replaces <placeholder> elements with <input> fields
 function replacePlaceholdersWithInputs(node, container, inputs, focusFirstInputRef) {
-  if (node.nodeType === Node.TEXT_NODE) {
-    const text = node.textContent;
-    const parts = text.split(/(\{[^}]+\})/g); // split text by {placeholder}
-    parts.forEach(part => {
-      const match = part.match(/^\{([^}]+)\}$/);
-      if (match) {
-        // It's a placeholder
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.placeholder = match[1];
-        input.style.margin = '0 3px';
-        input.style.padding = '3px 6px';
-        input.style.fontSize = '14px';
-        input.style.borderRadius = '4px';
-        input.style.border = '1px solid #ccc';
-        input.style.minWidth = '80px';
-        container.appendChild(input);
-        inputs.push(input);
+    if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent;
+        const parts = text.split(/(\{[^}]+\})/g);
+        parts.forEach(part => {
+            const match = part.match(/^\{([^}]+)\}$/);
+            if (match) {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = match[1];
+                input.style.margin = '0 3px';
+                input.style.padding = '3px 6px';
+                input.style.fontSize = '14px';
+                input.style.borderRadius = '4px';
+                input.style.border = '1px solid #ccc';
+                input.style.minWidth = '80px';
+                container.appendChild(input);
+                inputs.push(input);
 
-        // Focus first input automatically
-        if (focusFirstInputRef.value) {
-          setTimeout(() => {
-            input.focus();
-            const length = input.value.length;
-            input.setSelectionRange(length, length);
-          }, 0);
-          focusFirstInputRef.value = false;
+                if (focusFirstInputRef.value) {
+                    setTimeout(() => {
+                        input.focus();
+                        const length = input.value.length;
+                        input.setSelectionRange(length, length);
+                    }, 0);
+                    focusFirstInputRef.value = false;
+                }
+            } else if (part) {
+                container.appendChild(document.createTextNode(part));
+            }
+        });
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+        if (node.tagName.toLowerCase() === 'placeholder') {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = node.textContent;
+            input.style.margin = '0 3px';
+            input.style.padding = '3px 6px';
+            input.style.fontSize = '14px';
+            input.style.borderRadius = '4px';
+            input.style.border = '1px solid #ccc';
+            input.style.minWidth = '80px';
+            container.appendChild(input);
+            inputs.push(input);
+
+            if (focusFirstInputRef.value) {
+                setTimeout(() => {
+                    input.focus();
+                    const length = input.value.length;
+                    input.setSelectionRange(length, length);
+                }, 0);
+                focusFirstInputRef.value = false;
+            }
+        } else {
+            const elClone = document.createElement(node.tagName);
+            for (const attr of node.attributes) elClone.setAttribute(attr.name, attr.value);
+            container.appendChild(elClone);
+
+            node.childNodes.forEach(child => {
+                replacePlaceholdersWithInputs(child, elClone, inputs, focusFirstInputRef);
+            });
         }
-      } else if (part) {
-        // Normal text
-        container.appendChild(document.createTextNode(part));
-      }
-    });
-  } else if (node.nodeType === Node.ELEMENT_NODE) {
-    if (node.tagName.toLowerCase() === 'placeholder') {
-      // In case you already have <placeholder> nodes
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.placeholder = node.textContent;
-      input.style.margin = '0 3px';
-      input.style.padding = '3px 6px';
-      input.style.fontSize = '14px';
-      input.style.borderRadius = '4px';
-      input.style.border = '1px solid #ccc';
-      input.style.minWidth = '80px';
-      container.appendChild(input);
-      inputs.push(input);
-
-      if (focusFirstInputRef.value) {
-        setTimeout(() => {
-          input.focus();
-          const length = input.value.length;
-          input.setSelectionRange(length, length);
-        }, 0);
-        focusFirstInputRef.value = false;
-      }
-    } else {
-      // Clone element
-      const elClone = document.createElement(node.tagName);
-      for (const attr of node.attributes) elClone.setAttribute(attr.name, attr.value);
-      container.appendChild(elClone);
-
-      node.childNodes.forEach(child => {
-        replacePlaceholdersWithInputs(child, elClone, inputs, focusFirstInputRef);
-      });
     }
-  }
 }
 
-
-
-// Main popup function:
+// -----------------------------
+// 5️⃣ Main popup function
+// -----------------------------
 function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) {
     // Remove existing overlay
     const existingOverlay = document.querySelector(".placeholder-popup-overlay");
@@ -248,64 +233,22 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
     const inputs = [];
     const focusFirstInputRef = { value: true };
 
-    // Strip any HTML for clean preview
-    const cleanText = stripHTML(expandedText);
+    // Strip any HTML for clean preview but keep formatting
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = expandedText;
 
-    // Split paragraphs by double newline
-    const paragraphs = cleanText.split(/\n\s*\n/);
+    // Replace placeholders with inputs recursively
+    replacePlaceholdersWithInputs(tempDiv, popup, inputs, focusFirstInputRef);
 
-    paragraphs.forEach(paragraphText => {
-        const pDiv = document.createElement("div");
-        pDiv.style.display = "block";
+    // Fix bullet point rendering
+    popup.querySelectorAll("ul, ol").forEach(list => {
+        list.style.margin = "8px 0";
+        list.style.paddingLeft = "25px";
+        list.style.lineHeight = "1.6";
+    });
 
-        // Split by single newline for <br> line breaks
-        const lines = paragraphText.split(/\n/);
-
-        lines.forEach((lineText, lineIndex) => {
-            const parts = lineText.split(/(\{[^}]+\})/g);
-            parts.forEach(part => {
-                const match = part.match(/^\{([^}]+)\}$/);
-                if (match) {
-                    const input = document.createElement('input');
-                    input.type = 'text';
-                    input.placeholder = match[1];
-                    input.style.cssText = `
-                        display: inline-block;
-                        margin: 0 3px 2px 3px; /* <-- add bottom margin for vertical spacing */
-                        padding: 4px 8px;
-                        font-size: 14px;
-                        border-radius: 6px;
-                        border: 1px solid #ccc;
-                        outline: none;
-                        transition: all 0.2s ease;
-                        min-width: 70px;
-                        box-sizing: border-box;
-                    `;
-                    input.addEventListener("focus", () => {
-                        input.style.boxShadow = "0 0 6px rgba(128,191,255,0.25)";
-                        input.style.borderColor = "#80bfff";
-                    });
-                    input.addEventListener("blur", () => {
-                        input.style.boxShadow = "none";
-                        input.style.borderColor = "#ccc";
-                    });
-                    pDiv.appendChild(input);
-                    inputs.push(input);
-
-                    if (focusFirstInputRef.value) {
-                        setTimeout(() => input.focus(), 0);
-                        focusFirstInputRef.value = false;
-                    }
-                } else if (part) {
-                    pDiv.appendChild(document.createTextNode(part));
-                }
-            });
-
-            // Add <br> if not last line in paragraph
-            if (lineIndex < lines.length - 1) pDiv.appendChild(document.createElement("br"));
-        });
-
-        popup.appendChild(pDiv);
+    popup.querySelectorAll("li").forEach(li => {
+        li.style.marginBottom = "4px";
     });
 
     // Buttons container
@@ -329,12 +272,8 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
         cursor: pointer;
         transition: all 0.25s ease;
     `;
-    cancelButton.addEventListener("mouseover", () => cancelButton.style.background = "#e74c3c");
-    cancelButton.addEventListener("mouseover", () => cancelButton.style.color = "#fff");
-    cancelButton.addEventListener("mouseout", () => {
-        cancelButton.style.background = "transparent";
-        cancelButton.style.color = "#e74c3c";
-    });
+    cancelButton.addEventListener("mouseover", () => { cancelButton.style.background = "#e74c3c"; cancelButton.style.color = "#fff"; });
+    cancelButton.addEventListener("mouseout", () => { cancelButton.style.background = "transparent"; cancelButton.style.color = "#e74c3c"; });
     cancelButton.addEventListener("click", closePopup);
 
     const confirmButton = document.createElement("button");
@@ -348,22 +287,16 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
         cursor: pointer;
         transition: all 0.25s ease;
     `;
-    confirmButton.addEventListener("mouseover", () => {
-        confirmButton.style.background = "#2c7ac9";
-        confirmButton.style.color = "#fff"; // text always readable on hover
-    });
-    confirmButton.addEventListener("mouseout", () => {
-        confirmButton.style.background = "#3498db";
-        confirmButton.style.color = "#fff";
-    });
+    confirmButton.addEventListener("mouseover", () => { confirmButton.style.background = "#2c7ac9"; });
+    confirmButton.addEventListener("mouseout", () => { confirmButton.style.background = "#3498db"; });
     confirmButton.addEventListener("click", () => {
         const values = inputs.map(input => input.value.trim());
-        let updatedText = cleanText;
+        let updatedHTML = expandedText;
         values.forEach((val, idx) => {
             const ph = inputs[idx].placeholder;
-            updatedText = updatedText.replace(new RegExp(`\\{${escapeRegExp(ph)}\\}`, "g"), val);
+            updatedHTML = updatedHTML.replace(new RegExp(`\\{${escapeRegExp(ph)}\\}`, "g"), val);
         });
-        onConfirm(updatedText);
+        onConfirm(updatedHTML);
         closePopup();
     });
 
@@ -374,28 +307,23 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
     overlay.appendChild(popup);
     document.body.appendChild(overlay);
 
-    // Focus first input after added to DOM
     if (inputs.length > 0) setTimeout(() => inputs[0].focus(), 0);
 
     // Close on outside click
     overlay.addEventListener("click", e => { if (e.target === overlay) closePopup(); });
+
+    // Close on Escape key
+    overlay.addEventListener("keydown", function escHandler(e) {
+        if (e.key === "Escape") closePopup();
+    });
+    overlay.tabIndex = -1;
+    overlay.focus();
 
     function closePopup() {
         popup.style.animation = "popupOut 0.15s ease forwards";
         overlay.style.animation = "fadeOut 0.15s ease forwards";
         setTimeout(() => overlay.remove(), 150);
     }
-
-    // Close on Escape key
-    overlay.addEventListener("keydown", function escHandler(e) {
-        if (e.key === "Escape") {
-            closePopup();
-        }
-    }, { once: true });
-
-    // Make sure the overlay can receive focus to catch keydown
-    overlay.tabIndex = -1;
-    overlay.focus();
 
     // Inject keyframes once
     if (!document.getElementById("popupKeyframes")) {
@@ -412,120 +340,86 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
 }
 
 
-
-
+// -----------------------------
+// 6️⃣ Rich text replacement
+// -----------------------------
 function replaceShortcut(target, shortcut, replacementText) {
-    console.log("[Shortcut Expander] Rich text replacement starting...");
+    if (!target.isContentEditable) return;
 
-    if (!target.isContentEditable) {
-        console.error("Target is not contentEditable.");
-        return;
-    }
-
-    // Find the Range that matches the shortcut text inside the contentEditable
     const range = findRangeForText(target, shortcut);
+    if (!range) return;
 
-    if (!range) {
-        console.warn("[Shortcut Expander] Shortcut not found in contentEditable.");
-        return;
-    }
-
-    // Delete the contents of the shortcut text
     range.deleteContents();
 
-    // Create replacement nodes from replacementText (replace newlines with <br>)
     const tempDiv = document.createElement("div");
     const MARKER_ID = "__caret_marker";
-    tempDiv.innerHTML = replacementText.replace(/\n/g, "<br>") + `<span id="${MARKER_ID}" style="display:none;"></span>`;
+    tempDiv.innerHTML = replacementText + `<span id="${MARKER_ID}" style="display:none;"></span>`;
 
     const fragment = document.createDocumentFragment();
-    while (tempDiv.firstChild) {
-        fragment.appendChild(tempDiv.firstChild);
-    }
+    while (tempDiv.firstChild) fragment.appendChild(tempDiv.firstChild);
 
-    // Insert the replacement fragment at the range start
     range.insertNode(fragment);
 
-    // Move the caret after the inserted content
     setTimeout(() => {
         const marker = document.getElementById(MARKER_ID);
         if (marker) {
             const selection = window.getSelection();
             const newRange = document.createRange();
-
             newRange.setStartAfter(marker);
             newRange.collapse(true);
-
             selection.removeAllRanges();
             selection.addRange(newRange);
-
             marker.remove();
         }
-
         target.dispatchEvent(new Event("input", { bubbles: true, cancelable: true }));
     }, 0);
 }
 
-function findRangeForText(node, textToFind) {
-    const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT, null);
+function findRangeForText(container, textToFind) {
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
     let currentNode;
-    let accumulatedText = "";
-    let startNode = null;
-    let startOffset = 0;
+    let accumulatedText = '';
+    let startNode = null, startOffset = 0;
+    let endNode = null, endOffset = 0;
 
     while ((currentNode = walker.nextNode())) {
-        const nodeText = currentNode.nodeValue;
-        const startIndex = accumulatedText.length;
-        const endIndex = startIndex + nodeText.length;
-
-        const shortcutIndex = textToFind ? accumulatedText.indexOf(textToFind) : -1;
-
-        // Instead of accumulatedText, do this below:
-
+        const nodeText = currentNode.nodeValue || '';
         const fullText = accumulatedText + nodeText;
         const index = fullText.indexOf(textToFind);
 
         if (index !== -1) {
-            // Found shortcut spanning potentially multiple nodes
+            // Start position
+            let remaining = index - accumulatedText.length;
+            startNode = currentNode;
+            startOffset = remaining >= 0 ? remaining : 0;
 
-            // Calculate start node and offset
-            if (!startNode) {
-                startNode = currentNode;
-                startOffset = index - accumulatedText.length;
-            }
-
-            // Now find end node and offset (where the shortcut ends)
-            const endPos = index + textToFind.length;
-
-            // We now have start and end in full text, but we need nodes
-            // To do this, we must continue walking nodes until accumulatedText >= endPos
-
-            let endNode = currentNode;
-            let endOffset;
-
+            // End position
+            let endPosInFull = index + textToFind.length;
             let tempNode = currentNode;
-            let tempAccum = fullText.length;
+            let tempOffset = startOffset + textToFind.length;
 
-            while (tempAccum < endPos) {
+            while (tempOffset > (tempNode.nodeValue?.length || 0)) {
+                tempOffset -= tempNode.nodeValue?.length || 0;
                 tempNode = walker.nextNode();
-                if (!tempNode) break;
-                tempAccum += tempNode.nodeValue.length;
-                endNode = tempNode;
+                if (!tempNode) {
+                    tempNode = currentNode;
+                    tempOffset = tempNode.nodeValue?.length || 0;
+                    break;
+                }
             }
+            endNode = tempNode;
+            endOffset = tempOffset;
 
-            endOffset = endPos - (tempAccum - endNode.nodeValue.length);
-
-            // Create range
+            // Create the range
             const range = document.createRange();
             range.setStart(startNode, startOffset);
             range.setEnd(endNode, endOffset);
-
             return range;
         }
 
         accumulatedText += nodeText;
     }
 
-    return null; // not found
+    return null; // Not found
 }
 
