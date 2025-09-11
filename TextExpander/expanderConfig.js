@@ -21,9 +21,24 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Add/Edit shortcut
-    addShortcutBtn.addEventListener("click", () => {
+    document.getElementById("addShortcutBtn").addEventListener("click", () => {
+        const editor = document.getElementById("expandedTextInput");
+
+        // Remove selection class from all images immediately
+        editor.querySelectorAll("img.__selectedImage").forEach(img => {
+            img.classList.remove("__selectedImage");
+        });
+
+        // Hide resize handles
+        document.querySelectorAll("div").forEach(div => {
+            if (div.style && div.style.cursor && div.style.cursor.includes("resize")) {
+                div.style.display = "none";
+            }
+        });
+
+        // Now get the HTML safely
         const shortcut = document.getElementById("shortcutInput").value.trim();
-        const expandedText = document.getElementById("expandedTextInput").innerHTML.trim();
+        const expandedText = editor.innerHTML.trim();
 
         if (!shortcut || !expandedText) {
             alert("Please fill in both fields.");
@@ -34,12 +49,15 @@ document.addEventListener("DOMContentLoaded", () => {
             shortcuts[shortcut] = expandedText;
             chrome.storage.local.set({ shortcuts }, () => {
                 displayShortcuts();
-                clearInputs();
-                form.style.display = "none";
-                searchWrapper.style.removeProperty("display");
+                // Clear inputs and hide form
+                document.getElementById("shortcutInput").value = "";
+                editor.innerHTML = "";
+                document.getElementById("shortcutForm").style.display = "none";
+                document.getElementById("shortcutSearchWrapper").style.removeProperty("display");
             });
         });
     });
+
 
     // Download / Save Shortcuts
     document.getElementById("saveShortcutsBtn").addEventListener("click", saveShortcuts);
@@ -327,3 +345,178 @@ function filterShortcuts() {
         item.style.display = text.includes(filter) ? "" : "none";
     });
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+    const editor = document.getElementById("expandedTextInput");
+    if (!editor) return;
+
+    let currentImage = null;
+    let isResizing = false;
+    const handles = [];
+    const corners = ["nw", "ne", "sw", "se"];
+
+    // Create corner handles
+    for (let i = 0; i < 4; i++) {
+        const h = document.createElement("div");
+        h.style.width = "12px";
+        h.style.height = "12px";
+        h.style.background = "#f0f4f8"; // corner fill
+        h.style.position = "absolute";
+        h.style.zIndex = "9999";
+        h.style.cursor = corners[i] + "-resize";
+        h.style.display = "none";
+        h.style.border = "2px solid #667eea"; // corner border
+        h.style.borderRadius = "2px";
+        document.body.appendChild(h);
+        handles.push(h);
+    }
+
+    const hideSelection = () => {
+        if (isResizing) return;
+        if (currentImage) {
+            currentImage.style.outline = "";
+            currentImage = null;
+        }
+        handles.forEach(h => h.style.display = "none");
+    };
+
+    const positionHandles = (img) => {
+        if (!img) return;
+        const rect = img.getBoundingClientRect();
+        const scrollX = window.scrollX || document.documentElement.scrollLeft;
+        const scrollY = window.scrollY || document.documentElement.scrollTop;
+
+        handles[0].style.left = rect.left + scrollX - 6 + "px"; // nw
+        handles[0].style.top = rect.top + scrollY - 6 + "px";
+        handles[1].style.left = rect.right + scrollX - 6 + "px"; // ne
+        handles[1].style.top = rect.top + scrollY - 6 + "px";
+        handles[2].style.left = rect.left + scrollX - 6 + "px"; // sw
+        handles[2].style.top = rect.bottom + scrollY - 6 + "px";
+        handles[3].style.left = rect.right + scrollX - 6 + "px"; // se
+        handles[3].style.top = rect.bottom + scrollY - 6 + "px";
+    };
+
+    let startX, startY, startWidth, startHeight;
+
+    handles.forEach((handle, idx) => {
+        handle.addEventListener("mousedown", (e) => {
+            e.preventDefault();
+            if (!currentImage) return;
+
+            isResizing = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            startWidth = currentImage.offsetWidth;
+            startHeight = currentImage.offsetHeight;
+            const ratio = startWidth / startHeight;
+
+            const onMouseMove = (e) => {
+                const dx = e.clientX - startX;
+                let newWidth = startWidth;
+                let newHeight = startHeight;
+
+                if (idx === 3) newWidth = startWidth + dx;
+                else if (idx === 0) newWidth = startWidth - dx;
+                else if (idx === 1) newWidth = startWidth + dx;
+                else if (idx === 2) newWidth = startWidth - dx;
+
+                newHeight = newWidth / ratio;
+
+                if (newWidth > 10 && newHeight > 10) {
+                    currentImage.style.width = newWidth + "px";
+                    currentImage.style.height = newHeight + "px";
+                    positionHandles(currentImage);
+                }
+            };
+
+            const onMouseUp = () => {
+                isResizing = false;
+                document.removeEventListener("mousemove", onMouseMove);
+                document.removeEventListener("mouseup", onMouseUp);
+            };
+
+            document.addEventListener("mousemove", onMouseMove);
+            document.addEventListener("mouseup", onMouseUp);
+        });
+    });
+
+    // Hover effect: show light outline on hover
+    editor.addEventListener("mouseover", (e) => {
+        if (e.target.tagName === "IMG" && e.target !== currentImage) {
+            e.target.style.outline = "2px solid #667eea";
+            e.target.style.outlineOffset = "2px";
+        }
+    });
+
+    editor.addEventListener("mouseout", (e) => {
+        if (e.target.tagName === "IMG" && e.target !== currentImage) {
+            e.target.style.outline = "";
+        }
+    });
+
+    // Click image → select it
+    editor.addEventListener("click", (e) => {
+        if (e.target.tagName === "IMG") {
+            hideSelection();
+            currentImage = e.target;
+            currentImage.style.outline = "2px solid #667eea"; // same as hover
+            currentImage.style.outlineOffset = "2px";
+            handles.forEach(h => h.style.display = "block");
+            positionHandles(currentImage);
+        } else hideSelection();
+    });
+
+    // Delete selected image
+    document.addEventListener("keydown", (e) => {
+        if (currentImage && (e.key === "Delete" || e.key === "Backspace")) {
+            e.preventDefault();
+            currentImage.remove();
+            hideSelection();
+        }
+    });
+
+    // Hide selection on scroll
+    window.addEventListener("scroll", () => !isResizing && hideSelection());
+    editor.addEventListener("scroll", () => !isResizing && hideSelection());
+    window.addEventListener("resize", () => { if (currentImage) positionHandles(currentImage); });
+
+    // Strip selection before saving
+    const addShortcutBtn = document.getElementById("addShortcutBtn");
+    if (addShortcutBtn) {
+        addShortcutBtn.addEventListener("click", () => {
+            const editor = document.getElementById("expandedTextInput");
+
+            // Remove any outline from all images
+            editor.querySelectorAll("img").forEach(img => {
+                img.style.outline = "";
+                img.style.outlineOffset = "";
+            });
+
+            // Hide resize handles
+            handles.forEach(h => h.style.display = "none");
+
+            hideSelection(); // also clears currentImage
+
+            // Now read innerHTML safely
+            const shortcut = document.getElementById("shortcutInput").value.trim();
+            const expandedText = editor.innerHTML.trim();
+
+            if (!shortcut || !expandedText) {
+                alert("Please fill in both fields.");
+                return;
+            }
+
+            chrome.storage.local.get("shortcuts", ({ shortcuts = {} }) => {
+                shortcuts[shortcut] = expandedText;
+                chrome.storage.local.set({ shortcuts }, () => {
+                    displayShortcuts();
+                    // Clear inputs and hide form
+                    document.getElementById("shortcutInput").value = "";
+                    editor.innerHTML = "";
+                    document.getElementById("shortcutForm").style.display = "none";
+                    document.getElementById("shortcutSearchWrapper").style.removeProperty("display");
+                });
+            });
+        });
+    }
+});

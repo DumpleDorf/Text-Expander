@@ -261,21 +261,6 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
         margin-top: 15px;
     `;
 
-    const cancelButton = document.createElement("button");
-    cancelButton.textContent = "Cancel";
-    cancelButton.style.cssText = `
-        background: transparent;
-        color: #e74c3c;
-        border: 2px solid #e74c3c;
-        border-radius: 8px;
-        padding: 8px 16px;
-        cursor: pointer;
-        transition: all 0.25s ease;
-    `;
-    cancelButton.addEventListener("mouseover", () => { cancelButton.style.background = "#e74c3c"; cancelButton.style.color = "#fff"; });
-    cancelButton.addEventListener("mouseout", () => { cancelButton.style.background = "transparent"; cancelButton.style.color = "#e74c3c"; });
-    cancelButton.addEventListener("click", closePopup);
-
     const confirmButton = document.createElement("button");
     confirmButton.textContent = "Confirm";
     confirmButton.style.cssText = `
@@ -299,9 +284,24 @@ function showPlaceholderPopup(expandedText, shortcut, targetElement, onConfirm) 
         onConfirm(updatedHTML);
         closePopup();
     });
+    
+    const cancelButton = document.createElement("button");
+    cancelButton.textContent = "Cancel";
+    cancelButton.style.cssText = `
+        background: transparent;
+        color: #e74c3c;
+        border: 2px solid #e74c3c;
+        border-radius: 8px;
+        padding: 8px 16px;
+        cursor: pointer;
+        transition: all 0.25s ease;
+    `;
+    cancelButton.addEventListener("mouseover", () => { cancelButton.style.background = "#e74c3c"; cancelButton.style.color = "#fff"; });
+    cancelButton.addEventListener("mouseout", () => { cancelButton.style.background = "transparent"; cancelButton.style.color = "#e74c3c"; });
+    cancelButton.addEventListener("click", closePopup);
 
-    buttonContainer.appendChild(cancelButton);
     buttonContainer.appendChild(confirmButton);
+    buttonContainer.appendChild(cancelButton);
     popup.appendChild(buttonContainer);
 
     overlay.appendChild(popup);
