@@ -444,10 +444,21 @@ input:checked + .slider:before { transform: translateX(22px); }
       <!-- Customer Support Section -->
       <div class="section section-support">
         <div class="section-header">Customer Support</div>
+
+        <!-- Existing Teams Filter -->
         <div class="menu-item">
           <span id="teamsFilterBtn" class="clickable-text">TCC Teams Filter</span>
           <label class="switch-wrapper visible" id="teamsToggleWrapper">
             <input type="checkbox" id="teamsToggle" />
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <!-- AU Filter -->
+        <div class="menu-item">
+          <span id="auFilterText">RS Dashboard AU Filter</span>
+          <label class="switch-wrapper visible" id="auFilterWrapper">
+            <input type="checkbox" id="auFilterToggle" />
             <span class="slider"></span>
           </label>
         </div>

@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const aboutBtn = document.getElementById('aboutBtn');
   const teamsFilterBtn = document.getElementById('teamsFilterBtn');
   const scAutoMessagerBtn = document.getElementById('scAutoMessagerBtn');
+  const rsDashboardAUBtn = document.getElementById('auFilterText');
 
   // -------------------------
   // Sections
@@ -21,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const towbookToggle = document.getElementById('towbookToggle');
   const teamsToggle = document.getElementById('teamsToggle');
   const scAutoMessagerToggle = document.getElementById('scAutoMessagerToggle');
+  const auFilterToggle = document.getElementById('auFilterToggle');
 
   // -------------------------
   // Button Handlers
@@ -63,18 +65,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  if (rsDashboardAUBtn) {
+    rsDashboardAUBtn.addEventListener('click', () => {
+      window.open(chrome.runtime.getURL('RoadsideDashboardFilter/dashboardFilter.html'));
+    });
+  }
+
+
   // -------------------------
   // Load toggle states from storage
   // -------------------------
   chrome.storage.sync.get({
     towbookAudioNotifier: false,
     teamsFilter: false,
-    scAutoMessagerEnabled: false
+    scAutoMessagerEnabled: false,
+    auFilterEnabled: false    // <-- new
   }, (items) => {
     if (towbookToggle) towbookToggle.checked = items.towbookAudioNotifier;
     if (teamsToggle) teamsToggle.checked = items.teamsFilter;
     if (scAutoMessagerToggle) scAutoMessagerToggle.checked = items.scAutoMessagerEnabled;
+    if (auFilterToggle) auFilterToggle.checked = items.auFilterEnabled;   // <-- new
   });
+
 
   // -------------------------
   // Save toggle changes to storage
@@ -98,6 +110,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  if (auFilterToggle) {
+    auFilterToggle.addEventListener('change', () => {
+      const enabled = auFilterToggle.checked;
+      chrome.storage.sync.set({ auFilterEnabled: enabled }, () => {
+        console.log(`[AU Filter] Toggle changed to ${enabled ? 'ON' : 'OFF'}`);
+      });
+    });
+  }
+
   // -------------------------
   // Landing page animation
   // -------------------------
@@ -105,123 +126,6 @@ document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {
     landingPage.classList.add('open');
   }, 50);
-});
-
-document.addEventListener('DOMContentLoaded', () => {
-  const logo = document.getElementById('teslaLogo');
-  let clickCount = 0;
-  let clickTimer = null;
-
-  // Easter Egg Settings
-  const maxNumber = 50;   // maximum number of images on screen
-  const images = [];
-  const imageSpeed = 3;   // base speed in pixels per frame
-
-  logo.addEventListener('click', () => {
-    clickCount++;
-    clearTimeout(clickTimer);
-    clickTimer = setTimeout(() => clickCount = 0, 500); // reset if not fast enough
-
-    if (clickCount === 5) {
-      // send message to active tab
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        chrome.scripting.executeScript({
-          target: { tabId: tabs[0].id },
-          files: ["EasterEgg/easterEgg.js"]   // inject script into the page
-        });
-        window.close();
-      });
-      clickCount = 0;
-    }
-
-  });
-
-  function triggerEasterEgg() {
-    // close popup
-    const popupWrapper = document.getElementById('popupWrapper');
-    if (popupWrapper) popupWrapper.style.display = 'none';
-
-    // spawn images continuously
-    const centerX = window.innerWidth / 2;
-    const centerY = window.innerHeight / 2;
-
-    const animationFrameIds = [];
-
-    function spawnImage(x, y, vx = null, vy = null, rotation = null) {
-      if (images.length >= maxNumber) return;
-
-      const img = document.createElement('img');
-      img.src = chrome.runtime.getURL('EasterEgg/lol.png');
-      img.style.position = 'fixed';
-      img.style.left = `${x}px`;
-      img.style.top = `${y}px`;
-      img.style.width = '50px';
-      img.style.height = '50px';
-      img.style.pointerEvents = 'none';
-      img.style.transformOrigin = 'center center';
-      document.body.appendChild(img);
-
-      // random direction if not provided
-      const angle = Math.random() * 2 * Math.PI;
-      const speedX = vx !== null ? vx : imageSpeed * Math.cos(angle);
-      const speedY = vy !== null ? vy : imageSpeed * Math.sin(angle);
-      const rotationSpeed = rotation !== null ? rotation : (Math.random() - 0.5) * 0.2;
-
-      const obj = { el: img, x, y, vx: speedX, vy: speedY, rotation: 0, rotationSpeed };
-      images.push(obj);
-    }
-
-    // animation loop
-    function animate() {
-      for (let i = images.length - 1; i >= 0; i--) {
-        const obj = images[i];
-        obj.x += obj.vx;
-        obj.y += obj.vy;
-        obj.rotation += obj.rotationSpeed;
-
-        obj.el.style.left = `${obj.x}px`;
-        obj.el.style.top = `${obj.y}px`;
-        obj.el.style.transform = `rotate(${obj.rotation}rad)`;
-
-        let bounced = false;
-
-        // bounce on edges
-        if (obj.x <= 0 || obj.x + 50 >= window.innerWidth) {
-          obj.vx *= -1;
-          bounced = true;
-        }
-        if (obj.y <= 0 || obj.y + 50 >= window.innerHeight) {
-          obj.vy *= -1;
-          bounced = true;
-        }
-
-        // on bounce, split if under maxNumber
-        if (bounced && images.length < maxNumber) {
-          spawnImage(obj.x, obj.y, obj.vx * -1, obj.vy, obj.rotationSpeed * -1);
-        }
-      }
-      animationFrameIds.push(requestAnimationFrame(animate));
-    }
-
-    animate();
-
-    // spawn initial batch
-    for (let i = 0; i < 5; i++) {
-      spawnImage(centerX, centerY);
-    }
-
-    // stop and clean up on click anywhere
-    const cleanup = () => {
-      animationFrameIds.forEach(id => cancelAnimationFrame(id));
-      images.forEach(obj => obj.el.remove());
-      images.length = 0;
-      document.removeEventListener('click', cleanup);
-    };
-
-    setTimeout(() => {
-      document.addEventListener('click', cleanup, { once: true });
-    }, 50); // small delay to avoid instantly triggering on logo click
-  }
 });
 
 const pdfGeneratorBtn = document.getElementById('pdfGeneratorBtn');

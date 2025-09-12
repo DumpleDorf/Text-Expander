@@ -1,0 +1,141 @@
+:root {
+    --vertical-gap: 6px;
+}
+
+/* Body & Layout */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
+    margin: 0;
+    padding: 40px 20px;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-size: cover;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+/* Container */
+.container {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    padding: 25px 30px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    width: 900px;
+    max-width: 95%;
+}
+
+/* Main Title */
+h1 {
+    margin: 0 0 25px 0;
+    font-size: 32px;
+    text-align: center;
+    color: #2c3e50;
+    font-weight: 700;
+}
+
+/* Section styling */
+.section {
+    padding: 20px;
+    border-radius: 12px;
+    background: rgba(240, 244, 248, 0.85);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.section:hover {
+    background: rgba(240, 244, 248, 1);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+/* Section Headings */
+.section h2 {
+    margin: 0 0 12px 0;
+    font-size: 22px;
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+/* Paragraphs */
+.section p {
+    margin: 0;
+    font-size: 15px;
+    color: #555;
+    line-height: 1.6;
+}
+
+/* Optional unordered list inside section */
+.section ul {
+    padding-left: 20px;
+    margin: 5px 0 0 0;
+}
+
+.section ul li {
+    margin-bottom: 8px;
+    font-size: 15px;
+    color: #333;
+}
+
+.text-content {
+    flex: 1;
+}
+
+/* Image below all text, full width */
+.image-content.full-width {
+    width: 100%;
+}
+
+.image-content.full-width img {
+    width: 100%;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* Countdown container (matches the JS injected style) */
+#au-countdown-container {
+    display: flex;
+    flex-direction: column;
+    min-width: 200px;
+    margin-top: 21px;
+}
+
+#au-countdown-container div {
+    font-size: 12px;
+    color: #666;
+}
+
+#au-countdown-container .progress-wrapper {
+    width: 100%;
+    height: 16px;
+    background: #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 6px;
+}
+
+#au-countdown-container .progress-bar {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    border-radius: 8px;
+    transform-origin: right;
+}
+
+/* Active dispatches label */
+#au-job-count-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+#au-job-count-wrapper span {
+    font-size: 12px;
+    color: #666;
+    padding-top: 25px;
+}

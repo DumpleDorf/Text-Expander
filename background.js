@@ -1,4 +1,6 @@
-// Towbook Audio Notifier
+// -------------------------
+// Background Script
+// -------------------------
 
 let towbookAudioNotifierEnabled = false;
 
@@ -8,22 +10,36 @@ chrome.storage.sync.get('towbookAudioNotifier', (data) => {
   console.log('Initial towbookAudioNotifier:', towbookAudioNotifierEnabled);
 });
 
-// Listen for toggle changes from popup or storage
+// Listen for storage changes
 chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === "sync" && "scAutoMessagerEnabled" in changes) {
-        // Notify all Towbook tabs about the change
-        chrome.tabs.query({ url: "*://app.towbook.com/*" }, (tabs) => {
-            tabs.forEach(tab => {
-                chrome.tabs.sendMessage(tab.id, {
-                    action: "toggleAutoMessager",
-                    enabled: changes.scAutoMessagerEnabled.newValue
-                });
-            });
-        });
+  if (area === "sync") {
+    // Towbook Audio Notifier toggle
+    if ("towbookAudioNotifier" in changes) {
+      towbookAudioNotifierEnabled = changes.towbookAudioNotifier.newValue;
+      console.log(`Towbook Audio Notifier is now ${towbookAudioNotifierEnabled ? 'ON' : 'OFF'}`);
     }
+
+    // SC AutoMessager toggle
+    if ("scAutoMessagerEnabled" in changes) {
+      chrome.tabs.query({ url: "*://app.towbook.com/*" }, (tabs) => {
+        tabs.forEach(tab => {
+          chrome.tabs.sendMessage(tab.id, {
+            action: "toggleAutoMessager",
+            enabled: changes.scAutoMessagerEnabled.newValue
+          });
+        });
+      });
+    }
+
+    // AU Filter toggle is now handled entirely in the content script
+    if ("auFilterEnabled" in changes) {
+      console.log(`[AU Filter] Toggle changed to ${changes.auFilterEnabled.newValue ? 'ON' : 'OFF'}`);
+      // No injection needed
+    }
+  }
 });
 
-
+// Notify on audible Towbook tabs
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.audible && tab.url && isTowbookUrl(tab.url)) {
     if (towbookAudioNotifierEnabled) {

@@ -31,34 +31,48 @@
     "https://*/*"
   ],
   "content_scripts": [
-  {
-    "matches": ["<all_urls>"],
-    "js": ["TextExpander/textExpander.js"],
-    "all_frames": true,
-    "match_about_blank": true
-  },
-  {
-    "matches": ["https://customerconnect.tesla.com/*"],
-    "js": ["TextExpander/textExpander.js"],
-    "all_frames": true,
-    "match_about_blank": true
-  },
-  {
-    "matches": ["https://customerconnect.tesla.com/*"],
-    "js": ["TeamsDropdownFilter/teamsFilter.js"],
-    "all_frames": true,
-    "match_about_blank": true
-  },
-  {
-  "matches": ["https://serviceapp.tesla.com/*"],
-  "js": ["SCA_AutoMessager/autoMessager.js"],
-  "all_frames": true,
-  "match_about_blank": true
-  }
-],
-"web_accessible_resources": [
     {
-      "resources": ["icons/*.png", "TyreQuoteGenerator/tyre_prices.csv", "SCA_AutoMessager/scConfig.csv", "SCA_AutoMessager/temp.js", "EasterEgg/lol.png", "HEICConverter/heic-to.js", "HEICConverter/pdf-lib.min.js"],
+      "matches": ["<all_urls>"],
+      "js": ["TextExpander/textExpander.js"],
+      "all_frames": true,
+      "match_about_blank": true
+    },
+    {
+      "matches": ["https://customerconnect.tesla.com/*"],
+      "js": ["TextExpander/textExpander.js"],
+      "all_frames": true,
+      "match_about_blank": true
+    },
+    {
+      "matches": ["https://customerconnect.tesla.com/*"],
+      "js": ["TeamsDropdownFilter/teamsFilter.js"],
+      "all_frames": true,
+      "match_about_blank": true
+    },
+    {
+      "matches": ["https://serviceapp.tesla.com/*"],
+      "js": ["SCA_AutoMessager/autoMessager.js"],
+      "all_frames": true,
+      "match_about_blank": true
+    },
+    {
+      "matches": ["https://customerconnect.tesla.com/dashboard/roadsidedashboard*"],
+      "js": ["RoadsideDashboardFilter/dashboardfilter.js"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "icons/*.png",
+        "TyreQuoteGenerator/tyre_prices.csv",
+        "SCA_AutoMessager/scConfig.csv",
+        "SCA_AutoMessager/temp.js",
+        "EasterEgg/lol.png",
+        "HEICConverter/heic-to.js",
+        "HEICConverter/pdf-lib.min.js"
+      ],
       "matches": ["<all_urls>"]
     }
   ],
