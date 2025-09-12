@@ -348,26 +348,47 @@ input:checked + .slider:before { transform: translateX(22px); }
 }
 
 .quote-section {
-  background: #2c3e50;
-  color: white;
+  background: #34495e;      /* dark blue-gray */
+  color: white;             /* text color */
   padding: 20px;
   border-radius: 8px;
   margin-top: 20px;
-  display: none;
 }
-.quote-section h3 { margin: 0 0 15px 0; color: #ecf0f1; }
+
+.quote-section h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #ecf0f1;
+  font-size: 18px;
+  font-weight: 600;
+}
+
 .quote-text {
-  background: #34495e;
+  background: #2c3e50;
   padding: 15px;
   border-radius: 6px;
   font-family: 'Courier New', monospace;
-  font-size: 18px;
-  line-height: 1.4;
+  font-size: 16px;
+  line-height: 1.5;
   white-space: pre-wrap;
   margin-bottom: 15px;
+  color: white;
 }
-.copy-btn { background: #27ae60; margin-top: var(--vertical-gap); }
-.copy-btn:hover { background: #229954; }
+
+.copy-btn {
+  background: #27ae60;
+  color: white;
+  font-weight: bold;
+  border-radius: 6px;
+  padding: 10px 15px;
+  border: none;
+  cursor: pointer;
+}
+
+.copy-btn:hover {
+  background: #229954;
+}
+
 
 /* ==========================
    Tyre Quote Section Header
@@ -503,6 +524,8 @@ input:checked + .slider:before { transform: translateX(22px); }
 <div id="tyreQuoteSection" style="display:none;">
   <div class="container">
     <button id="backBtn">Back</button>
+
+    <!-- Header with Title and Region Toggle -->
     <div class="header-row">
       <div class="quote-title">🚗 Tesla Tyre Quote</div>
       <div class="region-container">
@@ -515,6 +538,7 @@ input:checked + .slider:before { transform: translateX(22px); }
       </div>
     </div>
 
+    <!-- Step 1: Select Model -->
     <div class="step">
       <div class="step-title">1. Select Tesla Model</div>
       <select id="modelSelect" disabled>
@@ -522,6 +546,7 @@ input:checked + .slider:before { transform: translateX(22px); }
       </select>
     </div>
 
+    <!-- Step 2: Select Brand -->
     <div class="step">
       <div class="step-title">2. Select Tyre Brand</div>
       <select id="brandSelect" disabled>
@@ -529,6 +554,7 @@ input:checked + .slider:before { transform: translateX(22px); }
       </select>
     </div>
 
+    <!-- Step 3: Select Size -->
     <div class="step">
       <div class="step-title">3. Select Tyre Size</div>
       <select id="sizeSelect" disabled>
@@ -538,13 +564,23 @@ input:checked + .slider:before { transform: translateX(22px); }
 
     <button id="generateQuote" disabled>Generate Quote</button>
 
-    <div class="quote-section" id="quoteSection">
-      <h3>Your Tyre Quote</h3>
-      <div class="quote-text" id="quoteText"></div>
-      <button class="copy-btn" id="copyQuote">Copy to Clipboard</button>
+    <!-- Customer Support Section -->
+    <div class="quote-section" id="customerSupportQuote" style="display:none;">
+      <h3>Customer Support Verbal Estimate</h3>
+      <pre class="quote-text" id="customerSupportText"></pre>
     </div>
+
+    <!-- Tesla Service / Verbal Quote Section -->
+    <div class="quote-section" id="serviceQuoteSection" style="display:none;">
+      <h3>SCA Tyre Repair Approval Confirmation and Next Steps</h3>
+      <pre class="quote-text" id="quoteText"></pre>
+      <button class="copy-btn" id="copyQuote">Copy Message</button>
+      <div id="copyNotification"></div>
+    </div>
+
   </div>
 </div>
+
 
 
   <script src="popup.js"></script>

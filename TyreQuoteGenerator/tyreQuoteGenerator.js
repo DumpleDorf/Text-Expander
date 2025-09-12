@@ -190,15 +190,17 @@ let filteredData = [];
 function onModelChange() {
   const modelSelect = document.getElementById('modelSelect');
   const selectedModel = modelSelect.value;
-  console.log('Model changed:', selectedModel);
 
-  resetDownstreamSelects(['brand', 'size']);
+  resetDownstreamSelects(['brand','size']); 
   if (selectedModel) {
     filteredData = window.tyreData.filter(item => item.Model === selectedModel);
     populateBrands();
-    document.getElementById('brandSelect').disabled = false;
-  } else document.getElementById('brandSelect').disabled = true;
+    document.getElementById('brandSelect').disabled = false; 
+  } else {
+    document.getElementById('brandSelect').disabled = true;
+  }
 }
+
 
 function populateBrands() {
   const brandSelect = document.getElementById('brandSelect');
@@ -250,20 +252,22 @@ function resetDownstreamSelects(types) {
   const brandSelect = document.getElementById('brandSelect');
   const sizeSelect = document.getElementById('sizeSelect');
   const generateBtn = document.getElementById('generateQuote');
-  const quoteSection = document.getElementById('quoteSection');
+  const customerQuote = document.getElementById('customerSupportQuote');
 
-  if (types.includes('brand')) {
+  if (types.includes('brand') && brandSelect) {
     brandSelect.innerHTML = '<option value="">Select Brand</option>';
     brandSelect.disabled = true;
   }
-  if (types.includes('size')) {
+  if (types.includes('size') && sizeSelect) {
     sizeSelect.innerHTML = '<option value="">Select Size</option>';
     sizeSelect.disabled = true;
   }
 
   generateBtn.disabled = true;
-  quoteSection.style.display = 'none';
+  if (customerQuote) customerQuote.style.display = 'none';
 }
+
+
 
 // -------------------------
 // QUOTE GENERATION
@@ -293,46 +297,71 @@ function generateQuote() {
 
   chrome.storage.local.get({ region: 'AU' }, (data) => {
     const isNZ = data.region === 'NZ';
-    const currencyLabel = isNZ ? '$NZD' : '$';
+    const currencyLabel = isNZ ? 'NZD' : '$';
 
     const basePrice = parseFloat(matchingTyre["SCA Price"] || 0);
     const singleLabour = parseFloat(matchingTyre["Single Tyre Labour + Disposal"] || 0);
-
-    // Single tyre replacement (pre-GST)
     let singleTyreReplacement = basePrice + singleLabour;
+    if (!isNZ) singleTyreReplacement *= 1.1; // GST for AU
 
-    // Apply GST only for AU
-    if (!isNZ) singleTyreReplacement *= 1.1;
+    // FIX: Tyre Repair always 95
+    const tyreRepairPrice = 95;
 
-    const currentDate = new Date().toLocaleDateString();
+    // If NZ, override all prices to display as NZD text instead of numbers
+    const repairDisplay = isNZ ? 'NZD' : `${currencyLabel}${tyreRepairPrice.toFixed(2)}`;
+    const replacementDisplay = isNZ ? 'NZD' : `${currencyLabel}${singleTyreReplacement.toFixed(2)}`;
 
+    // --- Customer Support Section ---
+    const customerSupport = document.getElementById("customerSupportQuote");
+    const customerSupportText = document.getElementById("customerSupportText");
+
+    customerSupportText.textContent = `    
+Tyre Information:
+  • Model: Tesla ${selections.model}
+  • Brand: ${selections.brand}
+  • Size: ${selections.size}
+  • Part Number: ${matchingTyre["Part Number"]}
+
+Pricing:
+  • Tyre Repair: ${repairDisplay}
+  • Tyre Replacement: ${replacementDisplay}
+  `;
+
+    customerSupport.style.display = "block";
+
+    setTimeout(() => {
+      customerSupport.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+
+    // --- Tesla Service Section ---
+    const serviceQuote = document.getElementById("serviceQuoteSection");
     const quoteText = document.getElementById("quoteText");
-    quoteText.textContent = `TESLA TYRE ESTIMATE
-Date: ${currentDate}
+
+    quoteText.textContent = `
+Tyre Repair Approval Confirmation and Next Steps
+
+This message is to confirm your pre-approval of Tesla's tyre repair cost which is ${repairDisplay}.
+
+Once your wheel arrives at Tesla, our technicians will assess the tyre to confirm the cause of the leak. If the leak is unrepairable, the tyre will require replacement.
+
+Cost of Tyre Replacement: ${replacementDisplay}
 
 Tyre Information:
-• Model: Tesla ${selections.model}
-• Brand: ${selections.brand}
-• Size: ${selections.size}
-• Part Number: ${matchingTyre["Part Number"]}
+  • Model: Tesla ${selections.model}
+  • Brand: ${selections.brand}
+  • Size: ${selections.size}
+  • Part Number: ${matchingTyre["Part Number"]}
 
-Pricing: 
-• Tyre Repair: ${currencyLabel}112.67
-• Tyre Replacement: ${currencyLabel}${singleTyreReplacement.toFixed(2)}
+To pre-approve the tyre replacement cost if required, please reply "YES". You can monitor your service status in real-time and reply with any questions through the Tesla App. Your service appointment will remain open until completed.
 
-Additional Information:
-• GST, Installation, labour, and tyre disposal included.
-• Final estimate may vary onsite depending on service and availability.
+Thank you,
+Tesla Service
+  `;
 
-Thank you for helping to accelerate the world's transition to sustainable energy,
-Tesla Support`;
-
-    document.getElementById("quoteSection").style.display = "block";
-    quoteText.scrollIntoView({ behavior: "smooth" });
+    serviceQuote.style.display = "block";
   });
+
 }
-
-
 
 // -------------------------
 // COPY QUOTE
@@ -341,16 +370,22 @@ function copyQuoteToClipboard() {
   const quoteText = document.getElementById('quoteText').innerText || "";
   const notification = document.getElementById('copyNotification');
 
-  if (!quoteText) return showNotification("No quote to copy!");
+  if (!quoteText) {
+    showNotification("No quote to copy!");
+    return;
+  }
 
   function showNotification(msg) {
     notification.textContent = msg;
     notification.classList.add('show');
-    setTimeout(() => notification.classList.remove('show'), 2000);
+    setTimeout(() => {
+      notification.classList.remove('show');
+    }, 2000);
   }
 
   if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(quoteText).then(() => showNotification("Quote copied!"))
+    navigator.clipboard.writeText(quoteText)
+      .then(() => showNotification("Quote copied!"))
       .catch(() => showNotification("Failed to copy quote."));
   } else {
     const textArea = document.createElement('textarea');
@@ -369,6 +404,7 @@ function copyQuoteToClipboard() {
   }
 }
 
+
 // -------------------------
 // REGION TOGGLE (AU/NZ)
 // -------------------------
@@ -384,7 +420,14 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.storage.local.set({ region: selectedRegion });
     console.log('[Tyre Quote] Region set to:', selectedRegion);
 
-    const quoteSection = document.getElementById('quoteSection');
-    if (quoteSection.style.display === 'block') generateQuote();
+    // Grab the quote sections
+    const customerQuote = document.getElementById('customerSupportQuote');
+    const serviceQuote = document.getElementById('serviceQuoteSection');
+
+    // If a quote is currently displayed, regenerate it with the new region
+    if ((customerQuote && customerQuote.style.display === 'block') ||
+        (serviceQuote && serviceQuote.style.display === 'block')) {
+      generateQuote();
+    }
   });
 });
