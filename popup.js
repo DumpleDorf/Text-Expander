@@ -71,6 +71,48 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // -------------------------
+  // Easter Egg (Logo Click 5x → run in active tab)
+  // -------------------------
+  const teslaLogo = document.getElementById('teslaLogo');
+  let logoClickCount = 0;
+  let logoClickTimer = null;
+
+  if (teslaLogo) {
+    teslaLogo.addEventListener('click', () => {
+      logoClickCount++;
+
+      if (logoClickCount === 5) {
+        console.log("[Easter Egg] Activated!");
+        logoClickCount = 0; // reset
+
+        // Inject Easter Egg script into active tab
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          if (tabs[0]?.id) {
+            chrome.scripting.executeScript({
+              target: { tabId: tabs[0].id },
+              files: ["EasterEgg/easterEgg.js"]
+            }, () => {
+              if (chrome.runtime.lastError) {
+                console.error("Easter Egg injection failed:", chrome.runtime.lastError);
+              } else {
+                console.log("[Easter Egg] Script injected into page!");
+                window.close();
+              }
+            });
+          }
+        });
+      }
+
+      // Reset if > 2s between clicks
+      clearTimeout(logoClickTimer);
+      logoClickTimer = setTimeout(() => {
+        logoClickCount = 0;
+      }, 2000);
+    });
+  }
+
+
 
   // -------------------------
   // Load toggle states from storage
