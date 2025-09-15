@@ -196,6 +196,13 @@ function auFilter() {
 }
 
 // -----------------------------
-// Start filter automatically
+// Start filter only if enabled
 // -----------------------------
-auFilter();
+chrome.storage.sync.get('auFilterEnabled', (result) => {
+    if (result.auFilterEnabled) {
+        console.log('[AU Filter] Enabled — running filter');
+        auFilter();
+    } else {
+        console.log('[AU Filter] Disabled — not running');
+    }
+});
