@@ -321,8 +321,47 @@ input:checked + .slider:before { transform: translateX(22px); }
   margin-bottom: 15px;
   gap: 4px;
 }
-#teslaLogo { width: 225px; height: auto; user-select: none; }
-#supportText { font-size: 18px; font-weight: 600; color: #333; }
+
+#teslaLogoWrapper {
+  display: inline-block;
+  cursor: pointer;
+  transition: transform 0.25s ease-out; /* smooth hover */
+}
+
+#teslaLogoWrapper:hover {
+  transform: scale(1.05); /* smooth hover in/out */
+}
+
+#teslaLogo {
+  width: 225px;
+  height: auto;
+  user-select: none;
+}
+
+#supportText {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* Bounce animation */
+@keyframes logoBounceScale {
+  0% { transform: scale(1.05); }
+  30% { transform: scale(0.9); }
+  50% { transform: scale(1.1); }
+  70% { transform: scale(0.97); }
+  100% { transform: scale(1.05); }
+}
+
+/* Applied dynamically on click */
+#teslaLogoWrapper.bounce {
+  animation: logoBounceScale 0.4s ease-out;
+}
+
+
+
+
+
 
 /* ==========================
    Quote Section & Tyre Quote
@@ -446,7 +485,9 @@ input:checked + .slider:before { transform: translateX(22px); }
     <div id="landingPage">
       <!-- Logo Section -->
       <div id="logoSection">
-        <img src="icons/tesla_wordmark_icon.png" alt="Tesla Logo" id="teslaLogo" />
+        <div id="teslaLogoWrapper">
+          <img src="icons/tesla_wordmark_icon.png" alt="Tesla Logo" id="teslaLogo" />
+        </div>
         <div id="supportText">Support Tool</div>
       </div>
 

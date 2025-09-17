@@ -74,19 +74,30 @@ document.addEventListener('DOMContentLoaded', () => {
   // -------------------------
   // Easter Egg (Logo Click 5x → run in active tab)
   // -------------------------
-  const teslaLogo = document.getElementById('teslaLogo');
+  const teslaLogoWrapper = document.getElementById("teslaLogoWrapper");
   let logoClickCount = 0;
   let logoClickTimer = null;
 
-  if (teslaLogo) {
-    teslaLogo.addEventListener('click', () => {
+  if (teslaLogoWrapper) {
+    teslaLogoWrapper.addEventListener("click", () => {
       logoClickCount++;
 
+      // Reset bounce if already running (force reflow)
+      teslaLogoWrapper.classList.remove("bounce");
+      void teslaLogoWrapper.offsetWidth; // force reflow
+      teslaLogoWrapper.classList.add("bounce");
+
+      // Adjust CSS variables to make bounce bigger with more clicks
+      const intensity = Math.min(1 + logoClickCount * 0.05, 1.5); // cap at 1.5x
+      teslaLogoWrapper.style.setProperty("--bounce-min", (0.9 / intensity).toFixed(2));
+      teslaLogoWrapper.style.setProperty("--bounce-max", (1.1 * intensity).toFixed(2));
+      teslaLogoWrapper.style.setProperty("--bounce-mid", (0.97 * intensity).toFixed(2));
+
+      // Easter Egg logic
       if (logoClickCount === 5) {
         console.log("[Easter Egg] Activated!");
-        logoClickCount = 0; // reset
+        logoClickCount = 0;
 
-        // Inject Easter Egg script into active tab
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
           if (tabs[0]?.id) {
             chrome.scripting.executeScript({
@@ -96,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
               if (chrome.runtime.lastError) {
                 console.error("Easter Egg injection failed:", chrome.runtime.lastError);
               } else {
-                console.log("[Easter Egg] Script injected into page!");
+                console.log("[Easter Egg] Script injected!");
                 window.close();
               }
             });
@@ -104,13 +115,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
 
-      // Reset if > 2s between clicks
+      // Reset counter if >2s between clicks
       clearTimeout(logoClickTimer);
-      logoClickTimer = setTimeout(() => {
-        logoClickCount = 0;
-      }, 2000);
+      logoClickTimer = setTimeout(() => { logoClickCount = 0; }, 2000);
     });
   }
+
 
 
 
