@@ -352,7 +352,11 @@ Tyre Information:
   • Size: ${selections.size}
   • Part Number: ${matchingTyre["Part Number"]}
 
-To pre-approve the tyre replacement cost if required, please reply "YES". You can monitor your service status in real-time and reply with any questions through the Tesla App. Your service appointment will remain open until completed.
+To pre-approve the tyre replacement (if required), reply "YES".
+
+Once your tyre has been repaired, your local service centre will contact you to schedule a convenient time to reinstall your wheel.
+
+You can monitor your service status in real-time and reply with any questions through the Tesla App.
 
 Thank you,
 Tesla Service
