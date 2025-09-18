@@ -82,18 +82,17 @@ document.addEventListener('DOMContentLoaded', () => {
     teslaLogoWrapper.addEventListener("click", () => {
       logoClickCount++;
 
-      // Reset bounce if already running (force reflow)
+      // Reset animation if mid-bounce
       teslaLogoWrapper.classList.remove("bounce");
       void teslaLogoWrapper.offsetWidth; // force reflow
       teslaLogoWrapper.classList.add("bounce");
 
-      // Adjust CSS variables to make bounce bigger with more clicks
-      const intensity = Math.min(1 + logoClickCount * 0.05, 1.5); // cap at 1.5x
-      teslaLogoWrapper.style.setProperty("--bounce-min", (0.9 / intensity).toFixed(2));
-      teslaLogoWrapper.style.setProperty("--bounce-max", (1.1 * intensity).toFixed(2));
-      teslaLogoWrapper.style.setProperty("--bounce-mid", (0.97 * intensity).toFixed(2));
+      // Increase bounce intensity with clicks (but cap it)
+      const intensity = Math.min(1 + logoClickCount * 0.05, 1.4);
+      teslaLogoWrapper.style.setProperty("--bounce-min", (0.92 / intensity).toFixed(2));
+      teslaLogoWrapper.style.setProperty("--bounce-max", (1.08 * intensity).toFixed(2));
 
-      // Easter Egg logic
+      // Easter Egg trigger (5 clicks)
       if (logoClickCount === 5) {
         console.log("[Easter Egg] Activated!");
         logoClickCount = 0;
@@ -115,14 +114,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
 
-      // Reset counter if >2s between clicks
+      // Reset click intensity after 2s
       clearTimeout(logoClickTimer);
       logoClickTimer = setTimeout(() => { logoClickCount = 0; }, 2000);
     });
   }
-
-
-
 
   // -------------------------
   // Load toggle states from storage

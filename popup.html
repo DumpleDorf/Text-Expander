@@ -325,11 +325,11 @@ input:checked + .slider:before { transform: translateX(22px); }
 #teslaLogoWrapper {
   display: inline-block;
   cursor: pointer;
-  transition: transform 0.25s ease-out; /* smooth hover */
+  transition: transform 0.25s ease-out; 
 }
 
 #teslaLogoWrapper:hover {
-  transform: scale(1.05); /* smooth hover in/out */
+  transform: scale(1.05); 
 }
 
 #teslaLogo {
@@ -344,24 +344,16 @@ input:checked + .slider:before { transform: translateX(22px); }
   color: #333;
 }
 
-/* Bounce animation */
 @keyframes logoBounceScale {
-  0% { transform: scale(1.05); }
-  30% { transform: scale(0.9); }
-  50% { transform: scale(1.1); }
-  70% { transform: scale(0.97); }
-  100% { transform: scale(1.05); }
+  0%   { transform: scale(var(--bounce-start, 1.05)); }
+  40%  { transform: scale(var(--bounce-min, 0.92)); }  
+  70%  { transform: scale(var(--bounce-max, 1.08)); } 
+  100% { transform: scale(var(--bounce-end, 1.05)); }  
 }
 
-/* Applied dynamically on click */
 #teslaLogoWrapper.bounce {
-  animation: logoBounceScale 0.4s ease-out;
+  animation: logoBounceScale 0.35s ease-out;
 }
-
-
-
-
-
 
 /* ==========================
    Quote Section & Tyre Quote
@@ -621,8 +613,6 @@ input:checked + .slider:before { transform: translateX(22px); }
 
   </div>
 </div>
-
-
 
   <script src="popup.js"></script>
   <script src="TyreQuoteGenerator/tyreQuoteGenerator.js"></script>
