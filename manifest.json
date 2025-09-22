@@ -60,6 +60,12 @@
       "js": ["RoadsideDashboardFilter/dashboardfilter.js"],
       "run_at": "document_idle",
       "all_frames": true
+    },
+    {
+      "matches": ["https://customerconnect.tesla.com/customerinteraction*"],
+      "js": ["TCCRoadsideDispatchAutomation/content.js"],
+      "run_at": "document_idle",
+      "all_frames": true
     }
   ],
   "web_accessible_resources": [
