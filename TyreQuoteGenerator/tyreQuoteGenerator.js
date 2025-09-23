@@ -9,7 +9,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const response = await fetch(chrome.runtime.getURL("TyreQuoteGenerator/tyre_prices.csv"));
     console.log("[Tyre Quote] Fetch status:", response.status);
 
-
     const csvText = await response.text();
     console.log('CSV text:', csvText.slice(0, 200));
 
@@ -58,8 +57,6 @@ async function detectVinFromPage() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab?.id) return null;
-
-    // Skip pages that cannot be scripted
     if (!tab.url.startsWith("https://")) return null;
 
     const results = await chrome.scripting.executeScript({
@@ -110,24 +107,8 @@ async function handleVinAutoSelect() {
   });
 
   await waitForOptions();
-
   modelDropdown.value = modelName;
   modelDropdown.dispatchEvent(new Event("change"));
-
-  // Optional: auto-select brand/size if only one option
-  setTimeout(() => {
-    const brandSelect = document.getElementById('brandSelect');
-    if (brandSelect && brandSelect.options.length === 2) {
-      brandSelect.selectedIndex = 1;
-      brandSelect.dispatchEvent(new Event("change"));
-    }
-
-    const sizeSelect = document.getElementById('sizeSelect');
-    if (sizeSelect && sizeSelect.options.length === 2) {
-      sizeSelect.selectedIndex = 1;
-      sizeSelect.dispatchEvent(new Event("change"));
-    }
-  }, 50);
 }
 
 // -------------------------
@@ -149,15 +130,34 @@ function parseCsvData(csv) {
 // -------------------------
 function setupEventListeners() {
   const modelSelect = document.getElementById('modelSelect');
-  const brandSelect = document.getElementById('brandSelect');
-  const sizeSelect = document.getElementById('sizeSelect');
-
   modelSelect.addEventListener('change', onModelChange);
-  brandSelect.addEventListener('change', onBrandChange);
-  sizeSelect.addEventListener('change', onSizeChange);
 
   document.getElementById('generateQuote').addEventListener('click', generateQuote);
   document.getElementById('copyQuote').addEventListener('click', copyQuoteToClipboard);
+
+  if (!document.querySelector('#stepBrandSize img.tyre-diagram')) {
+    const img = document.createElement('img');
+    img.src = chrome.runtime.getURL('TyreQuoteGenerator/tyre_size.png');
+    img.alt = 'How to read tyre size';
+    img.className = 'tyre-diagram';
+    stepBrandSize.prepend(img);
+  }
+
+  const regionToggle = document.getElementById('regionToggle');
+  chrome.storage.local.get({ region: 'AU' }, (data) => {
+    regionToggle.checked = data.region === 'NZ';
+  });
+  regionToggle.addEventListener('change', () => {
+    const selectedRegion = regionToggle.checked ? 'NZ' : 'AU';
+    chrome.storage.local.set({ region: selectedRegion });
+    console.log('[Tyre Quote] Region set to:', selectedRegion);
+    const customerQuote = document.getElementById('customerSupportQuote');
+    const serviceQuote = document.getElementById('serviceQuoteSection');
+    if ((customerQuote && customerQuote.style.display === 'block') ||
+        (serviceQuote && serviceQuote.style.display === 'block')) {
+      generateQuote();
+    }
+  });
 }
 
 function populateModels() {
@@ -178,116 +178,180 @@ function populateModels() {
 }
 
 function enableInterface() {
-  const modelSelect = document.getElementById('modelSelect');
-  modelSelect.disabled = false;
+  document.getElementById('modelSelect').disabled = false;
 }
 
 // -------------------------
-// SELECT CHANGE HANDLERS
+// BUTTON LOGIC (Brand & Size)
 // -------------------------
+let selectedBrand = null;
+let selectedSize = null;
 let filteredData = [];
 
 function onModelChange() {
-  const modelSelect = document.getElementById('modelSelect');
-  const selectedModel = modelSelect.value;
+  const model = document.getElementById('modelSelect').value;
+  filteredData = model ? window.tyreData.filter(t => t.Model === model) : [];
+  resetButtonGroups();
+  populateBrandButtons();
+  populateSizeButtons();
 
-  resetDownstreamSelects(['brand','size']); 
-  if (selectedModel) {
-    filteredData = window.tyreData.filter(item => item.Model === selectedModel);
-    populateBrands();
-    document.getElementById('brandSelect').disabled = false; 
+  const stepBrandSize = document.getElementById('stepBrandSize');
+
+  if (model) {
+    if (stepBrandSize.style.display === 'none') {
+      // First time showing: slide down
+      stepBrandSize.style.display = 'block';
+      stepBrandSize.style.opacity = 0;
+      stepBrandSize.style.maxHeight = '0px';
+
+      // trigger reflow for transition
+      stepBrandSize.offsetHeight;
+
+      stepBrandSize.style.opacity = 1;
+      stepBrandSize.style.maxHeight = '500px'; // large enough to fit content
+    }
   } else {
-    document.getElementById('brandSelect').disabled = true;
+    // Hide with slide-up
+    stepBrandSize.style.opacity = 0;
+    stepBrandSize.style.maxHeight = '0';
+    setTimeout(() => stepBrandSize.style.display = 'none', 400);
   }
 }
 
 
-function populateBrands() {
-  const brandSelect = document.getElementById('brandSelect');
-  const brands = [...new Set(filteredData.map(item => item.Brand))].sort();
+function resetButtonGroups() {
+  document.getElementById('brandButtons').querySelectorAll('.btn-option').forEach(b => b.remove());
+  document.getElementById('sizeButtons').querySelectorAll('.btn-option').forEach(s => s.remove());
+  selectedBrand = null;
+  selectedSize = null;
+  updateGenerateButton();
+}
 
-  brandSelect.innerHTML = '<option value="">Select Brand</option>';
-  brands.forEach(brand => {
-    const option = document.createElement('option');
-    option.value = brand;
-    option.textContent = brand;
-    brandSelect.appendChild(option);
+function populateBrandButtons() {
+  const container = document.getElementById('brandButtons');
+  const brandSet = new Set();
+
+  filteredData.forEach(t => {
+    // Split multiple brands in the same field by comma, slash, or semicolon
+    const brands = t.Brand.split(/[,/;]/).map(b => b.trim()).filter(Boolean);
+    brands.forEach(b => brandSet.add(b));
+  });
+
+  brandSet.forEach(brand => {
+    const btn = document.createElement('div');
+    btn.textContent = brand;
+    btn.className = 'btn-option';
+    btn.dataset.brand = brand;
+    btn.addEventListener('click', () => toggleBrand(btn));
+    container.appendChild(btn);
   });
 }
 
-function onBrandChange() {
-  const brandSelect = document.getElementById('brandSelect');
-  const sizeSelect = document.getElementById('sizeSelect');
-
-  const selectedBrand = brandSelect.value;
-  console.log('Brand changed:', selectedBrand);
-
-  resetDownstreamSelects(['size']);
-  if (selectedBrand) {
-    const currentFiltered = filteredData.filter(item => item.Brand === selectedBrand);
-    populateSizes(currentFiltered);
-    sizeSelect.disabled = false;
-  } else sizeSelect.disabled = true;
-}
-
-function populateSizes(data) {
-  const sizeSelect = document.getElementById('sizeSelect');
-  const sizes = [...new Set(data.map(item => item.Size))].sort();
-
-  sizeSelect.innerHTML = '<option value="">Select Size</option>';
+function populateSizeButtons() {
+  const container = document.getElementById('sizeButtons');
+  const sizes = [...new Set(filteredData.map(t => t.Size))];
   sizes.forEach(size => {
-    const option = document.createElement('option');
-    option.value = size;
-    option.textContent = size;
-    sizeSelect.appendChild(option);
+    const btn = document.createElement('div');
+    btn.textContent = size;
+    btn.className = 'btn-option';
+    btn.dataset.size = size;
+    btn.addEventListener('click', () => toggleSize(btn));
+    container.appendChild(btn);
   });
 }
 
-function onSizeChange() {
-  const sizeSelect = document.getElementById('sizeSelect');
-  document.getElementById('generateQuote').disabled = !sizeSelect.value;
+// --- Toggle Brand ---
+function toggleBrand(btn) {
+  if (btn.classList.contains('disabled')) return;
+
+  if (selectedBrand === btn.dataset.brand) {
+    // unselect if clicked again
+    selectedBrand = null;
+    btn.classList.remove('selected');
+  } else {
+    selectedBrand = btn.dataset.brand;
+    document.querySelectorAll('#brandButtons .btn-option').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+  }
+
+  updateSizeCompatibility();
+  updateGenerateButton();
 }
 
-function resetDownstreamSelects(types) {
-  const brandSelect = document.getElementById('brandSelect');
-  const sizeSelect = document.getElementById('sizeSelect');
+// --- Toggle Size ---
+function toggleSize(btn) {
+  if (btn.classList.contains('disabled')) return;
+
+  if (selectedSize === btn.dataset.size) {
+    // unselect if clicked again
+    selectedSize = null;
+    btn.classList.remove('selected');
+  } else {
+    selectedSize = btn.dataset.size;
+    document.querySelectorAll('#sizeButtons .btn-option').forEach(s => s.classList.remove('selected'));
+    btn.classList.add('selected');
+  }
+
+  updateBrandCompatibility();
+  updateGenerateButton();
+}
+
+function updateSizeCompatibility() {
+  document.querySelectorAll('#sizeButtons .btn-option').forEach(sizeBtn => {
+    const match = selectedBrand ? filteredData.find(t => t.Brand === selectedBrand && t.Size === sizeBtn.dataset.size) : true;
+    if (!match) {
+      sizeBtn.classList.add('disabled');
+      if (selectedSize === sizeBtn.dataset.size) selectedSize = null;
+    } else {
+      sizeBtn.classList.remove('disabled');
+    }
+  });
+}
+
+function updateBrandCompatibility() {
+  document.querySelectorAll('#brandButtons .btn-option').forEach(brandBtn => {
+    const match = selectedSize ? filteredData.find(t => t.Size === selectedSize && t.Brand === brandBtn.dataset.brand) : true;
+    if (!match) {
+      brandBtn.classList.add('disabled');
+      if (selectedBrand === brandBtn.dataset.brand) selectedBrand = null;
+    } else {
+      brandBtn.classList.remove('disabled');
+    }
+  });
+}
+
+// --- Generate Quote Button ---
+function updateGenerateButton() {
   const generateBtn = document.getElementById('generateQuote');
-  const customerQuote = document.getElementById('customerSupportQuote');
-
-  if (types.includes('brand') && brandSelect) {
-    brandSelect.innerHTML = '<option value="">Select Brand</option>';
-    brandSelect.disabled = true;
+  const validSelection = selectedBrand && selectedSize &&
+    filteredData.some(t => t.Brand === selectedBrand && t.Size === selectedSize);
+  
+  generateBtn.disabled = !validSelection;
+  
+  // Green styling
+  if (validSelection) {
+    generateBtn.style.background = '#27ae60'; // green
+    generateBtn.style.color = '#fff';
+  } else {
+    generateBtn.style.background = '#bdc3c7'; // greyed out
+    generateBtn.style.color = '#666';
   }
-  if (types.includes('size') && sizeSelect) {
-    sizeSelect.innerHTML = '<option value="">Select Size</option>';
-    sizeSelect.disabled = true;
-  }
-
-  generateBtn.disabled = true;
-  if (customerQuote) customerQuote.style.display = 'none';
 }
-
-
 
 // -------------------------
 // QUOTE GENERATION
 // -------------------------
 function generateQuote() {
-  const selections = {
-    model: document.getElementById("modelSelect").value,
-    brand: document.getElementById("brandSelect").value,
-    size: document.getElementById("sizeSelect").value,
-  };
-
-  if (!selections.model || !selections.brand || !selections.size) {
+  const model = document.getElementById("modelSelect").value;
+  if (!model || !selectedBrand || !selectedSize) {
     alert("Please select Model, Brand, and Size.");
     return;
   }
 
   const matchingTyre = window.tyreData.find(item =>
-    item.Model === selections.model &&
-    item.Brand === selections.brand &&
-    item.Size === selections.size
+    item.Model === model &&
+    item.Brand === selectedBrand &&
+    item.Size === selectedSize
   );
 
   if (!matchingTyre) {
@@ -302,38 +366,29 @@ function generateQuote() {
     const basePrice = parseFloat(matchingTyre["SCA Price"] || 0);
     const singleLabour = parseFloat(matchingTyre["Single Tyre Labour + Disposal"] || 0);
     let singleTyreReplacement = basePrice + singleLabour;
-    if (!isNZ) singleTyreReplacement *= 1.1; // GST for AU
+    if (!isNZ) singleTyreReplacement *= 1.1;
 
-    // FIX: Tyre Repair always 95
     const tyreRepairPrice = 95;
-
-    // If NZ, override all prices to display as NZD text instead of numbers
     const repairDisplay = isNZ ? 'NZD' : `${currencyLabel}${tyreRepairPrice.toFixed(2)}`;
     const replacementDisplay = isNZ ? 'NZD' : `${currencyLabel}${singleTyreReplacement.toFixed(2)}`;
 
-    // --- Customer Support Section ---
     const customerSupport = document.getElementById("customerSupportQuote");
     const customerSupportText = document.getElementById("customerSupportText");
 
     customerSupportText.textContent = `    
 Tyre Information:
-  • Model: Tesla ${selections.model}
-  • Brand: ${selections.brand}
-  • Size: ${selections.size}
+  • Model: Tesla ${model}
+  • Brand: ${selectedBrand}
+  • Size: ${selectedSize}
   • Part Number: ${matchingTyre["Part Number"]}
 
 Pricing:
   • Tyre Repair: ${repairDisplay}
   • Tyre Replacement: ${replacementDisplay}
   `;
-
     customerSupport.style.display = "block";
+    setTimeout(() => customerSupport.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
 
-    setTimeout(() => {
-      customerSupport.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 50);
-
-    // --- Tesla Service Section ---
     const serviceQuote = document.getElementById("serviceQuoteSection");
     const quoteText = document.getElementById("quoteText");
 
@@ -347,9 +402,9 @@ Once your wheel arrives at Tesla, our technicians will assess the tyre to confir
 Cost of Tyre Replacement: ${replacementDisplay}
 
 Tyre Information:
-  • Model: Tesla ${selections.model}
-  • Brand: ${selections.brand}
-  • Size: ${selections.size}
+  • Model: Tesla ${model}
+  • Brand: ${selectedBrand}
+  • Size: ${selectedSize}
   • Part Number: ${matchingTyre["Part Number"]}
 
 To pre-approve the tyre replacement (if required), reply "YES".
@@ -360,11 +415,9 @@ You can monitor your service status in real-time and reply with any questions th
 
 Thank you,
 Tesla Service
-  `;
-
+    `;
     serviceQuote.style.display = "block";
   });
-
 }
 
 // -------------------------
@@ -382,9 +435,7 @@ function copyQuoteToClipboard() {
   function showNotification(msg) {
     notification.textContent = msg;
     notification.classList.add('show');
-    setTimeout(() => {
-      notification.classList.remove('show');
-    }, 2000);
+    setTimeout(() => notification.classList.remove('show'), 2000);
   }
 
   if (navigator.clipboard && window.isSecureContext) {
@@ -407,31 +458,3 @@ function copyQuoteToClipboard() {
     document.body.removeChild(textArea);
   }
 }
-
-
-// -------------------------
-// REGION TOGGLE (AU/NZ)
-// -------------------------
-document.addEventListener('DOMContentLoaded', () => {
-  const regionToggle = document.getElementById('regionToggle');
-
-  chrome.storage.local.get({ region: 'AU' }, (data) => {
-    regionToggle.checked = data.region === 'NZ';
-  });
-
-  regionToggle.addEventListener('change', () => {
-    const selectedRegion = regionToggle.checked ? 'NZ' : 'AU';
-    chrome.storage.local.set({ region: selectedRegion });
-    console.log('[Tyre Quote] Region set to:', selectedRegion);
-
-    // Grab the quote sections
-    const customerQuote = document.getElementById('customerSupportQuote');
-    const serviceQuote = document.getElementById('serviceQuoteSection');
-
-    // If a quote is currently displayed, regenerate it with the new region
-    if ((customerQuote && customerQuote.style.display === 'block') ||
-        (serviceQuote && serviceQuote.style.display === 'block')) {
-      generateQuote();
-    }
-  });
-});

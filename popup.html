@@ -4,472 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Extension Popup</title>
-<style>
-/* ==========================
-   Body & Root
-========================== */
-body {
-  width: 100%;
-  margin: 0;
-  padding: 20px; /* keeps the purple gradient visible */
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  box-sizing: border-box;
-
-  /* Popup open animation on first load only */
-  opacity: 0;
-  transform: scale(0.95);
-  animation: popupOpen 0.25s ease forwards;
-}
-
-/* ==========================
-   Full background wrapper
-========================== */
-#popupWrapper {
-  width: 100%;                  /* full width container */
-  min-height: 100vh;            /* fill height */
-  box-sizing: border-box;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;      /* aligns popup to top */
-}
-
-/* ==========================
-   Landing Page Container
-========================== */
-#landingPage {
-  width: 420px;
-  max-width: 100%;
-  padding: 20px;
-  background: rgba(255,255,255,0.95);
-  border-radius: 15px;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-  display: flex;
-  flex-direction: column;
-  gap: var(--vertical-gap);
-  overflow: hidden;
-  box-sizing: border-box;
-  justify-content: center;
-  align-items: center;
-  color: #333;
-
-  /* Remove scale/fade animation */
-  opacity: 1;
-  transform: none;
-  animation: none;
-}
-
-/* ==========================
-   Prevent falling animation when landing page reappears
-========================== */
-#landingPage.closing .section,
-#landingPage.closing .section button,
-#landingPage.closing .section .menu-item {
-  transition: none !important; /* disable transitions */
-  opacity: 1;                  /* keep visible */
-  transform: translateY(0);    /* reset position */
-}
-
-/* ==========================
-   Keyframes
-========================== */
-@keyframes popupOpen {
-  from { opacity: 0; transform: scale(0.95); }
-  to   { opacity: 1; transform: scale(1); }
-}
-
-@keyframes popupExpand {
-  from { opacity: 0; max-height: 0; }
-  to   { opacity: 1; max-height: 1000px; } /* expand landing page */
-}
-
-/* ==========================
-   Sections
-========================== */
-.section {
-  width: 100%;
-  margin-bottom: 12px;
-  background: rgba(255,255,255,0.95);
-  border-radius: 10px;
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-
-  /* Section entrance animation */
-  opacity: 0;
-  transform: translateY(8px);
-  transition: opacity 0.22s ease, transform 0.22s ease;
-}
-
-/* Section headers */
-.section-header {
-  font-weight: bold;
-  font-size: 16px;
-  color: #2c3e50;
-  margin-bottom: 6px;
-}
-
-/* Stagger section animation */
-.section-general { transition-delay: 0.1s; }
-.section-support { transition-delay: 0.18s; }
-.section-service { transition-delay: 0.26s; }
-.section-other   { transition-delay: 0.34s; }
-.section-info    { transition-delay: 0.42s; }
-
-/* Animate sections only on first load */
-#landingPage.open .section {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-
-
-/* ==========================
-   Buttons & Menu Items inside Sections
-========================== */
-.section button,
-.section .menu-item {
-  width: 100%;
-  box-sizing: border-box;
-  margin: 0;
-  padding: 10px 0;
-  text-align: center;
-
-  /* Animate buttons after sections on first load */
-  opacity: 0;
-  transform: translateY(4px);
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-/* Animate buttons only on first load */
-#landingPage.open .section button,
-#landingPage.open .section .menu-item {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* Button/m-item stagger */
-.section-general button, .section-general .menu-item { transition-delay: 0.15s; }
-.section-support button, .section-support .menu-item { transition-delay: 0.23s; }
-.section-service button, .section-service .menu-item { transition-delay: 0.31s; }
-.section-other button, .section-other .menu-item { transition-delay: 0.39s; }
-.section-info button, .section-info .menu-item { transition-delay: 0.47s; }
-
-/* Animate buttons when landingPage opens */
-#landingPage.open .section button,
-#landingPage.open .section .menu-item {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* ==========================
-   Generic Buttons
-========================== */
-button {
-  background: linear-gradient(135deg, #3498db, #2980b9);
-  color: white;
-  border: none;
-  cursor: pointer;
-  font-weight: bold;
-  margin-top: var(--vertical-gap);
-  transition: all 0.3s ease;
-  border-radius: 6px;
-}
-
-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(52,152,219,0.4);
-}
-
-button:disabled {
-  background: #bdc3c7;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-/* Buttons inside landingPage */
-#landingPage button {
-  padding: 12px 0;
-  font-size: 16px;
-  margin: 0;
-}
-
-/* ==========================
-   Forms: Inputs & Selects
-========================== */
-select,
-input,
-button {
-  width: 100%;
-  padding: 10px;
-  margin: 5px 0;
-  border: 2px solid #e1e8ed;
-  border-radius: 6px;
-  font-size: 16px;
-  transition: all 0.3s ease;
-}
-
-select:focus,
-input:focus {
-  outline: none;
-  border-color: #3498db;
-  box-shadow: 0 0 0 3px rgba(52,152,219,0.1);
-}
-
-select:disabled,
-input:disabled {
-  background-color: #f5f5f5;
-  color: #999;
-  cursor: not-allowed;
-}
-
-/* ==========================
-   Menu Items & Switches
-========================== */
-.menu-item {
-  height: 45px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: linear-gradient(135deg, #3498db, #2980b9);
-  color: white;
-  border-radius: 6px;
-  padding: 8px 8px 8px 16px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: bold;
-  transition: all 0.3s ease;
-  margin: 0;
-}
-
-.menu-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(52,152,219,0.4);
-}
-
-.menu-item span {
-  padding-left: 16px;
-}
-.menu-item .switch-wrapper {
-  margin-right: 20px;
-}
-
-/* Switch wrapper */
-.switch-wrapper { display: none; width: 50px; flex-shrink: 0; position: relative; }
-.switch-wrapper.visible { display: flex; justify-content: center; align-items: center; }
-
-/* Switch styles */
-.switch { position: relative; display: inline-block; width: 42px; height: 22px; margin: 0; }
-.switch input { opacity: 0; width: 0; height: 0; }
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 3px; left: 6px; right: 0; bottom: 0;
-  background-color: #ccc;
-  transition: 0.4s;
-  border-radius: 22px;
-}
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 16px; width: 16px;
-  left: 3px; top: 2px;
-  background-color: white;
-  transition: 0.4s;
-  border-radius: 50%;
-}
-input:checked + .slider { background-color: #27ae60; }
-input:checked + .slider:before { transform: translateX(22px); }
-
-/* ==========================
-   Copy Notification Toast
-========================== */
-#copyNotification {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #27ae60;
-  color: white;
-  padding: 12px 25px;
-  border-radius: 8px;
-  font-weight: bold;
-  font-size: 14px;
-  box-shadow: 0 4px 12px rgba(39, 174, 96, 0.6);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.5s ease;
-  z-index: 9999;
-}
-#copyNotification.show {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-/* ==========================
-   Logo Section
-========================== */
-#logoSection {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 15px;
-  gap: 4px;
-}
-
-#teslaLogoWrapper {
-  display: inline-block;
-  cursor: pointer;
-  transition: transform 0.25s ease-out; 
-}
-
-#teslaLogoWrapper:hover {
-  transform: scale(1.05); 
-}
-
-#teslaLogo {
-  width: 225px;
-  height: auto;
-  user-select: none;
-}
-
-#supportText {
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
-}
-
-@keyframes logoBounceScale {
-  0%   { transform: scale(var(--bounce-start, 1.05)); }
-  40%  { transform: scale(var(--bounce-min, 0.92)); }  
-  70%  { transform: scale(var(--bounce-max, 1.08)); } 
-  100% { transform: scale(var(--bounce-end, 1.05)); }  
-}
-
-#teslaLogoWrapper.bounce {
-  animation: logoBounceScale 0.35s ease-out;
-}
-
-/* ==========================
-   Quote Section & Tyre Quote
-========================== */
-#tyreQuoteSection {
-  display: flex;
-  justify-content: center;
-  padding: 0;
-  width: 100%;
-}
-
-#tyreQuoteSection .container {
-  width: 420px;
-  max-width: 100%;
-  padding: 20px;
-  background: rgba(255,255,255,0.95);
-  border-radius: 15px;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  box-sizing: border-box;
-}
-
-.quote-section {
-  background: #34495e;      /* dark blue-gray */
-  color: white;             /* text color */
-  padding: 20px;
-  border-radius: 8px;
-  margin-top: 20px;
-}
-
-.quote-section h3 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  color: #ecf0f1;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.quote-text {
-  background: #2c3e50;
-  padding: 15px;
-  border-radius: 6px;
-  font-family: 'Courier New', monospace;
-  font-size: 16px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  margin-bottom: 15px;
-  color: white;
-}
-
-.copy-btn {
-  background: #27ae60;
-  color: white;
-  font-weight: bold;
-  border-radius: 6px;
-  padding: 10px 15px;
-  border: none;
-  cursor: pointer;
-}
-
-.copy-btn:hover {
-  background: #229954;
-}
-
-
-/* ==========================
-   Tyre Quote Section Header
-========================== */
-.header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.quote-title {
-  font-size: 24px;        /* large, readable title */
-  font-weight: 600;       /* semi-bold */
-  color: #2c3e50;         /* dark blue/gray text */
-}
-
-.region-container {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.region-label {
-  font-size: 14px;
-  font-weight: bold;
-  color: #2c3e50;
-}
-
-/* AU/NZ toggle slider inside quote section */
-.region-switch .slider:before {
-  height: 16px;
-  width: 16px;
-  left: 3px;
-  top: 1.5px;
-}
-
-.region-switch input:checked + .slider:before {
-  transform: translateX(15px);
-}
-
-
-/* ==========================
-   Misc Tyre Quote Form Styles
-========================== */
-.step {padding: 15px; border-left: 4px solid #3498db; background: #f8f9fa; border-radius: 0 8px 8px 0; }
-.step-title { font-weight: bold; margin-bottom: 10px; color: #2c3e50; font-size: 14px; }
-
-
-</style>
+<link rel="stylesheet" href="popup.css" />
 </head>
 <body>
   <div id="popupWrapper">
@@ -483,7 +18,6 @@ input:checked + .slider:before { transform: translateX(22px); }
         <div id="supportText">Support Tool</div>
       </div>
 
-      <!-- Info message above General section -->
       <div style="width: 100%; text-align: right; margin-bottom: 4px; font-size: 12px; color: #555; font-weight: 500;">
         Click on a tool to find out more
       </div>
@@ -498,8 +32,6 @@ input:checked + .slider:before { transform: translateX(22px); }
       <!-- Customer Support Section -->
       <div class="section section-support">
         <div class="section-header">Customer Support</div>
-
-        <!-- Existing Teams Filter -->
         <div class="menu-item">
           <span id="teamsFilterBtn" class="clickable-text">TCC Teams Filter</span>
           <label class="switch-wrapper visible" id="teamsToggleWrapper">
@@ -507,8 +39,6 @@ input:checked + .slider:before { transform: translateX(22px); }
             <span class="slider"></span>
           </label>
         </div>
-
-        <!-- AU Filter -->
         <div class="menu-item">
           <span id="auFilterText">RS Dashboard AU Filter</span>
           <label class="switch-wrapper visible" id="auFilterWrapper">
@@ -550,70 +80,70 @@ input:checked + .slider:before { transform: translateX(22px); }
         <button class="full-width-btn" id="aboutBtn">About</button>
       </div>
     </div>
-  
 
-  <!-- Tyre Quote Section (separate from landingPage) -->
-  <!-- Tyre Quote Section -->
-<div id="tyreQuoteSection" style="display:none;">
-  <div class="container">
-    <button id="backBtn">Back</button>
+    <!-- Tyre Quote Section -->
+    <div id="tyreQuoteSection" style="display:none;">
+      <div class="container">
+        <button id="backBtn">Back</button>
 
-    <!-- Header with Title and Region Toggle -->
-    <div class="header-row">
-      <div class="quote-title">🚗 Tesla Tyre Quote</div>
-      <div class="region-container">
-        <span class="region-label">AU</span>
-        <label class="switch region-switch">
-          <input type="checkbox" id="regionToggle" />
-          <span class="slider"></span>
-        </label>
-        <span class="region-label">NZ</span>
+        <!-- Header with Title and Region Toggle -->
+        <div class="header-row">
+          <div class="quote-title">🚗 Tesla Tyre Quote</div>
+          <div class="region-container">
+            <span class="region-label">AU</span>
+            <label class="switch region-switch">
+              <input type="checkbox" id="regionToggle" />
+              <span class="slider"></span>
+            </label>
+            <span class="region-label">NZ</span>
+          </div>
+        </div>
+
+        <!-- Step 1: Select Model -->
+        <div class="step">
+          <div class="step-title">1. Select Tesla Model</div>
+          <select id="modelSelect" disabled>
+            <option value="">Select Model</option>
+          </select>
+        </div>
+
+        <!-- Step 2 + 3: Brand + Size as buttons -->
+        <div class="step" id="stepBrandSize" style="display:none; overflow: hidden; max-height: 0; transition: max-height 0.4s ease, opacity 0.4s ease;">
+          <div class="step-title">2. Select Tyre Brand & Size</div>
+
+          <div class="brand-size-row">
+            <div class="button-group" id="brandButtons">
+              <div class="group-title">Brand</div>
+            </div>
+
+            <div class="button-group" id="sizeButtons">
+              <div class="group-title">Size</div>
+            </div>
+          </div>
+        </div>
+
+        <button id="generateQuote" disabled>Generate Quote</button>
+
+        <!-- Customer Support Section -->
+        <div class="quote-section" id="customerSupportQuote" style="display:none;">
+          <h3>Customer Support Verbal Estimate</h3>
+          <pre class="quote-text" id="customerSupportText"></pre>
+        </div>
+
+        <!-- Tesla Service / Verbal Quote Section -->
+        <div class="quote-section" id="serviceQuoteSection" style="display:none;">
+          <h3>SCA Tyre Repair Approval Confirmation and Next Steps</h3>
+          <pre class="quote-text" id="quoteText"></pre>
+          <button class="copy-btn" id="copyQuote">Copy Message</button>
+          <div id="copyNotification"></div>
+        </div>
+
       </div>
     </div>
 
-    <!-- Step 1: Select Model -->
-    <div class="step">
-      <div class="step-title">1. Select Tesla Model</div>
-      <select id="modelSelect" disabled>
-        <option value="">Select Model</option>
-      </select>
-    </div>
-
-    <!-- Step 2: Select Brand -->
-    <div class="step">
-      <div class="step-title">2. Select Tyre Brand</div>
-      <select id="brandSelect" disabled>
-        <option value="">Select Brand</option>
-      </select>
-    </div>
-
-    <!-- Step 3: Select Size -->
-    <div class="step">
-      <div class="step-title">3. Select Tyre Size</div>
-      <select id="sizeSelect" disabled>
-        <option value="">Select Size</option>
-      </select>
-    </div>
-
-    <button id="generateQuote" disabled>Generate Quote</button>
-
-    <!-- Customer Support Section -->
-    <div class="quote-section" id="customerSupportQuote" style="display:none;">
-      <h3>Customer Support Verbal Estimate</h3>
-      <pre class="quote-text" id="customerSupportText"></pre>
-    </div>
-
-    <!-- Tesla Service / Verbal Quote Section -->
-    <div class="quote-section" id="serviceQuoteSection" style="display:none;">
-      <h3>SCA Tyre Repair Approval Confirmation and Next Steps</h3>
-      <pre class="quote-text" id="quoteText"></pre>
-      <button class="copy-btn" id="copyQuote">Copy Message</button>
-      <div id="copyNotification"></div>
-    </div>
-
   </div>
-</div>
 
   <script src="popup.js"></script>
   <script src="TyreQuoteGenerator/tyreQuoteGenerator.js"></script>
 </body>
+</html>
