@@ -77,7 +77,7 @@ function selectAutocompleteOption(optionText, retries = 30, delay = 200) {
 }
 
 // -------------------------
-// Poll the address field until Australia or New Zealand is detected
+// Poll the address field until Australia, New Zealand, AU, or NZ is detected
 // -------------------------
 function startAddressPolling() {
     if (addressPollingInterval) return;
@@ -91,12 +91,19 @@ function startAddressPolling() {
 
         console.log('[Extension] Current location input:', address);
 
-        if (address.endsWith('Australia') || address.endsWith('New Zealand')) {
+        if (
+            address.endsWith('Australia') || address.endsWith('AU') ||
+            address.endsWith('New Zealand') || address.endsWith('NZ')
+        ) {
             clearInterval(addressPollingInterval);
             addressPollingInterval = null;
             console.log('[Extension] Address detected. Stopping address polling.');
 
-            if (address.endsWith('Australia')) {
+            const firstDropdown = document.getElementById(firstDropdownId);
+            const valueSpan = firstDropdown?.querySelector('.mat-select-value-text .mat-select-min-line');
+            const firstDropdownValue = valueSpan?.textContent.trim();
+
+            if ((address.endsWith('Australia') || address.endsWith('AU')) && firstDropdownValue === 'Yes') {
                 executeAutomation();
                 copyWarrantyInline();
             }
@@ -132,10 +139,13 @@ function pollFirstDropdown() {
         console.log(`[Extension] First dropdown value changed: "${currentValue}"`);
         lastFirstDropdownValue = currentValue;
 
-        // Only trigger automation if the address input is Australia
         const currentLocationInput = document.getElementById(currentLocationInputId);
-        const address = currentLocationInput ? currentLocationInput.value.trim() : '';
-        if (address.endsWith('Australia') && currentValue === 'Yes') {
+        const address = currentLocationInput?.value.trim();
+
+        if (
+            (address?.endsWith('Australia') || address?.endsWith('AU')) &&
+            currentValue === 'Yes'
+        ) {
             executeAutomation();
         }
     }
@@ -168,51 +178,43 @@ function executeAutomation() {
 // Copy warranty elements inline (BAT, DU, VEH)
 // -------------------------
 function addWarrantyBadgesInline() {
-    // Find the exact "Payment Details" header
     const header = Array.from(document.querySelectorAll('div.padding-top-10 h1.mat-h3'))
         .find(h => h.textContent.trim() === 'Payment Details');
     if (!header) return;
 
     const container = header.parentElement;
-
-    // Avoid duplicates
     if (container.querySelector('.inline-warranty-wrapper')) return;
 
-    // Create wrapper div
     const wrapper = document.createElement('div');
     wrapper.className = 'inline-warranty-wrapper';
     wrapper.style.display = 'flex';
-    wrapper.style.gap = '10px';
+    wrapper.style.gap = '2px';
     wrapper.style.alignItems = 'center';
-    wrapper.style.marginLeft = '20px'; // spacing from header
+    wrapper.style.marginLeft = '20px';
     wrapper.style.paddingTop = '5px';
 
-    // Badges to copy
-    const badges = ['BAT', 'DU', 'VEH'];
-    badges.forEach(code => {
-        const badgeLabel = Array.from(document.querySelectorAll('label.tcc-warranty-details-badge-text'))
-            .find(l => l.textContent.trim() === code);
-        if (badgeLabel) {
-            const tooltipWrapper = badgeLabel.closest('.tds-tooltip-wrapper--inline');
-            if (tooltipWrapper) {
-                const clone = tooltipWrapper.cloneNode(true);
-                clone.style.display = 'inline-flex';
-                clone.style.paddingTop = '9px';
-                wrapper.appendChild(clone);
-            }
-        }
+    // Grab all visible badges (skip ones with status--hide)
+    const badgeWrappers = Array.from(document.querySelectorAll('.tds-tooltip-wrapper--inline'))
+        .filter(wrapper => {
+            const label = wrapper.querySelector('label.tcc-warranty-details-badge-text');
+            return label && !label.classList.contains('status--hide');
+        });
+
+    badgeWrappers.forEach(tooltipWrapper => {
+        const clone = tooltipWrapper.cloneNode(true);
+        clone.style.display = 'inline-flex';
+        clone.style.paddingTop = '5px'; // consistent spacing
+        wrapper.appendChild(clone);
     });
 
     if (wrapper.childNodes.length) {
         container.appendChild(wrapper);
-        console.log('[Extension] Warranty badges added inline with Payment Details');
+        console.log('[Extension] All visible warranty badges added inline with Payment Details');
     }
 }
 
-
 // Run every 5 seconds indefinitely
 setInterval(addWarrantyBadgesInline, 5000);
-
 
 // -------------------------
 // Initialize
@@ -220,7 +222,6 @@ setInterval(addWarrantyBadgesInline, 5000);
 startAddressPolling();
 setInterval(pollFirstDropdown, 1000);
 
-// Watch for address input appearing dynamically
 const bodyObserver = new MutationObserver(() => {
     const input = document.getElementById(currentLocationInputId);
     if (input) {
