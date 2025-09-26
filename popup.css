@@ -464,3 +464,36 @@ input:checked + .slider:before { transform: translateX(22px); }
   margin-bottom: 12px;
   border-radius: 8px;
 }
+
+.model-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px; 
+}
+
+.tyre-price {
+  font-size: 12px;
+  color: #2c3e50;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+
+  width: 100%;
+  padding: 10px 24px 10px 12px; /* top/right/bottom/left */
+  font-size: 16px;
+  border: 2px solid #e1e8ed;
+  border-radius: 6px;
+  background-color: #fff;
+
+  /* Custom arrow */
+  background-image: url('data:image/svg+xml;utf8,<svg fill="none" stroke="%23333" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6 9l6 6 6-6"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 8px center; /* reduced from 12px to 8px */
+  background-size: 16px;
+}
