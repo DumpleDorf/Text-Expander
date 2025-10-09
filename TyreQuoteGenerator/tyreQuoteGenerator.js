@@ -402,9 +402,11 @@ Pricing:
     quoteText.textContent = `
 Tyre Repair Approval Confirmation and Next Steps
 
-This message is to confirm your pre-approval of Tesla's tyre repair cost which is ${repairDisplay}.
+You have accepted the quote for Tesla's tyre repair cost which is ${repairDisplay}.
 
 Once your wheel arrives at Tesla, our technicians will assess the tyre to confirm the cause of the leak. If the leak is unrepairable, the tyre will require replacement.
+
+You can speed up your service by pre-approving your tyre replacement quote, if required, by replying back YES to this message.
 
 Cost of Tyre Replacement: ${replacementDisplay}
 
@@ -413,8 +415,6 @@ Tyre Information:
   • Brand: ${selectedBrand}
   • Size: ${selectedSize}
   • Part Number: ${matchingTyre["Part Number"]}
-
-To pre-approve the tyre replacement (if required), reply "YES".
 
 Once your tyre has been repaired, your local service centre will contact you to schedule a convenient time to reinstall your wheel.
 
