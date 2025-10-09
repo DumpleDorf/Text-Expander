@@ -133,7 +133,14 @@ function setupEventListeners() {
   modelSelect.addEventListener('change', onModelChange);
 
   document.getElementById('generateQuote').addEventListener('click', generateQuote);
-  document.getElementById('copyQuote').addEventListener('click', copyQuoteToClipboard);
+
+  document.getElementById('copyQuote').addEventListener('click', () => 
+    copyTextToClipboard('customerSupportText', 'copyNotificationCustomer', 'Customer quote copied!')
+  );
+
+  document.getElementById('copyCustomerQuote').addEventListener('click', () => 
+    copyTextToClipboard('quoteText', 'copyNotificationService', 'Service quote copied!')
+  );
 
   if (!document.querySelector('#stepBrandSize img.tyre-diagram')) {
     const img = document.createElement('img');
@@ -423,38 +430,37 @@ Tesla Service
 // -------------------------
 // COPY QUOTE
 // -------------------------
-function copyQuoteToClipboard() {
-  const quoteText = document.getElementById('quoteText').innerText || "";
-  const notification = document.getElementById('copyNotification');
+function copyTextToClipboard(elementId, notificationId = 'copyNotification', notificationMsg = "Copied to Clipboard") {
+  const text = document.getElementById(elementId)?.innerText || "";
+  const notification = document.getElementById(notificationId);
 
-  if (!quoteText) {
-    showNotification("No quote to copy!");
-    return;
-  }
-
-  function showNotification(msg) {
-    notification.textContent = msg;
-    notification.classList.add('show');
-    setTimeout(() => notification.classList.remove('show'), 2000);
-  }
+  if (!text.trim()) return showNotification("Error: Nothing to Copy", notification);
 
   if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(quoteText)
-      .then(() => showNotification("Quote copied!"))
-      .catch(() => showNotification("Failed to copy quote."));
+    navigator.clipboard.writeText(text)
+      .then(() => showNotification(notificationMsg, notification))
+      .catch(() => showNotification("Failed to copy.", notification));
   } else {
     const textArea = document.createElement('textarea');
-    textArea.value = quoteText;
+    textArea.value = text;
     textArea.style.position = 'fixed';
     document.body.appendChild(textArea);
     textArea.focus();
     textArea.select();
     try {
       const success = document.execCommand('copy');
-      showNotification(success ? "Quote copied!" : "Failed to copy.");
+      showNotification(success ? notificationMsg : "Failed to copy.", notification);
     } catch {
-      showNotification("Failed to copy quote.");
+      showNotification("Failed to copy.", notification);
     }
     document.body.removeChild(textArea);
   }
+}
+
+function showNotification(msg, notification) {
+  if (!notification) return;
+  notification.textContent = msg;
+  notification.classList.add('show');
+
+  setTimeout(() => notification.classList.remove('show'), 1500);
 }

@@ -8,9 +8,9 @@
 </head>
 <body>
   <div id="popupWrapper">
+
     <!-- Landing Page -->
     <div id="landingPage">
-      <!-- Logo Section -->
       <div id="logoSection">
         <div id="teslaLogoWrapper">
           <img src="icons/tesla_wordmark_icon.png" alt="Tesla Logo" id="teslaLogo" />
@@ -22,14 +22,12 @@
         Click on a tool to find out more
       </div>
 
-      <!-- General Section -->
       <div class="section section-general">
         <div class="section-header">General</div>
         <button class="full-width-btn" id="textExpanderBtn">Text Expander</button>
         <button class="full-width-btn" id="tyreQuoteBtn">Tyre Quote Generator</button>
       </div>
 
-      <!-- Customer Support Section -->
       <div class="section section-support">
         <div class="section-header">Customer Support</div>
         <div class="menu-item">
@@ -48,7 +46,6 @@
         </div>
       </div>
 
-      <!-- Service Section -->
       <div class="section section-service">
         <div class="section-header">Service</div>
         <div class="menu-item">
@@ -60,7 +57,6 @@
         </div>
       </div>
 
-      <!-- Other Section -->
       <div class="section section-other">
         <div class="section-header">Other</div>
         <button class="full-width-btn" id="pdfGeneratorBtn">PDF Document Generator</button>
@@ -74,7 +70,6 @@
         </div>
       </div>
 
-      <!-- Info Section -->
       <div class="section section-info">
         <div class="section-header">Info</div>
         <button class="full-width-btn" id="aboutBtn">About</button>
@@ -86,7 +81,6 @@
       <div class="container">
         <button id="backBtn">Back</button>
 
-        <!-- Header with Title and Region Toggle -->
         <div class="header-row">
           <div class="quote-title">🚗 Tesla Tyre Quotes</div>
           <div class="region-container">
@@ -99,7 +93,6 @@
           </div>
         </div>
 
-        <!-- Step 1: Select Model -->
         <div class="step">
           <div class="step-title">1. Select Tesla Model</div>
           <div class="model-row">
@@ -110,15 +103,12 @@
           </div>
         </div>
 
-        <!-- Step 2 + 3: Brand + Size as buttons -->
         <div class="step" id="stepBrandSize" style="display:none; overflow: hidden; max-height: 0; transition: max-height 0.4s ease, opacity 0.4s ease;">
           <div class="step-title">2. Select Tyre Brand & Size</div>
-
           <div class="brand-size-row">
             <div class="button-group" id="brandButtons">
               <div class="group-title">Brand</div>
             </div>
-
             <div class="button-group" id="sizeButtons">
               <div class="group-title">Size</div>
             </div>
@@ -127,18 +117,28 @@
 
         <button id="generateQuote" disabled>Generate Quote</button>
 
-        <!-- Customer Support Section -->
+        <!-- Customer Quote -->
         <div class="quote-section" id="customerSupportQuote" style="display:none;">
-          <h3>Customer Support Verbal Estimate</h3>
+          <div class="quote-header">
+            <h3>Tyre Quote</h3>
+            <div class="copy-wrapper">
+              <button class="copy-btn small" id="copyQuote">Copy</button>
+              <div class="copy-notification" id="copyNotificationCustomer"></div>
+            </div>
+          </div>
           <pre class="quote-text" id="customerSupportText"></pre>
         </div>
 
-        <!-- Tesla Service / Verbal Quote Section -->
+        <!-- Service Quote -->
         <div class="quote-section" id="serviceQuoteSection" style="display:none;">
-          <h3>SCA Tyre Repair Approval Confirmation and Next Steps</h3>
+          <div class="quote-header">
+            <h3>SCA Comm Log Replacement Message</h3>
+            <div class="copy-wrapper">
+              <button class="copy-btn small" id="copyCustomerQuote">Copy</button>
+              <div class="copy-notification" id="copyNotificationService"></div>
+            </div>
+          </div>
           <pre class="quote-text" id="quoteText"></pre>
-          <button class="copy-btn" id="copyQuote">Copy Message</button>
-          <div id="copyNotification"></div>
         </div>
 
       </div>

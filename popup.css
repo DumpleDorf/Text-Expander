@@ -252,26 +252,64 @@ input:checked + .slider:before { transform: translateX(22px); }
 /* ==========================
    Copy Notification
 ========================== */
-#copyNotification {
-  position: fixed;
-  bottom: 20px;
+.copy-wrapper {
+  display: inline-flex;
+  position: relative;
+  margin-left: 8px;
+}
+
+.copy-btn.small {
+  display: inline-flex;       
+  align-items: center;   
+  justify-content: center; 
+  padding: 10px 20px;  
+  font-size: 14px;         
+  background: #27ae60;
+  border-radius: 6px;
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+  color: white;
+  font-weight: bold;
+  min-width: 80px;      
+  min-height: 36px;     
+}
+
+.copy-btn,
+.copy-btn.small {
+  transition: background 0.3s ease;
+}
+
+.copy-btn:hover,
+.copy-btn.small:hover {
+  transform: none; 
+  background: #229954; 
+  box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
+}
+
+.copy-notification {
+  display: block;
+  position: absolute;
+  top: 100%;
   left: 50%;
   transform: translateX(-50%);
+  margin-top: 8px;    
   background: #27ae60;
   color: white;
-  padding: 12px 25px;
-  border-radius: 8px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.85rem;
   font-weight: bold;
-  font-size: 14px;
-  box-shadow: 0 4px 12px rgba(39, 174, 96, 0.6);
+  white-space: nowrap;
+  text-align: center;
+  z-index: 10;
   opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.5s ease;
-  z-index: 9999;
+  pointer-events: none; 
+  transition: opacity 0.3s ease;
 }
-#copyNotification.show {
+
+.copy-notification.show {
   opacity: 1;
-  pointer-events: auto;
 }
 
 /* ==========================
@@ -337,6 +375,38 @@ input:checked + .slider:before { transform: translateX(22px); }
   color: #ecf0f1;
   font-size: 18px;
   font-weight: 600;
+}
+
+/* ==========================
+   Quote Header + Copy Button
+========================== */
+.quote-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.quote-header h3 {
+  margin: 0;
+  color: #ecf0f1;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: left;
+  flex: 1;
+  word-break: break-word;
+  white-space: normal;
+}
+
+.copy-btn.small {
+  padding: 6px 10px;
+  font-size: 13px;
+  background: #27ae60;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.copy-btn.small:hover {
+  background: #229954;
 }
 
 .quote-text {
