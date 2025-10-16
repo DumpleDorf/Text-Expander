@@ -77,7 +77,8 @@
         "SCA_AutoMessager/temp.js",
         "EasterEgg/lol.png",
         "HEICConverter/heic-to.js",
-        "HEICConverter/pdf-lib.min.js"
+        "HEICConverter/pdf-lib.min.js",
+        "SCA_AutoMessager/SC_Images/*"
       ],
       "matches": ["<all_urls>"]
     }

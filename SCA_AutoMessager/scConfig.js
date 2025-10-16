@@ -4,6 +4,23 @@ document.addEventListener('DOMContentLoaded', () => {
   let tableData = [];
 
   // -------------------------
+  // CSV parser (handles commas in quotes)
+  // -------------------------
+  function parseCSVLine(line) {
+    const regex = /(".*?"|[^",\s]+)(?=\s*,|\s*$)/g;
+    const result = [];
+    let match;
+    while ((match = regex.exec(line)) !== null) {
+      let value = match[1];
+      if (value.startsWith('"') && value.endsWith('"')) {
+        value = value.slice(1, -1);
+      }
+      result.push(value.trim());
+    }
+    return result;
+  }
+
+  // -------------------------
   // Load CSV
   // -------------------------
   fetch('scConfig.csv')
@@ -12,8 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const lines = csvText.trim().split('\n');
       lines.forEach((line, i) => {
         if (i === 0) return; // skip header
-        const [serviceCenter, link, instructions] = line.split(',').map(f => f?.trim().replace(/^"|"$/g,''));
-        tableData.push({ serviceCenter, link, instructions });
+        const [serviceCenter, link, instructions, image] = parseCSVLine(line);
+        tableData.push({ serviceCenter, link, instructions, image });
       });
       renderTable(tableData);
     })
@@ -22,11 +39,16 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderTable(data){
     tableBody.innerHTML = '';
     data.forEach(row => {
+      const imgHTML = row.image
+      ? `<img src="${chrome.runtime.getURL('SCA_AutoMessager/SC_Images/' + row.image)}">`
+      : '';
+      
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${row.serviceCenter || ''}</td>
         <td>${row.link ? `<a href="${row.link}" target="_blank">${row.link}</a>` : ''}</td>
         <td>${row.instructions || ''}</td>
+        <td>${imgHTML}</td>
       `;
       tableBody.appendChild(tr);
     });
@@ -47,11 +69,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function moveIndicator(element) {
       const itemWidth = element.offsetWidth;
-
-      // Get the left position of the element relative to the menu-bar
       const menuBar = document.querySelector('.menu-bar');
       const leftOffset = element.getBoundingClientRect().left - menuBar.getBoundingClientRect().left;
-
       indicator.style.width = `${itemWidth}px`;
       indicator.style.transform = `translateX(${leftOffset}px)`;
   }
@@ -61,17 +80,14 @@ document.addEventListener('DOMContentLoaded', () => {
       menuItems.forEach(i => i.classList.remove('active'));
       item.classList.add('active');
       moveIndicator(item);
-
       aboutSectionWrapper.style.display = item.dataset.section === 'about' ? 'block' : 'none';
       configSection.style.display = item.dataset.section === 'config' ? 'block' : 'none';
     });
   });
 
-  // Initialize slider on page load
   const activeItem = document.querySelector('.menu-item.active');
   if (activeItem) moveIndicator(activeItem);
 
-  // Optional: adjust slider on window resize
   window.addEventListener('resize', () => {
     const activeItem = document.querySelector('.menu-item.active');
     if (activeItem) moveIndicator(activeItem);
