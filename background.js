@@ -44,6 +44,15 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.audible && tab.url && isTowbookUrl(tab.url)) {
     if (towbookAudioNotifierEnabled) {
       console.log("Towbook audible tab detected and notifier enabled, sending notification.");
+
+      // Focus the tab and its window
+      chrome.windows.update(tab.windowId, { focused: true }, () => {
+        chrome.tabs.update(tab.id, { active: true }, () => {
+          console.log("✅ Towbook tab focused");
+        });
+      });
+
+      // Create Chrome notification
       chrome.notifications.create({
         type: "basic",
         iconUrl: chrome.runtime.getURL("icons/towbook_icon.png"),
