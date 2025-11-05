@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const teamsToggle = document.getElementById('teamsToggle');
   const scAutoMessagerToggle = document.getElementById('scAutoMessagerToggle');
   const auFilterToggle = document.getElementById('auFilterToggle');
+  const oceanaToggle = document.getElementById('oceanaToggle');
 
   // -------------------------
   // Button Handlers
@@ -127,12 +128,14 @@ document.addEventListener('DOMContentLoaded', () => {
     towbookAudioNotifier: false,
     teamsFilter: false,
     scAutoMessagerEnabled: false,
-    auFilterEnabled: false    // <-- new
+    auFilterEnabled: false,
+    oceanaNotifierEnabled: false    // <-- new
   }, (items) => {
     if (towbookToggle) towbookToggle.checked = items.towbookAudioNotifier;
     if (teamsToggle) teamsToggle.checked = items.teamsFilter;
     if (scAutoMessagerToggle) scAutoMessagerToggle.checked = items.scAutoMessagerEnabled;
-    if (auFilterToggle) auFilterToggle.checked = items.auFilterEnabled;   // <-- new
+    if (auFilterToggle) auFilterToggle.checked = items.auFilterEnabled;
+    if (oceanaToggle) oceanaToggle.checked = items.oceanaNotifierEnabled;
   });
 
 
@@ -163,6 +166,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const enabled = auFilterToggle.checked;
       chrome.storage.sync.set({ auFilterEnabled: enabled }, () => {
         console.log(`[AU Filter] Toggle changed to ${enabled ? 'ON' : 'OFF'}`);
+      });
+    });
+  }
+
+  if (oceanaToggle) {
+    oceanaToggle.addEventListener('change', () => {
+      const enabled = oceanaToggle.checked;
+      chrome.storage.sync.set({ oceanaNotifierEnabled: enabled }, () => {
+        console.log(`[Oceana Notifier] Toggle changed to ${enabled ? 'ON' : 'OFF'}`);
       });
     });
   }
