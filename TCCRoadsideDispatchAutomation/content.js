@@ -13,220 +13,222 @@ const currentLocationInputId = 'autocompleteCurrentLocationAddress0';
 let lastFirstDropdownValue = null;
 let addressPollingInterval = null;
 
-// -------------------------
-// Helper: select mat-select option
-// -------------------------
-function selectMatOption(dropdown, optionText) {
-    if (!dropdown) {
-        console.warn('[Extension] Dropdown not found');
-        return;
-    }
+// TODO: REPLACE WITH BETTER LOGIC - MAYBE A POPUP INSTEAD
 
-    console.log(`[Extension] Opening dropdown ${dropdown.id || dropdown} to select "${optionText}"`);
-    dropdown.click();
+// // -------------------------
+// // Helper: select mat-select option
+// // -------------------------
+// function selectMatOption(dropdown, optionText) {
+//     if (!dropdown) {
+//         console.warn('[Extension] Dropdown not found');
+//         return;
+//     }
 
-    setTimeout(() => {
-        const options = Array.from(document.querySelectorAll('mat-option .mat-option-text'));
-        console.log('[Extension] Found mat-select options:', options.map(o => o.textContent.trim()));
+//     console.log(`[Extension] Opening dropdown ${dropdown.id || dropdown} to select "${optionText}"`);
+//     dropdown.click();
 
-        const targetOption = options.find(o => o.textContent.trim() === optionText);
-        if (targetOption) {
-            targetOption.click();
-            console.log(`[Extension] Selected mat-select option "${optionText}"`);
-        } else {
-            console.warn(`[Extension] Option "${optionText}" not found`);
-        }
-    }, 100);
-}
+//     setTimeout(() => {
+//         const options = Array.from(document.querySelectorAll('mat-option .mat-option-text'));
+//         console.log('[Extension] Found mat-select options:', options.map(o => o.textContent.trim()));
 
-// -------------------------
-// Helper: wait for element
-// -------------------------
-function waitForElement(selector, callback, retries = 20, delay = 200) {
-    let attempt = 0;
-    const interval = setInterval(() => {
-        const el = document.querySelector(selector);
-        if (el) {
-            clearInterval(interval);
-            callback(el);
-        } else if (++attempt >= retries) {
-            clearInterval(interval);
-            console.warn(`[Extension] Element "${selector}" never appeared`);
-        }
-    }, delay);
-}
+//         const targetOption = options.find(o => o.textContent.trim() === optionText);
+//         if (targetOption) {
+//             targetOption.click();
+//             console.log(`[Extension] Selected mat-select option "${optionText}"`);
+//         } else {
+//             console.warn(`[Extension] Option "${optionText}" not found`);
+//         }
+//     }, 100);
+// }
 
-// -------------------------
-// Helper: click autocomplete option once it appears
-// -------------------------
-function selectAutocompleteOption(optionText, retries = 30, delay = 200) {
-    let attempt = 0;
-    const interval = setInterval(() => {
-        const option = Array.from(document.querySelectorAll('mat-option .mat-option-text'))
-            .find(el => el.textContent.trim().replace(/\s+/g, ' ') === optionText.replace(/\s+/g, ' '));
+// // -------------------------
+// // Helper: wait for element
+// // -------------------------
+// function waitForElement(selector, callback, retries = 20, delay = 200) {
+//     let attempt = 0;
+//     const interval = setInterval(() => {
+//         const el = document.querySelector(selector);
+//         if (el) {
+//             clearInterval(interval);
+//             callback(el);
+//         } else if (++attempt >= retries) {
+//             clearInterval(interval);
+//             console.warn(`[Extension] Element "${selector}" never appeared`);
+//         }
+//     }, delay);
+// }
 
-        if (option) {
-            console.log('[Extension] Clicking autocomplete option:', option.textContent.trim());
-            option.click();
-            clearInterval(interval);
-        } else if (++attempt >= retries) {
-            clearInterval(interval);
-            console.warn('[Extension] Autocomplete option not found:', optionText);
-        }
-    }, delay);
-}
+// // -------------------------
+// // Helper: click autocomplete option once it appears
+// // -------------------------
+// function selectAutocompleteOption(optionText, retries = 30, delay = 200) {
+//     let attempt = 0;
+//     const interval = setInterval(() => {
+//         const option = Array.from(document.querySelectorAll('mat-option .mat-option-text'))
+//             .find(el => el.textContent.trim().replace(/\s+/g, ' ') === optionText.replace(/\s+/g, ' '));
 
-// -------------------------
-// Poll the address field until Australia, New Zealand, AU, or NZ is detected
-// -------------------------
-function startAddressPolling() {
-    if (addressPollingInterval) return;
+//         if (option) {
+//             console.log('[Extension] Clicking autocomplete option:', option.textContent.trim());
+//             option.click();
+//             clearInterval(interval);
+//         } else if (++attempt >= retries) {
+//             clearInterval(interval);
+//             console.warn('[Extension] Autocomplete option not found:', optionText);
+//         }
+//     }, delay);
+// }
 
-    addressPollingInterval = setInterval(() => {
-        const currentLocationInput = document.getElementById(currentLocationInputId);
-        if (!currentLocationInput) return;
+// // -------------------------
+// // Poll the address field until Australia, New Zealand, AU, or NZ is detected
+// // -------------------------
+// function startAddressPolling() {
+//     if (addressPollingInterval) return;
 
-        const address = currentLocationInput.value.trim();
-        if (!address) return;
+//     addressPollingInterval = setInterval(() => {
+//         const currentLocationInput = document.getElementById(currentLocationInputId);
+//         if (!currentLocationInput) return;
 
-        console.log('[Extension] Current location input:', address);
+//         const address = currentLocationInput.value.trim();
+//         if (!address) return;
 
-        if (
-            address.endsWith('Australia') || address.endsWith('AU') ||
-            address.endsWith('New Zealand') || address.endsWith('NZ')
-        ) {
-            clearInterval(addressPollingInterval);
-            addressPollingInterval = null;
-            console.log('[Extension] Address detected. Stopping address polling.');
+//         console.log('[Extension] Current location input:', address);
 
-            const firstDropdown = document.getElementById(firstDropdownId);
-            const valueSpan = firstDropdown?.querySelector('.mat-select-value-text .mat-select-min-line');
-            const firstDropdownValue = valueSpan?.textContent.trim();
+//         if (
+//             address.endsWith('Australia') || address.endsWith('AU') ||
+//             address.endsWith('New Zealand') || address.endsWith('NZ')
+//         ) {
+//             clearInterval(addressPollingInterval);
+//             addressPollingInterval = null;
+//             console.log('[Extension] Address detected. Stopping address polling.');
 
-            if ((address.endsWith('Australia') || address.endsWith('AU')) && firstDropdownValue === 'Yes') {
-                executeAutomation();
-                copyWarrantyInline();
-            }
-        }
-    }, 500);
-}
+//             const firstDropdown = document.getElementById(firstDropdownId);
+//             const valueSpan = firstDropdown?.querySelector('.mat-select-value-text .mat-select-min-line');
+//             const firstDropdownValue = valueSpan?.textContent.trim();
 
-// -------------------------
-// Observe changes to the address input to restart polling
-// -------------------------
-function observeInputChanges() {
-    const input = document.getElementById(currentLocationInputId);
-    if (!input) return;
+//             if ((address.endsWith('Australia') || address.endsWith('AU')) && firstDropdownValue === 'Yes') {
+//                 executeAutomation();
+//                 copyWarrantyInline();
+//             }
+//         }
+//     }, 500);
+// }
 
-    input.addEventListener('input', () => {
-        console.log('[Extension] Current location input changed. Restarting address polling...');
-        startAddressPolling();
-    });
-}
+// // -------------------------
+// // Observe changes to the address input to restart polling
+// // -------------------------
+// function observeInputChanges() {
+//     const input = document.getElementById(currentLocationInputId);
+//     if (!input) return;
 
-// -------------------------
-// Poll first dropdown continuously
-// -------------------------
-function pollFirstDropdown() {
-    const firstDropdown = document.getElementById(firstDropdownId);
-    if (!firstDropdown) return;
+//     input.addEventListener('input', () => {
+//         console.log('[Extension] Current location input changed. Restarting address polling...');
+//         startAddressPolling();
+//     });
+// }
 
-    const valueSpan = firstDropdown.querySelector('.mat-select-value-text .mat-select-min-line');
-    if (!valueSpan) return;
+// // -------------------------
+// // Poll first dropdown continuously
+// // -------------------------
+// function pollFirstDropdown() {
+//     const firstDropdown = document.getElementById(firstDropdownId);
+//     if (!firstDropdown) return;
 
-    const currentValue = valueSpan.textContent.trim();
-    if (currentValue !== lastFirstDropdownValue) {
-        console.log(`[Extension] First dropdown value changed: "${currentValue}"`);
-        lastFirstDropdownValue = currentValue;
+//     const valueSpan = firstDropdown.querySelector('.mat-select-value-text .mat-select-min-line');
+//     if (!valueSpan) return;
 
-        const currentLocationInput = document.getElementById(currentLocationInputId);
-        const address = currentLocationInput?.value.trim();
+//     const currentValue = valueSpan.textContent.trim();
+//     if (currentValue !== lastFirstDropdownValue) {
+//         console.log(`[Extension] First dropdown value changed: "${currentValue}"`);
+//         lastFirstDropdownValue = currentValue;
 
-        if (
-            (address?.endsWith('Australia') || address?.endsWith('AU')) &&
-            currentValue === 'Yes'
-        ) {
-            executeAutomation();
-        }
-    }
-}
+//         const currentLocationInput = document.getElementById(currentLocationInputId);
+//         const address = currentLocationInput?.value.trim();
 
-// -------------------------
-// Execute the automation logic
-// -------------------------
-function executeAutomation() {
-    console.log('[Extension] Executing automation for Australia address');
+//         if (
+//             (address?.endsWith('Australia') || address?.endsWith('AU')) &&
+//             currentValue === 'Yes'
+//         ) {
+//             executeAutomation();
+//         }
+//     }
+// }
 
-    const secondDropdown = document.querySelector(secondDropdownSelector);
-    if (secondDropdown) {
-        selectMatOption(secondDropdown, 'Tesla Service Center');
-    } else {
-        console.warn('[Extension] Second dropdown not found');
-    }
+// // -------------------------
+// // Execute the automation logic
+// // -------------------------
+// function executeAutomation() {
+//     console.log('[Extension] Executing automation for Australia address');
 
-    waitForElement(serviceCenterInputSelector, (input) => {
-        console.log(`[Extension] Typing "${serviceCenterSearchText}" to trigger autocomplete`);
-        input.focus();
-        input.value = serviceCenterSearchText;
-        input.dispatchEvent(new Event('input', { bubbles: true }));
+//     const secondDropdown = document.querySelector(secondDropdownSelector);
+//     if (secondDropdown) {
+//         selectMatOption(secondDropdown, 'Tesla Service Center');
+//     } else {
+//         console.warn('[Extension] Second dropdown not found');
+//     }
 
-        selectAutocompleteOption(serviceCenterFullOption);
-    });
-}
+//     waitForElement(serviceCenterInputSelector, (input) => {
+//         console.log(`[Extension] Typing "${serviceCenterSearchText}" to trigger autocomplete`);
+//         input.focus();
+//         input.value = serviceCenterSearchText;
+//         input.dispatchEvent(new Event('input', { bubbles: true }));
 
-// -------------------------
-// Copy warranty elements inline (BAT, DU, VEH)
-// -------------------------
-function addWarrantyBadgesInline() {
-    const header = Array.from(document.querySelectorAll('div.padding-top-10 h1.mat-h3'))
-        .find(h => h.textContent.trim() === 'Payment Details');
-    if (!header) return;
+//         selectAutocompleteOption(serviceCenterFullOption);
+//     });
+// }
 
-    const container = header.parentElement;
-    if (container.querySelector('.inline-warranty-wrapper')) return;
+// // -------------------------
+// // Copy warranty elements inline (BAT, DU, VEH)
+// // -------------------------
+// function addWarrantyBadgesInline() {
+//     const header = Array.from(document.querySelectorAll('div.padding-top-10 h1.mat-h3'))
+//         .find(h => h.textContent.trim() === 'Payment Details');
+//     if (!header) return;
 
-    const wrapper = document.createElement('div');
-    wrapper.className = 'inline-warranty-wrapper';
-    wrapper.style.display = 'flex';
-    wrapper.style.gap = '2px';
-    wrapper.style.alignItems = 'center';
-    wrapper.style.marginLeft = '20px';
-    wrapper.style.paddingTop = '5px';
+//     const container = header.parentElement;
+//     if (container.querySelector('.inline-warranty-wrapper')) return;
 
-    // Grab all visible badges (skip ones with status--hide)
-    const badgeWrappers = Array.from(document.querySelectorAll('.tds-tooltip-wrapper--inline'))
-        .filter(wrapper => {
-            const label = wrapper.querySelector('label.tcc-warranty-details-badge-text');
-            return label && !label.classList.contains('status--hide');
-        });
+//     const wrapper = document.createElement('div');
+//     wrapper.className = 'inline-warranty-wrapper';
+//     wrapper.style.display = 'flex';
+//     wrapper.style.gap = '2px';
+//     wrapper.style.alignItems = 'center';
+//     wrapper.style.marginLeft = '20px';
+//     wrapper.style.paddingTop = '5px';
 
-    badgeWrappers.forEach(tooltipWrapper => {
-        const clone = tooltipWrapper.cloneNode(true);
-        clone.style.display = 'inline-flex';
-        clone.style.paddingTop = '5px'; // consistent spacing
-        wrapper.appendChild(clone);
-    });
+//     // Grab all visible badges (skip ones with status--hide)
+//     const badgeWrappers = Array.from(document.querySelectorAll('.tds-tooltip-wrapper--inline'))
+//         .filter(wrapper => {
+//             const label = wrapper.querySelector('label.tcc-warranty-details-badge-text');
+//             return label && !label.classList.contains('status--hide');
+//         });
 
-    if (wrapper.childNodes.length) {
-        container.appendChild(wrapper);
-        console.log('[Extension] All visible warranty badges added inline with Payment Details');
-    }
-}
+//     badgeWrappers.forEach(tooltipWrapper => {
+//         const clone = tooltipWrapper.cloneNode(true);
+//         clone.style.display = 'inline-flex';
+//         clone.style.paddingTop = '5px'; // consistent spacing
+//         wrapper.appendChild(clone);
+//     });
 
-// Run every 5 seconds indefinitely
-setInterval(addWarrantyBadgesInline, 5000);
+//     if (wrapper.childNodes.length) {
+//         container.appendChild(wrapper);
+//         console.log('[Extension] All visible warranty badges added inline with Payment Details');
+//     }
+// }
 
-// -------------------------
-// Initialize
-// -------------------------
-startAddressPolling();
-setInterval(pollFirstDropdown, 1000);
+// // Run every 5 seconds indefinitely
+// setInterval(addWarrantyBadgesInline, 5000);
 
-const bodyObserver = new MutationObserver(() => {
-    const input = document.getElementById(currentLocationInputId);
-    if (input) {
-        observeInputChanges();
-        bodyObserver.disconnect();
-    }
-});
-bodyObserver.observe(document.body, { childList: true, subtree: true });
+// // -------------------------
+// // Initialize
+// // -------------------------
+// startAddressPolling();
+// setInterval(pollFirstDropdown, 1000);
+
+// const bodyObserver = new MutationObserver(() => {
+//     const input = document.getElementById(currentLocationInputId);
+//     if (input) {
+//         observeInputChanges();
+//         bodyObserver.disconnect();
+//     }
+// });
+// bodyObserver.observe(document.body, { childList: true, subtree: true });
