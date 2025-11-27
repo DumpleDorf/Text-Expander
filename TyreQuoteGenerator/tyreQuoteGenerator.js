@@ -406,7 +406,7 @@ You have accepted the quote for Tesla's tyre repair cost which is ${repairDispla
 
 Once your wheel arrives at Tesla, our technicians will assess the tyre to confirm the cause of the leak. If the leak is unrepairable, the tyre will require replacement.
 
-You can speed up your service by pre-approving your tyre replacement quote, if required, by replying back YES to this message.
+You can speed up your service by pre-approving your tyre replacement quote, if required, by approving the cost estimate when it becomes visible in your app.
 
 Cost of Tyre Replacement: ${replacementDisplay}
 
