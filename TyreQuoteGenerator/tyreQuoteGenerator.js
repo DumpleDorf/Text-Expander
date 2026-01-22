@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupEventListeners();
     populateModels();
     enableInterface();
+
   } catch (error) {
     console.error('Error loading local CSV:', error);
     alert('Error loading tyre data. See console.');
@@ -40,8 +41,30 @@ document.addEventListener('DOMContentLoaded', () => {
     landingPage.style.display = 'none';
     tyreQuoteSection.style.display = 'block';
 
-    // Auto-detect VIN and select model
-    await handleVinAutoSelect();
+    // Populate models and enable interface
+    populateModels();
+    enableInterface();
+
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const url = tab?.url || "";
+
+      if (url.startsWith("https://customerconnect.tesla.com/")) {
+        console.log("[Tyre Quote] CustomerConnect page detected: running full auto-select.");
+        await autoSelectTyreAndGenerate(); // full flow
+      } else {
+        console.log("[Tyre Quote] External page: only running VIN detection + model select.");
+        const vin = await detectVinFromPage();
+        if (vin) {
+          console.log("[Tyre Quote] VIN detected on external page:", vin);
+          await handleVinAutoSelect(); // only sets model dropdown
+        } else {
+          console.warn("[Tyre Quote] No VIN detected on external page.");
+        }
+      }
+    } catch (err) {
+      console.error("[Tyre Quote] Error during auto-select check:", err);
+    }
   });
 
   backBtn.addEventListener('click', () => {
@@ -109,6 +132,199 @@ async function handleVinAutoSelect() {
   await waitForOptions();
   modelDropdown.value = modelName;
   modelDropdown.dispatchEvent(new Event("change"));
+}
+
+// -------------------------
+// Auto-select tyre based on VIN and wheel size (multi-run + auto-close safe)
+// -------------------------
+async function autoSelectTyreAndGenerate() {
+  console.log("[Tyre Quote] Starting auto-select process...");
+
+  // Helper: wait for element to exist
+  async function waitForElement(selector, timeout = 3000) {
+    const el = document.querySelector(selector);
+    if (el) return el; // immediate return if exists
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+      await new Promise(r => setTimeout(r, 25)); // faster poll
+      const el = document.querySelector(selector);
+      if (el) return el;
+    }
+    return null;
+  }
+
+  // 1️⃣ Detect VIN
+  const vin = await detectVinFromPage();
+  if (!vin) {
+    console.warn("[Tyre Quote] No VIN detected.");
+    return;
+  }
+  console.log("[Tyre Quote] Detected VIN:", vin);
+
+  // 2️⃣ Derive model
+  const modelCode = vin.charAt(3).toUpperCase();
+  const modelMap = { "3": "Model 3", "Y": "Model Y", "S": "Model S", "X": "Model X" };
+  const modelName = modelMap[modelCode];
+  if (!modelName) {
+    console.warn("[Tyre Quote] Unknown model code:", modelCode);
+    return;
+  }
+  console.log("[Tyre Quote] Auto-selecting model:", modelName);
+
+  // 3️⃣ Select model in popup
+  const modelDropdown = await waitForElement("#modelSelect", 5000);
+  if (!modelDropdown) {
+    console.warn("[Tyre Quote] Model dropdown not found.");
+    return;
+  }
+
+  // Wait until options populated
+  await new Promise(resolve => {
+    const interval = setInterval(() => {
+      if (modelDropdown.options.length > 1) {
+        clearInterval(interval);
+        resolve();
+      }
+    }, 25); // faster poll
+  });
+
+  modelDropdown.value = modelName;
+  modelDropdown.dispatchEvent(new Event("change"));
+  console.log("[Tyre Quote] Model selected in popup");
+
+  // 4️⃣ Wait for page refresh
+  await new Promise(r => setTimeout(r, 100));
+
+  // 5️⃣ Detect wheel size from page
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) return;
+
+  const wheelResult = await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    func: async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const click = el => el?.click();
+
+      let drawerOpenedBy = null;
+      let clickedVehicle = false;
+      let clickedInfo = false;
+
+      for (let attempt = 1; attempt <= 10; attempt++) {
+        console.log(`[Page] Wheel detect attempt ${attempt}`);
+
+        // Open Details panel if closed
+        const detailsHeader = [...document.querySelectorAll("mat-expansion-panel-header")]
+          .find(h => h.innerText.trim().toLowerCase() === "details");
+        if (detailsHeader && detailsHeader.getAttribute("aria-expanded") !== "true") {
+          click(detailsHeader);
+          await sleep(100);
+        }
+
+        // Click Info / Vehicle icons only once
+        const infoIcon = document.getElementById("tcc-asset-panel-detail-icon");
+        const vehicleIcon = document.querySelector('img[mattooltip="Vehicle Details"]');
+
+        if (!clickedInfo && infoIcon && !infoIcon.classList.contains("tcc-sms-disabled")) {
+          click(infoIcon);
+          drawerOpenedBy = "info";
+          clickedInfo = true;
+        } else if (!clickedVehicle && vehicleIcon) {
+          click(vehicleIcon);
+          drawerOpenedBy = "vehicle";
+          clickedVehicle = true;
+        }
+
+        await sleep(200);
+
+        // Detect wheel size in page text
+        const match = document.body.innerText.match(/WHEELS?\s*[\s\S]*?(\d{2})\s*(?:’’|”|″|')/i);
+        if (match) {
+          console.log("[Page] Wheel size detected:", match[1]);
+          return { wheel: parseInt(match[1], 10), drawerOpenedBy };
+        }
+
+        await sleep(500);
+      }
+
+      console.warn("[Page] Failed to detect wheel size after 10 attempts");
+      return { wheel: null, drawerOpenedBy: null };
+    }
+  });
+
+  // ✅ Extract wheel from result safely
+  const wheel = wheelResult[0]?.result?.wheel;
+  const drawerOpenedBy = wheelResult[0]?.result?.drawerOpenedBy;
+
+  if (!wheel) {
+    console.warn("[Tyre Quote] Wheel size not detected.");
+    return;
+  }
+  console.log("[Tyre Quote] Detected wheel:", wheel);
+
+  // 6️⃣ Map wheel → tyre size using CSV
+  if (!window.tyreData || !Array.isArray(window.tyreData)) {
+    console.warn("[Tyre Quote] tyreData not loaded");
+    return;
+  }
+
+  const modelTyres = window.tyreData.filter(t => t.Model === modelName);
+  const matchingTyres = modelTyres.filter(t => {
+    const match = t.Size.match(/R(\d{2})/);
+    return match && parseInt(match[1], 10) === wheel;
+  });
+
+  if (matchingTyres.length === 0) {
+    console.warn("[Tyre Quote] No tyre size matches model and wheel", modelName, wheel);
+    return;
+  }
+
+  const tyreSize = matchingTyres[0].Size;
+  console.log("[Tyre Quote] Selecting tyre size from CSV:", tyreSize);
+
+  // 7️⃣ Select tyre size
+  const sizeButtons = document.querySelectorAll("#sizeButtons .btn-option");
+  sizeButtons.forEach(btn => {
+    if (btn.dataset.size === tyreSize) btn.click();
+  });
+  await new Promise(r => setTimeout(r, 200));
+
+  // 8️⃣ Auto-select brand if only one enabled
+  const brandButtons = [...document.querySelectorAll("#brandButtons .btn-option")]
+    .filter(b => !b.classList.contains("disabled"));
+  if (brandButtons.length === 1) {
+    brandButtons[0].click();
+    console.log("[Tyre Quote] Auto-selected brand:", brandButtons[0].dataset.brand);
+  }
+
+  // 9️⃣ Generate quote
+  const generateBtn = await waitForElement("#generateQuote", 3000);
+  if (generateBtn && !generateBtn.disabled) {
+    generateBtn.click();
+    console.log("[Tyre Quote] Generate button clicked");
+  } else {
+    console.warn("[Tyre Quote] Generate button disabled or not found");
+  }
+
+  // 🔟 Close drawer if we opened it
+  if (drawerOpenedBy) {
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: (openedBy) => {
+        const click = el => el?.click();
+        if (openedBy === "info") {
+          const closeBtn = document.querySelector('img[mattooltip="Close"]');
+          if (closeBtn) click(closeBtn);
+        } else if (openedBy === "vehicle") {
+          const closeBtn = document.getElementById("tcc-log-communication-close");
+          if (closeBtn) click(closeBtn);
+        }
+      },
+      args: [drawerOpenedBy]
+    });
+    console.log("[Tyre Quote] Drawer closed for:", drawerOpenedBy);
+  }
+
+  console.log("[Tyre Quote] Auto-select process completed.");
 }
 
 // -------------------------
