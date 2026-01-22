@@ -237,7 +237,7 @@ async function autoSelectTyreAndGenerate() {
         await sleep(200);
 
         // Detect wheel size in page text
-        const match = document.body.innerText.match(/WHEELS?\s*[\s\S]*?(\d{2})\s*(?:’’|”|″|')/i);
+        const match = document.body.innerText.match(/WHEELS?\s*[\s\S]{0,80}?(\d{2})\s*(?:’’|”|″|")/i);
         if (match) {
           console.log("[Page] Wheel size detected:", match[1]);
           return { wheel: parseInt(match[1], 10), drawerOpenedBy };
