@@ -1,10 +1,13 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const tableBody = document.querySelector('#scConfigTable tbody');
+  const scTableBody = document.querySelector('#scConfigTable tbody');
+  const brTableBody = document.querySelector('#brConfigTable tbody');
   const searchInput = document.querySelector('#searchInput');
-  let tableData = [];
+
+  let scTableData = [];
+  let brTableData = [];
 
   // -------------------------
-  // CSV parser (handles commas in quotes)
+  // CSV parser
   // -------------------------
   function parseCSVLine(line) {
     const regex = /(".*?"|[^",\s]+)(?=\s*,|\s*$)/g;
@@ -21,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // -------------------------
-  // Load CSV
+  // Load Service Centers CSV
   // -------------------------
   fetch('scConfig.csv')
     .then(res => res.text())
@@ -30,37 +33,82 @@ document.addEventListener('DOMContentLoaded', () => {
       lines.forEach((line, i) => {
         if (i === 0) return; // skip header
         const [serviceCenter, link, instructions, image] = parseCSVLine(line);
-        tableData.push({ serviceCenter, link, instructions, image });
+        scTableData.push({ serviceCenter, link, instructions, image });
       });
-      renderTable(tableData);
+      renderTable(scTableBody, scTableData, 'serviceCenter');
     })
     .catch(err => console.error('Error loading SC config CSV:', err));
 
-  function renderTable(data){
-    tableBody.innerHTML = '';
+  // -------------------------
+  // Load Body Repair CSV
+  // -------------------------
+  fetch('brConfig.csv')
+    .then(res => res.text())
+    .then(csvText => {
+      const lines = csvText.trim().split('\n');
+      lines.forEach((line, i) => {
+        if (i === 0) return; // skip header
+        const [brCenter, link, cancelDays, image] = parseCSVLine(line);
+        brTableData.push({ brCenter, link, cancelDays, image });
+      });
+      renderTable(brTableBody, brTableData, 'brCenter', true);
+    })
+    .catch(err => console.error('Error loading BR config CSV:', err));
+
+  // -------------------------
+  // Render table helper
+  // -------------------------
+  function renderTable(tbody, data, keyField, isBR = false) {
+    tbody.innerHTML = '';
     data.forEach(row => {
       const imgHTML = row.image
-      ? `<img src="${chrome.runtime.getURL('SCA_AutoMessager/SC_Images/' + row.image)}">`
-      : '';
-      
+        ? `<img src="${chrome.runtime.getURL('SCA_AutoMessager/SC_Images/' + row.image)}">`
+        : '';
+
       const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${row.serviceCenter || ''}</td>
-        <td>${row.link ? `<a href="${row.link}" target="_blank">${row.link}</a>` : ''}</td>
-        <td>${row.instructions || ''}</td>
-        <td>${imgHTML}</td>
-      `;
-      tableBody.appendChild(tr);
+
+      if (isBR) {
+        tr.innerHTML = `
+          <td>${row.brCenter || ''}</td>
+          <td>${row.link ? `<a href="${row.link}" target="_blank">${row.link}</a>` : ''}</td>
+          <td>${row.cancelDays || ''}</td>
+          <td>${imgHTML}</td>
+        `;
+      } else {
+        tr.innerHTML = `
+          <td>${row.serviceCenter || ''}</td>
+          <td>${row.link ? `<a href="${row.link}" target="_blank">${row.link}</a>` : ''}</td>
+          <td>${row.instructions || ''}</td>
+          <td>${imgHTML}</td>
+        `;
+      }
+
+      tbody.appendChild(tr);
     });
   }
 
+  // -------------------------
+  // Search filter (applies to both tables)
+  // -------------------------
   searchInput.addEventListener('input', () => {
     const query = searchInput.value.trim().toLowerCase();
-    renderTable(query ? tableData.filter(r => r.serviceCenter.toLowerCase().includes(query)) : tableData);
+
+    renderTable(
+      scTableBody,
+      query ? scTableData.filter(r => r.serviceCenter.toLowerCase().includes(query)) : scTableData,
+      'serviceCenter'
+    );
+
+    renderTable(
+      brTableBody,
+      query ? brTableData.filter(r => r.brCenter.toLowerCase().includes(query)) : brTableData,
+      'brCenter',
+      true
+    );
   });
 
   // -------------------------
-  // Menu switching with dynamic slider
+  // Menu switching logic
   // -------------------------
   const menuItems = document.querySelectorAll('.menu-item');
   const indicator = document.querySelector('.menu-indicator');
@@ -68,11 +116,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const configSection = document.getElementById('configSection');
 
   function moveIndicator(element) {
-      const itemWidth = element.offsetWidth;
-      const menuBar = document.querySelector('.menu-bar');
-      const leftOffset = element.getBoundingClientRect().left - menuBar.getBoundingClientRect().left;
-      indicator.style.width = `${itemWidth}px`;
-      indicator.style.transform = `translateX(${leftOffset}px)`;
+    const itemWidth = element.offsetWidth;
+    const menuBar = document.querySelector('.menu-bar');
+    const leftOffset = element.getBoundingClientRect().left - menuBar.getBoundingClientRect().left;
+    indicator.style.width = `${itemWidth}px`;
+    indicator.style.transform = `translateX(${leftOffset}px)`;
   }
 
   menuItems.forEach(item => {

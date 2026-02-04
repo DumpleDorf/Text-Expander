@@ -27,11 +27,17 @@ function getCustomerFirstName() {
 }
 
 function getAssignedFirstName() {
-  const assigneeEl = document.querySelector('.assignee-list-item');
-  if (!assigneeEl) return null;
-  const fullName = (assigneeEl.textContent || "").trim();
-  if (!fullName || fullName.toLowerCase() === "assign") return null; // <-- treat "Assign" as empty
-  return fullName.split(/\s+/)[0];
+  const assigneeEls = document.querySelectorAll('.assignee-list-item');
+  for (const el of assigneeEls) {
+    const innerSpan = el.querySelector('span.ng-star-inserted');
+    if (!innerSpan) continue;
+    const fullName = (innerSpan.textContent || "").trim();
+    if (!fullName || fullName.toLowerCase() === "assign") continue;
+    console.log(`[AutoMessager] Assigned full name detected: ${fullName}`);
+    return fullName.split(/\s+/)[0]; // Return first name
+  }
+  console.warn("[AutoMessager] No assigned name found");
+  return null;
 }
 
 function getAppointmentDetails() {
@@ -55,17 +61,6 @@ function getAppointmentDetails() {
   }
   return { day, time };
 }
-
-// Not needed
-
-// function getCompletionTime() {
-//   const el = document.querySelector(
-//     'input[placeholder="Estimated Completion Date"],input[data-placeholder="Estimated Completion Date"]'
-//   );
-//   if (!el || !el.value) return "_____";
-//   const m = el.value.trim().match(/\b\d{1,2}:\d{2}\s?(AM|PM)\b/i);
-//   return m ? m[0] : "_____";
-// }
 
 function getLocation() {
   const locInput = document.querySelector('input[placeholder*="Select a location"],input[data-placeholder*="Select a location"]');
@@ -108,32 +103,64 @@ function parseCSVLine(line) {
   return result;
 }
 
-function getSCConfig(callback) {
-  try {
-    fetch(chrome.runtime.getURL("SCA_AutoMessager/scConfig.csv"))
-      .then(response => response.text())
-      .then(csvText => {
-        const lines = csvText.trim().split("\n");
-        lines.shift(); // remove header
-        const config = {};
-        lines.forEach(line => {
-          const [serviceCenter, link, instructions, image] = parseCSVLine(line);
-          config[serviceCenter] = { 
-            link: link || "", 
-            instructions: instructions || "", 
-            image: image || "" 
-          };
-        });
-        callback(config);
-      })
-      .catch(err => {
-        console.error("[AutoMessager] Error loading SC config CSV:", err);
-        callback({});
+function loadCSVConfig(csvPath, mapFn, callback) {
+  fetch(chrome.runtime.getURL(csvPath))
+    .then(res => res.text())
+    .then(csvText => {
+      const lines = csvText.trim().split("\n");
+      lines.shift();
+      const config = {};
+      lines.forEach(line => {
+        const cols = parseCSVLine(line);
+        const { key, value } = mapFn(cols);
+        if (key) config[key] = value;
       });
-  } catch (e) {
-    console.error("[AutoMessager] Exception in getSCConfig:", e);
-    callback({});
-  }
+      callback(config);
+    })
+    .catch(err => {
+      console.error(`[AutoMessager] Error loading ${csvPath}:`, err);
+      callback({});
+    });
+}
+
+// -------------------------
+// Message builders
+// -------------------------
+function buildServiceMessage(ctx) {
+  const { customerFirstName, serviceLocation, day, appointmentTime, sc, assignedName, extraMsg, validationMsg } = ctx;
+  const scLine = sc.link
+    ? `Please use ${sc.link} to navigate to the service center.${sc.instructions ? " " + sc.instructions : ""}`
+    : sc.instructions || "";
+  return [
+    `Hi ${customerFirstName},`,
+    `This is a courteous reminder of your upcoming appointment at ${serviceLocation} on ${day} at ${appointmentTime}. Please confirm with a 'YES' for your visit.`,
+    "To facilitate a smooth check-in process, we kindly request that you approve your estimate before your appointment if you haven’t already done so.",
+    extraMsg,
+    validationMsg,
+    scLine,
+    "If you have any questions or would like to add anything on to this visit, please let us know ahead of time.",
+    "We look forward to assisting you.",
+    assignedName ? `Regards,\n${assignedName}\nTesla Service` : "Regards,\nTesla Service"
+  ].filter(Boolean).join("\n\n");
+}
+
+function buildBodyRepairMessage(ctx) {
+  const { customerFirstName, br, assignedName } = ctx;
+  const cancelDaysText = `within ${br.cancelDays} days`;
+  return [
+    `Hi ${customerFirstName},`,
+    `Thank you for submitting your vehicle repair request. We conduct our assessments digitally, and to proceed with an accurate repair estimation, we require the following images to be taken in clear light and submitted ${cancelDaysText}:`,
+    "",
+    "1. All four corners of the vehicle, captured from a distance to show the entire car, damages, and registration plate in good lighting.",
+    "2. A clear photo of the odometer reading.",
+    "3. A photo of the white VIN label, located in the driver-side door opening, looking downwards to the left.",
+    "",
+    "These images are essential for compiling a precise estimate and ensuring a swift repair process for your Tesla. Failure to provide the requested images within the specified timeframe will result in the cancellation of your request.",
+    "",
+    "Please see the photos below for reference.",
+    "",
+    `Kind Regards,${assignedName ? `\n${assignedName}` : ""}\nTesla Body Repair`
+  ].filter(Boolean).join("\n\n");
 }
 
 // -------------------------
@@ -141,52 +168,40 @@ function getSCConfig(callback) {
 // -------------------------
 function runAutoMessager() {
   console.log("[AutoMessager] runAutoMessager triggered");
+
   const hasValidation = preScanForValidation();
 
-  // -------------------------
-  // Find Comm Log tab
-  // -------------------------
+  // Comm Log tab
   const COMM_LOG_ID = "mat-tab-label-2-4";
-  let commLog = document.getElementById(COMM_LOG_ID) ||
+  const commLog = document.getElementById(COMM_LOG_ID) ||
     [...document.querySelectorAll('[role="tab"].mat-tab-label,.mat-tab-label[role="tab"],[role="tab"].mat-tab-label')]
       .find(el => /(^|\s)comm\s*log(\s|$)/i.test((el.textContent || "").trim()));
 
   if (!commLog) return console.warn('Could not find "Comm Log" tab.');
   if (commLog.getAttribute("aria-disabled") === "true") return console.warn('"Comm Log" tab is disabled.');
-
-  // Click Comm Log tab
   smartClick(commLog);
 
+  // Chat With Customer
   setTimeout(() => {
-    // -------------------------
-    // Find Chat With Customer label
-    // -------------------------
     const chatLabel = [...document.querySelectorAll("label.switcher__label")]
       .find(el => /chat\s*with\s*customer/i.test((el.textContent || "").trim()));
+    if (!chatLabel) return console.warn("[AutoMessager] 'Chat With Customer' label not found");
 
-    // -------------------------
-    // Check if Chat With Customer is already active
-    // -------------------------
-    const chatAlreadyActive =
-      // Check for the special reminder text
-      [...document.querySelectorAll("span, div, p, label")]
-        .some(el => (el.textContent || "").includes("Owner Contact")) ||
-      // Check for character count element ending with /1000
-      [...document.querySelectorAll("label.characterCount")]
-        .some(el => /\/1000\s*$/.test(el.textContent.trim()));
+    const inputId = chatLabel.getAttribute("for");
+    const chatInput = inputId ? document.getElementById(inputId) : null;
+    if (!chatInput) return console.warn("[AutoMessager] Associated input not found for 'Chat With Customer'");
 
-    if (!chatAlreadyActive && chatLabel) {
+    if (!chatInput.checked) {
       smartClick(chatLabel);
+      console.log("[AutoMessager] Switched to 'Chat With Customer'");
+    } else {
+      console.log("[AutoMessager] 'Chat With Customer' already active");
     }
 
-    // -------------------------
-    // Insert message after chat is active
-    // -------------------------
     setTimeout(() => {
       const inputBox = document.querySelector("textarea") ||
         document.querySelector("input[type='text']") ||
         document.querySelector("[contenteditable='true']");
-
       if (!inputBox) return console.warn("Could not find a chat input box.");
 
       const customerFirstName = getCustomerFirstName();
@@ -198,68 +213,68 @@ function runAutoMessager() {
         : "";
       const extraMsg = getExtraMessage();
 
-      getSCConfig(scConfig => {
-        const scMsg = scConfig[serviceLocation] || { link: "", instructions: "", image: "" };
-        const scLine = scMsg.link
-          ? `Please use ${scMsg.link} to navigate to the service center.${scMsg.instructions ? " " + scMsg.instructions : "."}`
-          : (scMsg.instructions ? scMsg.instructions : "");
+      loadCSVConfig(
+        "SCA_AutoMessager/scConfig.csv",
+        ([serviceCenter, link, instructions, image]) => ({ key: serviceCenter, value: { type: "service", link, instructions, image } }),
+        serviceConfig => {
+          loadCSVConfig(
+            "SCA_AutoMessager/brConfig.csv",
+            ([center, link, cancelDays, image]) => ({ key: center, value: { type: "body", link, cancelDays, image } }),
+            bodyConfig => {
 
-        // Build closing lines
-        let closingLines = assignedName
-          ? `Regards,\n${assignedName}\nTesla Service`
-          : `Regards,\nTesla Service`;
+              const site = bodyConfig[serviceLocation] || serviceConfig[serviceLocation];
+              if (!site) return console.warn("No site config found for", serviceLocation);
 
-        // Build message
-        const messageLines = [
-          `Hi ${customerFirstName},`,
-          `This is a courteous reminder of your upcoming appointment at ${serviceLocation} on ${day} at ${appointmentTime}. Please confirm with a 'YES' for your visit.`,
-          "To facilitate a smooth check-in process, we kindly request that you approve your estimate before your appointment if you haven’t already done so. If the scheduled time is no longer convenient, you can easily reschedule through the Tesla App by selecting “Manage Appointment” and choosing from the available options.",
-          extraMsg,
-          validationMsg,
-          scLine,
-          "If you have any questions or would like to add anything on to this visit, please let us know ahead of time.",
-          "",
-          "We look forward to assisting you.",
-          closingLines
-        ].filter(Boolean).join("\n\n");
+              const message = site.type === "body"
+                ? buildBodyRepairMessage({ customerFirstName, serviceLocation, day, appointmentTime, br: site, assignedName })
+                : buildServiceMessage({ customerFirstName, serviceLocation, day, appointmentTime, sc: site, assignedName, extraMsg, validationMsg });
 
-        // Insert message
-        if (/^(TEXTAREA|INPUT)$/i.test(inputBox.tagName)) {
-          inputBox.value = messageLines;
-          inputBox.dispatchEvent(new Event("input", { bubbles: true }));
-          inputBox.dispatchEvent(new Event("change", { bubbles: true }));
-        } else {
-          inputBox.focus();
-          inputBox.innerText = messageLines;
-          inputBox.dispatchEvent(new Event("input", { bubbles: true }));
+              if (/^(TEXTAREA|INPUT)$/i.test(inputBox.tagName)) {
+                inputBox.value = message;
+                inputBox.dispatchEvent(new Event("input", { bubbles: true }));
+              } else {
+                inputBox.innerText = message;
+                inputBox.dispatchEvent(new Event("input", { bubbles: true }));
+              }
+
+              console.log(`[AutoMessager] Message inserted for ${customerFirstName} at ${serviceLocation}`);
+
+              // Attach images
+              if (site.image) {
+                // Both service and body repair use the same logic now
+                const fileInput = document.querySelector('file-uploader input[type="file"]:not([capture]'), 
+                      siteType = site.type;
+
+                if (fileInput) {
+                  console.log(`[AutoMessager] Attempting to attach ${siteType} image: ${site.image}`);
+                  fetch(chrome.runtime.getURL(`SCA_AutoMessager/SC_Images/${site.image}`))
+                    .then(res => res.blob())
+                    .then(blob => {
+                      const file = new File([blob], site.image, { type: blob.type });
+                      const dataTransfer = new DataTransfer();
+                      dataTransfer.items.add(file);
+                      fileInput.files = dataTransfer.files;
+                      fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+                      console.log(`[AutoMessager] ${siteType} image ${site.image} attached automatically`);
+                    })
+                    .catch(err => console.error(`[AutoMessager] Failed to attach ${siteType} image:`, err));
+                } else {
+                  console.warn(`[AutoMessager] File input not found for ${siteType} image`);
+                }
+              }
+
+            }
+          );
         }
+      );
 
-        // Attach service center image
-        if (scMsg.image) {
-          const fileInput = document.querySelector('file-uploader input[type="file"]:not([capture])');
-          if (fileInput) {
-            fetch(chrome.runtime.getURL(`SCA_AutoMessager/SC_Images/${scMsg.image}`))
-              .then(res => res.blob())
-              .then(blob => {
-                const file = new File([blob], scMsg.image, { type: blob.type });
-                const dataTransfer = new DataTransfer();
-                dataTransfer.items.add(file);
-                fileInput.files = dataTransfer.files;
-                fileInput.dispatchEvent(new Event('change', { bubbles: true }));
-                console.log(`[AutoMessager] Image ${scMsg.image} attached automatically`);
-              })
-              .catch(err => console.error('[AutoMessager] Failed to load image:', err));
-          } else {
-            console.warn('[AutoMessager] File input not found');
-          }
-        }
-
-        console.log(`[AutoMessager] Message inserted for ${customerFirstName} at ${serviceLocation}`);
-      });
-    }, 1200);
+    }, 600);
   }, 400);
 }
 
+// -------------------------
+// Button injection
+// -------------------------
 function injectButton() {
   const toast = document.querySelector('[name="feedbackToastr"].padding-24');
   if (!toast || toast.querySelector('#autoMessagerBtn')) return;
@@ -282,16 +297,8 @@ function injectButton() {
     transition: box-shadow 0.1s, transform 0.1s;
   `;
 
-  // Press effect
-  const pressIn = () => {
-    btn.style.boxShadow = 'inset 0 2px 4px rgba(0,0,0,0.3)';
-    btn.style.transform = 'scale(0.98)';
-  };
-  const release = () => {
-    btn.style.boxShadow = '0 4px 6px rgba(0,0,0,0.2)';
-    btn.style.transform = 'scale(1)';
-  };
-
+  const pressIn = () => { btn.style.boxShadow = 'inset 0 2px 4px rgba(0,0,0,0.3)'; btn.style.transform='scale(0.98)'; };
+  const release = () => { btn.style.boxShadow = '0 4px 6px rgba(0,0,0,0.2)'; btn.style.transform='scale(1)'; };
   btn.addEventListener('mousedown', pressIn);
   btn.addEventListener('mouseup', release);
   btn.addEventListener('mouseleave', release);
@@ -315,6 +322,6 @@ chrome.storage.sync.get('scAutoMessagerEnabled', data => {
   }
 });
 
-chrome.runtime.onMessage.addListener((msg) => {
+chrome.runtime.onMessage.addListener(msg => {
   if (msg.action === "runAutoMessager") runAutoMessager();
 });
