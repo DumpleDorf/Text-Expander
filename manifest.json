@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Tesla Support Tool",
-  "version": "2.7.2",
+  "version": "2.7.3",
   "description": "Support Tool with text expander, tyre quoting and more.",
   "permissions": [
     "storage",
