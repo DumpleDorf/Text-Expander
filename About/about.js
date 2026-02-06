@@ -1,3 +1,12 @@
+document.addEventListener("DOMContentLoaded", () => {
+  const manifest = chrome.runtime.getManifest();
+  const versionEl = document.getElementById("version-text");
+
+  if (versionEl && manifest?.version) {
+    versionEl.textContent = `The current version is: ${manifest.version}`;
+  }
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   const menuItems = document.querySelectorAll('.menu-item');
   const indicator = document.querySelector('.menu-indicator');
