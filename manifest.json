@@ -50,10 +50,12 @@
       "match_about_blank": true
     },
     {
-      "matches": ["https://serviceapp.tesla.com/*"],
+      "matches": [
+        "https://serviceapp.tesla.com/*",
+        "https://repair.tesla.com/*"
+      ],
       "js": ["SCA_AutoMessager/autoMessager.js"],
-      "all_frames": true,
-      "match_about_blank": true
+      "all_frames": true
     },
     {
       "matches": ["https://customerconnect.tesla.com/dashboard/roadsidedashboard*"],

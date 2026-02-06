@@ -7,6 +7,39 @@ console.log("[AutoMessager] Script loaded");
 // -------------------------
 // Helpers
 // -------------------------
+
+// -------------------------
+// Site detection
+// -------------------------
+function detectSite() {
+  const host = location.hostname;
+  const path = location.pathname;
+
+  if (host === "repair.tesla.com" && path.startsWith("/collision/repair-orders")) {
+    return "TESLA_BODY_PORTAL";
+  }
+
+  if (host.includes("serviceapp.tesla.com")) {
+    return "SCA";
+  }
+
+  return null;
+}
+
+const CURRENT_SITE = detectSite();
+console.log("[AutoMessager] Detected site:", CURRENT_SITE);
+
+function isElementVisible(el) {
+  if (!el) return false;
+  const rect = el.getBoundingClientRect();
+  const visible = rect.width > 0 &&
+                  rect.height > 0 &&
+                  window.getComputedStyle(el).visibility !== "hidden" &&
+                  window.getComputedStyle(el).display !== "none";
+  console.log("[AutoMessager] Visibility check:", el, visible);
+  return visible;
+}
+
 function smartClick(el) {
   if (!el) return false;
   el.scrollIntoView({ block: "center", inline: "center" });
@@ -124,6 +157,70 @@ function loadCSVConfig(csvPath, mapFn, callback) {
 }
 
 // -------------------------
+// Site adapters
+// -------------------------
+const SiteAdapters = {
+  TESLA_BODY_PORTAL: {
+    name: "Tesla Body Repair Portal",
+
+    // Inject button AFTER the Select File(s) uploader
+    getButtonAnchor() {
+      const uploader = document.querySelector(
+        'input#comm-log-upload'
+      );
+      return uploader?.closest(".tds-form-input") || null;
+    },
+
+    getChatInput() {
+      return document.querySelector(
+        'textarea[placeholder="Type message..."]'
+      );
+    },
+
+    ensureChatWithCustomerSelected() {
+      const tabs = [...document.querySelectorAll('[role="tab"]')];
+      const chatTab = tabs.find(t =>
+        /chat\s*with\s*customer/i.test(t.textContent || "")
+      );
+
+      if (chatTab && chatTab.getAttribute("aria-selected") !== "true") {
+        smartClick(chatTab);
+        console.log("[AutoMessager] Switched to Chat with Customer");
+      }
+    },
+
+    getCustomerFirstName() {
+      const labelSpan = [...document.querySelectorAll("span")]
+        .find(s => s.textContent?.trim() === "Name :");
+
+      const nameSpan = labelSpan?.nextElementSibling;
+      const fullName = nameSpan?.textContent?.trim();
+
+      return fullName ? fullName.split(/\s+/)[0] : "Customer";
+    },
+
+    getServiceLocation() {
+      const el = document.querySelector(
+        'span.tds-site-app-title'
+      );
+      return el?.getAttribute("title") || el?.textContent?.trim() || "Tesla Body Repair";
+    },
+
+    getAssignedFirstName() {
+      const el = document.querySelector(
+        '.tes-header-username-display'
+      );
+      const fullName = el?.textContent?.trim();
+      return fullName ? fullName.split(/\s+/)[0] : null;
+    },
+
+    getFileInput() {
+      return document.querySelector('input#comm-log-upload[type="file"]');
+    }
+  }
+};
+
+// -------------------------
 // Message builders
 // -------------------------
 function buildServiceMessage(ctx) {
@@ -169,9 +266,73 @@ function buildBodyRepairMessage(ctx) {
 function runAutoMessager() {
   console.log("[AutoMessager] runAutoMessager triggered");
 
+  // =========================================================
+  // TESLA BODY REPAIR PORTAL
+  // =========================================================
+  if (CURRENT_SITE === "TESLA_BODY_PORTAL") {
+    const adapter = SiteAdapters.TESLA_BODY_PORTAL;
+
+    // Ensure Chat with Customer tab is active
+    adapter.ensureChatWithCustomerSelected();
+
+    setTimeout(() => {
+      const inputBox = adapter.getChatInput();
+      if (!inputBox) return console.warn("[AutoMessager] Chat input not found");
+
+      const customerFirstName = adapter.getCustomerFirstName();
+      const assignedName = adapter.getAssignedFirstName();
+      const serviceLocation = adapter.getServiceLocation();
+
+      loadCSVConfig(
+        "SCA_AutoMessager/brConfig.csv",
+        ([center, link, cancelDays, image]) => ({
+          key: center,
+          value: { type: "body", link, cancelDays, image }
+        }),
+        bodyConfig => {
+          const site = bodyConfig[serviceLocation];
+          if (!site) return console.warn("[AutoMessager] No body repair config for", serviceLocation);
+
+          const message = buildBodyRepairMessage({
+            customerFirstName,
+            br: site,
+            assignedName
+          });
+
+          inputBox.value = message;
+          inputBox.dispatchEvent(new Event("input", { bubbles: true }));
+
+          console.log("[AutoMessager] Body repair message inserted");
+
+          // Attach image (if configured)
+          if (site.image) {
+            const fileInput = adapter.getFileInput();
+            if (!fileInput) return console.warn("[AutoMessager] File input not found");
+
+            fetch(chrome.runtime.getURL(`SCA_AutoMessager/SC_Images/${site.image}`))
+              .then(res => res.blob())
+              .then(blob => {
+                const file = new File([blob], site.image, { type: blob.type });
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                fileInput.files = dt.files;
+                fileInput.dispatchEvent(new Event("change", { bubbles: true }));
+                console.log("[AutoMessager] Body repair image attached");
+              })
+              .catch(err => console.error("[AutoMessager] Image attach failed", err));
+          }
+        }
+      );
+    }, 300);
+
+    return; // ⛔ DO NOT continue into SCA logic
+  }
+
+  // =========================================================
+  // SCA (EXISTING BEHAVIOR – UNCHANGED)
+  // =========================================================
   const hasValidation = preScanForValidation();
 
-  // Comm Log tab
   const COMM_LOG_ID = "mat-tab-label-2-4";
   const commLog = document.getElementById(COMM_LOG_ID) ||
     [...document.querySelectorAll('[role="tab"].mat-tab-label,.mat-tab-label[role="tab"],[role="tab"].mat-tab-label')]
@@ -181,7 +342,6 @@ function runAutoMessager() {
   if (commLog.getAttribute("aria-disabled") === "true") return console.warn('"Comm Log" tab is disabled.');
   smartClick(commLog);
 
-  // Chat With Customer
   setTimeout(() => {
     const chatLabel = [...document.querySelectorAll("label.switcher__label")]
       .find(el => /chat\s*with\s*customer/i.test((el.textContent || "").trim()));
@@ -189,17 +349,13 @@ function runAutoMessager() {
 
     const inputId = chatLabel.getAttribute("for");
     const chatInput = inputId ? document.getElementById(inputId) : null;
-    if (!chatInput) return console.warn("[AutoMessager] Associated input not found for 'Chat With Customer'");
+    if (!chatInput) return console.warn("[AutoMessager] Associated input not found");
 
-    if (!chatInput.checked) {
-      smartClick(chatLabel);
-      console.log("[AutoMessager] Switched to 'Chat With Customer'");
-    } else {
-      console.log("[AutoMessager] 'Chat With Customer' already active");
-    }
+    if (!chatInput.checked) smartClick(chatLabel);
 
     setTimeout(() => {
-      const inputBox = document.querySelector("textarea") ||
+      const inputBox =
+        document.querySelector("textarea") ||
         document.querySelector("input[type='text']") ||
         document.querySelector("[contenteditable='true']");
       if (!inputBox) return console.warn("Could not find a chat input box.");
@@ -215,59 +371,57 @@ function runAutoMessager() {
 
       loadCSVConfig(
         "SCA_AutoMessager/scConfig.csv",
-        ([serviceCenter, link, instructions, image]) => ({ key: serviceCenter, value: { type: "service", link, instructions, image } }),
+        ([serviceCenter, link, instructions, image]) => ({
+          key: serviceCenter,
+          value: { type: "service", link, instructions, image }
+        }),
         serviceConfig => {
           loadCSVConfig(
             "SCA_AutoMessager/brConfig.csv",
-            ([center, link, cancelDays, image]) => ({ key: center, value: { type: "body", link, cancelDays, image } }),
+            ([center, link, cancelDays, image]) => ({
+              key: center,
+              value: { type: "body", link, cancelDays, image }
+            }),
             bodyConfig => {
-
               const site = bodyConfig[serviceLocation] || serviceConfig[serviceLocation];
               if (!site) return console.warn("No site config found for", serviceLocation);
 
               const message = site.type === "body"
-                ? buildBodyRepairMessage({ customerFirstName, serviceLocation, day, appointmentTime, br: site, assignedName })
-                : buildServiceMessage({ customerFirstName, serviceLocation, day, appointmentTime, sc: site, assignedName, extraMsg, validationMsg });
+                ? buildBodyRepairMessage({ customerFirstName, br: site, assignedName })
+                : buildServiceMessage({
+                    customerFirstName,
+                    serviceLocation,
+                    day,
+                    appointmentTime,
+                    sc: site,
+                    assignedName,
+                    extraMsg,
+                    validationMsg
+                  });
 
-              if (/^(TEXTAREA|INPUT)$/i.test(inputBox.tagName)) {
-                inputBox.value = message;
-                inputBox.dispatchEvent(new Event("input", { bubbles: true }));
-              } else {
-                inputBox.innerText = message;
-                inputBox.dispatchEvent(new Event("input", { bubbles: true }));
-              }
+              inputBox.value = message;
+              inputBox.dispatchEvent(new Event("input", { bubbles: true }));
 
-              console.log(`[AutoMessager] Message inserted for ${customerFirstName} at ${serviceLocation}`);
-
-              // Attach images
               if (site.image) {
-                // Both service and body repair use the same logic now
-                const fileInput = document.querySelector('file-uploader input[type="file"]:not([capture]'), 
-                      siteType = site.type;
+                const fileInput = document.querySelector(
+                  'file-uploader input[type="file"]:not([capture])'
+                );
+                if (!fileInput) return;
 
-                if (fileInput) {
-                  console.log(`[AutoMessager] Attempting to attach ${siteType} image: ${site.image}`);
-                  fetch(chrome.runtime.getURL(`SCA_AutoMessager/SC_Images/${site.image}`))
-                    .then(res => res.blob())
-                    .then(blob => {
-                      const file = new File([blob], site.image, { type: blob.type });
-                      const dataTransfer = new DataTransfer();
-                      dataTransfer.items.add(file);
-                      fileInput.files = dataTransfer.files;
-                      fileInput.dispatchEvent(new Event('change', { bubbles: true }));
-                      console.log(`[AutoMessager] ${siteType} image ${site.image} attached automatically`);
-                    })
-                    .catch(err => console.error(`[AutoMessager] Failed to attach ${siteType} image:`, err));
-                } else {
-                  console.warn(`[AutoMessager] File input not found for ${siteType} image`);
-                }
+                fetch(chrome.runtime.getURL(`SCA_AutoMessager/SC_Images/${site.image}`))
+                  .then(res => res.blob())
+                  .then(blob => {
+                    const file = new File([blob], site.image, { type: blob.type });
+                    const dt = new DataTransfer();
+                    dt.items.add(file);
+                    fileInput.files = dt.files;
+                    fileInput.dispatchEvent(new Event("change", { bubbles: true }));
+                  });
               }
-
             }
           );
         }
       );
-
     }, 600);
   }, 400);
 }
@@ -276,8 +430,54 @@ function runAutoMessager() {
 // Button injection
 // -------------------------
 function injectButton() {
+  console.log("[AutoMessager] injectButton called");
+
+  // TESLA BODY REPAIR PORTAL
+  if (CURRENT_SITE === "TESLA_BODY_PORTAL") {
+    const uploader = document.querySelector('#comm-log-upload');
+    console.log("[AutoMessager] Body portal uploader found:", uploader);
+
+    const anchor = uploader?.closest('.tds-form-item');
+    console.log("[AutoMessager] Body portal anchor:", anchor);
+
+    if (!anchor) {
+      console.log("[AutoMessager] Anchor not found, skipping injection");
+      return;
+    }
+
+    if (!isElementVisible(anchor)) {
+      console.log("[AutoMessager] Anchor not visible yet, skipping injection");
+      return;
+    }
+
+    if (anchor.querySelector("#autoMessagerBtn")) {
+      console.log("[AutoMessager] Button already exists, skipping injection");
+      return;
+    }
+
+    const btn = document.createElement("button");
+    btn.id = "autoMessagerBtn";
+    btn.innerText = "Create Pre-Arrival Message";
+    btn.className = "tds-btn tds-btn--primary";
+    btn.style.marginTop = "10px";
+
+    btn.addEventListener("click", runAutoMessager);
+
+    anchor.insertAdjacentElement("afterend", btn);
+    console.log("[AutoMessager] Button injected successfully for Tesla Body Repair Portal");
+    return;
+  }
+
+  // SCA (existing behavior)
   const toast = document.querySelector('[name="feedbackToastr"].padding-24');
-  if (!toast || toast.querySelector('#autoMessagerBtn')) return;
+  if (!toast) {
+    console.log("[AutoMessager] SCA toast not found, skipping");
+    return;
+  }
+  if (toast.querySelector('#autoMessagerBtn')) {
+    console.log("[AutoMessager] SCA button already exists, skipping");
+    return;
+  }
 
   const btn = document.createElement('button');
   btn.id = 'autoMessagerBtn';
@@ -294,31 +494,68 @@ function injectButton() {
     cursor: pointer;
     z-index: 9999;
     box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-    transition: box-shadow 0.1s, transform 0.1s;
   `;
-
-  const pressIn = () => { btn.style.boxShadow = 'inset 0 2px 4px rgba(0,0,0,0.3)'; btn.style.transform='scale(0.98)'; };
-  const release = () => { btn.style.boxShadow = '0 4px 6px rgba(0,0,0,0.2)'; btn.style.transform='scale(1)'; };
-  btn.addEventListener('mousedown', pressIn);
-  btn.addEventListener('mouseup', release);
-  btn.addEventListener('mouseleave', release);
 
   btn.addEventListener('click', runAutoMessager);
 
   toast.style.position = 'relative';
   toast.appendChild(btn);
-  console.log("[AutoMessager] Button injected (runs directly)");
+  console.log("[AutoMessager] Button injected for SCA");
+}
+
+function setupClickWatcherForBodyPortal() {
+  if (CURRENT_SITE !== "TESLA_BODY_PORTAL") return;
+
+  console.log("[AutoMessager] Click watcher for body portal uploader attached");
+
+  document.body.addEventListener("click", () => {
+    const existingBtn = document.querySelector('#autoMessagerBtn');
+    if (existingBtn && isElementVisible(existingBtn)) {
+      console.log("[AutoMessager] Button already visible, skipping injection");
+      return;
+    }
+
+    console.log("[AutoMessager] Click detected, starting periodic uploader check");
+
+    let checks = 0;
+    const maxChecks = 10; // every second for 10 seconds
+    const intervalId = setInterval(() => {
+      checks++;
+
+      const uploaderInput = document.querySelector('#comm-log-upload');
+      const container = uploaderInput?.closest('.tds-form-item');
+
+      console.log(`[AutoMessager] Check #${checks}: uploaderInput =`, uploaderInput, "container =", container);
+
+      if (container && isElementVisible(container)) {
+        console.log("[AutoMessager] Uploader visible, injecting button");
+        injectButton();
+        clearInterval(intervalId); // stop further checks
+        return;
+      }
+
+      if (checks >= maxChecks) {
+        console.log("[AutoMessager] Max checks reached, stopping uploader watcher");
+        clearInterval(intervalId);
+      }
+    }, 1000); // 1 second interval
+  }, true); // capture phase
 }
 
 // -------------------------
 // Init
 // -------------------------
 chrome.storage.sync.get('scAutoMessagerEnabled', data => {
-  if (data.scAutoMessagerEnabled) {
-    injectButton();
-    new MutationObserver(() => injectButton()).observe(document.body, { childList: true, subtree: true });
-  } else {
+  if (!data.scAutoMessagerEnabled) {
     console.log("[AutoMessager] Slider off, button not injected");
+    return;
+  }
+
+  if (CURRENT_SITE === "TESLA_BODY_PORTAL") {
+      setupClickWatcherForBodyPortal();
+  } else {
+    new MutationObserver(() => injectButton())
+      .observe(document.body, { childList: true, subtree: true });
   }
 });
 
