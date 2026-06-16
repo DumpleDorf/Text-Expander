@@ -1,12 +1,44 @@
 console.log('[AU Filter] Script loaded');
 
+// -----------------------------
+// Activation state / helpers
+// -----------------------------
+// The TCC site is an Angular SPA, so navigating to the roadside dashboard often
+// happens without a full page load. The content script is now loaded across all
+// of customerconnect.tesla.com and self-activates based on the URL, so it works
+// whether you hard-load the dashboard or navigate to it in-app.
+const ROADSIDE_DASHBOARD_PATH = '/dashboard/roadsidedashboard';
+let isActive = false;
+let activeTimers = [];
+let countdownRafId = null;
+
+function isOnRoadsideDashboard() {
+    return location.pathname.toLowerCase().startsWith(ROADSIDE_DASHBOARD_PATH);
+}
+
+function trackInterval(fn, ms) {
+    const id = setInterval(fn, ms);
+    activeTimers.push(id);
+    return id;
+}
+
+function stopAuFilter() {
+    activeTimers.forEach(clearInterval);
+    activeTimers = [];
+    if (countdownRafId) cancelAnimationFrame(countdownRafId);
+    countdownRafId = null;
+    document.querySelector('#au-job-count-wrapper')?.remove();
+    isActive = false;
+    console.log('[AU Filter] Stopped');
+}
+
 function auFilter() {
     console.log('[AU Filter] Script activated');
 
     // -----------------------------
     // Wait for "Stage" field to exist
     // -----------------------------
-    const waitForStage = setInterval(() => {
+    const waitForStage = trackInterval(() => {
         const stageField = document.querySelector(
             'div.tcc-dashboard-other-field:has(app-tcc-multi-select[label="Stage"])'
         );
@@ -131,7 +163,7 @@ function auFilter() {
         stageField.parentNode.insertBefore(wrapper, stageField.nextSibling);
 
         // Update job count every second
-        setInterval(() => {
+        trackInterval(() => {
             jobCountLabel.innerHTML = `Current Active Dispatches: <span style="font-weight: 800;">${getActiveJobCount()}</span>`;
         }, 1000);
 
@@ -151,12 +183,12 @@ function auFilter() {
             progressBar.style.width = `${percentage}%`;
 
             if (remainingSeconds > 0) {
-                requestAnimationFrame(update);
+                countdownRafId = requestAnimationFrame(update);
             } else {
                 window.location.reload();
             }
         }
-        requestAnimationFrame(update);
+        countdownRafId = requestAnimationFrame(update);
     }
 
     // -----------------------------
@@ -174,7 +206,7 @@ function auFilter() {
     // -----------------------------
     // Wait for table and header
     // -----------------------------
-    const tableInterval = setInterval(() => {
+    const tableInterval = trackInterval(() => {
         const rows = document.querySelectorAll('mat-row');
         const countryHeader = document.querySelector(
             'mat-header-cell.mat-column-country .mat-sort-header-container'
@@ -196,13 +228,48 @@ function auFilter() {
 }
 
 // -----------------------------
-// Start filter only if enabled
+// Activate only on the roadside dashboard route, and only if enabled
 // -----------------------------
-chrome.storage.sync.get('auFilterEnabled', (result) => {
-    if (result.auFilterEnabled) {
-        console.log('[AU Filter] Enabled — running filter');
-        auFilter();
-    } else {
-        console.log('[AU Filter] Disabled — not running');
+function maybeActivate() {
+    if (!isOnRoadsideDashboard()) {
+        if (isActive) stopAuFilter();
+        return;
+    }
+    if (isActive) return;
+
+    chrome.storage.sync.get('auFilterEnabled', (result) => {
+        // Guard against the route/state changing while storage was read
+        if (!isOnRoadsideDashboard() || isActive) return;
+
+        if (result.auFilterEnabled) {
+            isActive = true;
+            console.log('[AU Filter] Enabled — running filter');
+            auFilter();
+        } else {
+            console.log('[AU Filter] Disabled — not running');
+        }
+    });
+}
+
+// React to the popup toggle without needing a manual reload
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'sync' || !('auFilterEnabled' in changes)) return;
+
+    if (changes.auFilterEnabled.newValue) {
+        maybeActivate();
+    } else if (isActive) {
+        stopAuFilter();
     }
 });
+
+// Detect SPA navigation (Angular router uses history.pushState/replaceState)
+let lastPath = location.pathname;
+setInterval(() => {
+    if (location.pathname !== lastPath) {
+        lastPath = location.pathname;
+        maybeActivate();
+    }
+}, 1000);
+
+// Initial check on injection
+maybeActivate();

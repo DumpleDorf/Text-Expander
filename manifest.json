@@ -58,8 +58,8 @@
       "all_frames": true
     },
     {
-      "matches": ["https://customerconnect.tesla.com/dashboard/roadsidedashboard*"],
-      "js": ["RoadsideDashboardFilter/dashboardfilter.js"],
+      "matches": ["https://customerconnect.tesla.com/*"],
+      "js": ["RoadsideDashboardFilter/dashboardFilter.js"],
       "run_at": "document_idle",
       "all_frames": true
     },

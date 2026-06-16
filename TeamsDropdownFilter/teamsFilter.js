@@ -84,11 +84,17 @@ function waitForDropdown() {
 waitForDropdown();
 
 // -----------------------------
-// AUTO SELECT EN-AU FOR SMS PANEL
+// AUTO SELECT EN-AU FOR SMS + EMAIL PANELS
 // -----------------------------
+// Covers the SMS panel (app-log-communication) as well as the new email and
+// email reply panels (app-graph-email / app-send-graph-email, rendered inside a
+// mat-bottom-sheet-container). We scan every locale dropdown and only act on the
+// ones that actually expose an en-au option, so this stays safe across panels.
 function selectEnAuIfVisible() {
   try {
-    const dropdowns = document.querySelectorAll('app-log-communication tds-form-input-dropdown');
+    const dropdowns = document.querySelectorAll(
+      'app-log-communication tds-form-input-dropdown, app-graph-email tds-form-input-dropdown'
+    );
     if (!dropdowns.length) return;
 
     dropdowns.forEach(dropdown => {
@@ -122,11 +128,13 @@ function selectEnAuIfVisible() {
 }
 
 // -----------------------------
-// SMS OBSERVER
+// SMS + EMAIL OBSERVER
 // -----------------------------
-const smsObserver = new MutationObserver(() => {
-  const smsElement = document.querySelector('app-log-communication .tcc-log-communication-container');
-  if (smsElement) selectEnAuIfVisible();
+const commsObserver = new MutationObserver(() => {
+  const commsElement = document.querySelector(
+    'app-log-communication .tcc-log-communication-container, app-graph-email .tcc-log-communication-container'
+  );
+  if (commsElement) selectEnAuIfVisible();
 });
 
-smsObserver.observe(document.body, { childList: true, subtree: true });
+commsObserver.observe(document.body, { childList: true, subtree: true });
