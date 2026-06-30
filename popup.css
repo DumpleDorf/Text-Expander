@@ -4,6 +4,10 @@
   box-sizing: border-box;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   width: 100%;
   margin: 0;
@@ -351,6 +355,10 @@ input:checked + .slider:before { transform: translateX(22px); }
   width: 100%;
 }
 
+body.roadside-flow-open {
+  overflow-y: hidden;
+}
+
 #tyreQuoteSection .container,
 #roadsideFlowSection .container {
   width: 420px;
@@ -572,32 +580,123 @@ select {
 /* ==========================
    AUNZ Roadside Flow
 ========================== */
-.roadside-step {
-  margin-bottom: 8px;
-  padding: 0;
-  border: none;
-  background: transparent;
+.roadside-container {
+  gap: 12px;
+}
+
+.roadside-progress {
+  height: 4px;
+  background: #ecf0f1;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.roadside-progress-fill {
+  height: 100%;
+  width: 8%;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+
+.roadside-card {
+  background: #f8f9fa;
+  border: 1px solid #e8edf2;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.roadside-card.step-change {
+  animation: roadsideFadeIn 0.22s ease;
+}
+
+@keyframes roadsideFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.roadside-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.badge-decision {
+  background: #e8f4fd;
+  color: #2471a3;
+}
+
+.badge-process {
+  background: #eafaf1;
+  color: #1e8449;
+}
+
+.badge-outcome {
+  background: #f4ecf7;
+  color: #7d3c98;
+}
+
+.badge-end {
+  background: #fef5e7;
+  color: #b7950b;
+}
+
+.badge-complete {
+  background: #d5f5e3;
+  color: #1e8449;
+}
+
+.badge-note {
+  background: #fadbd8;
+  color: #c0392b;
 }
 
 .roadside-question {
-  font-size: 16px;
+  font-size: 17px;
   color: #2c3e50;
-  line-height: 1.5;
+  line-height: 1.45;
   white-space: pre-line;
-  margin: 8px 0 16px;
+  margin: 0 0 16px;
   font-weight: 600;
 }
 
 .roadside-actions {
   display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.roadside-actions-primary,
+.roadside-actions-secondary,
+.roadside-actions-utilities {
+  display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.roadside-actions button {
+.roadside-actions-primary button,
+.roadside-actions-secondary button {
   flex: 1 1 calc(50% - 8px);
-  min-width: 120px;
+  min-width: 0;
   margin: 0;
+  padding: 12px 10px;
+  font-size: 15px;
+}
+
+.roadside-actions-primary button:only-child {
+  flex: 1 1 100%;
 }
 
 .roadside-btn-yes {
@@ -608,15 +707,122 @@ select {
   background: linear-gradient(135deg, #e74c3c, #c0392b);
 }
 
+.roadside-btn-continue,
 .roadside-btn-end {
   background: linear-gradient(135deg, #3498db, #2980b9);
 }
 
 .roadside-btn-optional {
   background: linear-gradient(135deg, #8e44ad, #7d3c98);
+  flex: 1 1 100% !important;
+}
+
+.roadside-btn-copy {
+  background: linear-gradient(135deg, #27ae60, #229954);
+  flex: 1 1 100%;
 }
 
 .roadside-btn-secondary {
   background: #95a5a6;
   flex: 1 1 100%;
+}
+
+.roadside-actions-utilities {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid #e8edf2;
+}
+
+.roadside-btn-ghost {
+  flex: 1 1 auto;
+  background: transparent;
+  color: #7f8c8d;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 10px;
+  box-shadow: none;
+}
+
+.roadside-btn-ghost:hover:not(:disabled) {
+  background: #ecf0f1;
+  color: #2c3e50;
+  transform: none;
+  box-shadow: none;
+}
+
+.roadside-btn-ghost:disabled {
+  background: transparent;
+  color: #bdc3c7;
+}
+
+.roadside-path-panel {
+  background: #34495e;
+  color: #ecf0f1;
+  padding: 14px 16px;
+  border-radius: 10px;
+}
+
+.roadside-path-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  position: relative;
+}
+
+.roadside-path-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ecf0f1;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.roadside-path-header .copy-btn.small {
+  min-width: 0;
+  width: auto;
+  flex: 0 0 auto;
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.roadside-copy-notice {
+  top: auto;
+  bottom: 100%;
+  margin-bottom: 6px;
+}
+
+.roadside-path-list {
+  margin: 0;
+  padding: 0 0 0 20px;
+  min-height: 2.2em;
+  max-height: 120px;
+  overflow-y: auto;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #dfe6e9;
+}
+
+.roadside-path-list li {
+  margin-bottom: 6px;
+  padding-right: 4px;
+}
+
+.roadside-path-list li:last-child {
+  margin-bottom: 0;
+}
+
+.roadside-path-panel.has-path .roadside-path-list li:last-child {
+  color: #fff;
+  font-weight: 600;
+}
+
+.roadside-path-placeholder {
+  color: #95a5a6;
+  font-weight: 500;
+  font-style: italic;
+  list-style: none;
+  margin-left: -20px;
 }

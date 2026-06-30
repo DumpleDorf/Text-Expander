@@ -20,18 +20,21 @@ document.addEventListener('DOMContentLoaded', () => {
   const roadsideBackBtn = document.getElementById('roadsideBackBtn');
 
   function showLanding() {
+    document.body.classList.remove("roadside-flow-open");
     if (landingPage) landingPage.style.display = 'flex';
     if (tyreQuoteSection) tyreQuoteSection.style.display = 'none';
     if (roadsideFlowSection) roadsideFlowSection.style.display = 'none';
   }
 
   function showTyreQuote() {
+    document.body.classList.remove("roadside-flow-open");
     if (landingPage) landingPage.style.display = 'none';
     if (tyreQuoteSection) tyreQuoteSection.style.display = 'block';
     if (roadsideFlowSection) roadsideFlowSection.style.display = 'none';
   }
 
   function showRoadsideFlow() {
+    document.body.classList.add("roadside-flow-open");
     if (landingPage) landingPage.style.display = 'none';
     if (tyreQuoteSection) tyreQuoteSection.style.display = 'none';
     if (roadsideFlowSection) roadsideFlowSection.style.display = 'block';

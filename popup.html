@@ -154,28 +154,30 @@
 
     <!-- AUNZ Roadside Flow -->
     <div id="roadsideFlowSection" style="display:none;">
-      <div class="container">
-        <button id="roadsideBackBtn">Back</button>
+      <div class="container roadside-container">
+        <button type="button" id="roadsideBackBtn">Back</button>
 
         <div class="header-row">
           <div class="quote-title">AUNZ Roadside Flow</div>
         </div>
 
-        <div class="roadside-step">
-          <div class="step-title" id="roadsideNodeType">STEP</div>
+        <div class="roadside-progress" aria-hidden="true">
+          <div id="roadsideProgressFill" class="roadside-progress-fill"></div>
+        </div>
+
+        <div id="roadsideCard" class="roadside-card">
+          <span id="roadsideNodeType" class="roadside-badge">Loading</span>
           <div id="roadsideNodeText" class="roadside-question">Loading…</div>
           <div id="roadsideActions" class="roadside-actions"></div>
         </div>
 
-        <div class="quote-section" id="roadsidePathSection" style="display:none;">
-          <div class="quote-header">
-            <h3>Copy Flow/Case Notes</h3>
-            <div class="copy-wrapper">
-              <button class="copy-btn small" id="copyRoadsidePath" type="button">Copy</button>
-              <div class="copy-notification" id="copyNotificationRoadside"></div>
-            </div>
+        <div class="roadside-path-panel" id="roadsidePathSection">
+          <div class="roadside-path-header">
+            <span class="roadside-path-title">Copy Flow/Case Notes</span>
+            <button class="copy-btn small" id="copyRoadsidePath" type="button">Copy</button>
+            <div class="copy-notification roadside-copy-notice" id="copyNotificationRoadside"></div>
           </div>
-          <pre class="quote-text" id="roadsidePathText"></pre>
+          <ol id="roadsidePathList" class="roadside-path-list"></ol>
         </div>
       </div>
     </div>
