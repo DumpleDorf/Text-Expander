@@ -15,6 +15,28 @@ document.addEventListener('DOMContentLoaded', () => {
   // -------------------------
   const landingPage = document.getElementById('landingPage');
   const tyreQuoteSection = document.getElementById('tyreQuoteSection');
+  const roadsideFlowSection = document.getElementById('roadsideFlowSection');
+  const roadsideFlowBtn = document.getElementById('roadsideFlowBtn');
+  const roadsideBackBtn = document.getElementById('roadsideBackBtn');
+
+  function showLanding() {
+    if (landingPage) landingPage.style.display = 'flex';
+    if (tyreQuoteSection) tyreQuoteSection.style.display = 'none';
+    if (roadsideFlowSection) roadsideFlowSection.style.display = 'none';
+  }
+
+  function showTyreQuote() {
+    if (landingPage) landingPage.style.display = 'none';
+    if (tyreQuoteSection) tyreQuoteSection.style.display = 'block';
+    if (roadsideFlowSection) roadsideFlowSection.style.display = 'none';
+  }
+
+  function showRoadsideFlow() {
+    if (landingPage) landingPage.style.display = 'none';
+    if (tyreQuoteSection) tyreQuoteSection.style.display = 'none';
+    if (roadsideFlowSection) roadsideFlowSection.style.display = 'block';
+    if (window.initRoadsideFlow) window.initRoadsideFlow();
+  }
 
   // -------------------------
   // Toggles
@@ -34,17 +56,27 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  if (tyreQuoteBtn && landingPage && tyreQuoteSection) {
+  if (tyreQuoteBtn) {
     tyreQuoteBtn.addEventListener('click', () => {
-      landingPage.classList.add('slide-left');      // move landing page left
-      tyreQuoteSection.classList.add('slide-in');   // slide tyre quote in
+      showTyreQuote();
     });
   }
 
-  if (backBtn && landingPage && tyreQuoteSection) {
+  if (backBtn) {
     backBtn.addEventListener('click', () => {
-      landingPage.classList.remove('slide-left');   // bring landing page back
-      tyreQuoteSection.classList.remove('slide-in'); // move tyre quote back out
+      showLanding();
+    });
+  }
+
+  if (roadsideFlowBtn) {
+    roadsideFlowBtn.addEventListener('click', () => {
+      showRoadsideFlow();
+    });
+  }
+
+  if (roadsideBackBtn) {
+    roadsideBackBtn.addEventListener('click', () => {
+      showLanding();
     });
   }
 

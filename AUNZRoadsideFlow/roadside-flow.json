@@ -1,0 +1,984 @@
+{
+  "title": "Tesla AU Roadside Process",
+  "nodes": [
+    {
+      "id": "n3",
+      "type": "process",
+      "text": "Customer Facing Drivability Alert on Garage or Customer Indicates Drivability Concern"
+    },
+    {
+      "id": "n9",
+      "type": "decision",
+      "text": "Is the Concern a Flat Tyre/s"
+    },
+    {
+      "id": "n8",
+      "type": "decision",
+      "text": "One Undrivable Wheel"
+    },
+    {
+      "id": "n13",
+      "type": "process",
+      "text": "Multiple Undrivable Wheels"
+    },
+    {
+      "id": "n12",
+      "type": "decision",
+      "text": "Original Wheels/Tyres"
+    },
+    {
+      "id": "n24",
+      "type": "decision",
+      "text": "Active Vehicle Warranty"
+    },
+    {
+      "id": "n45",
+      "type": "start",
+      "text": "Roadside Policy Covered Tow"
+    },
+    {
+      "id": "n25",
+      "type": "decision",
+      "text": "Active Vehicle Warranty"
+    },
+    {
+      "id": "n37",
+      "type": "start",
+      "text": "Goodwill Covered Tow"
+    },
+    {
+      "id": "n34",
+      "type": "decision",
+      "text": "Loaner Wheel Available"
+    },
+    {
+      "id": "n41",
+      "type": "decision",
+      "text": "Customer Chooses Loaner Wheel"
+    },
+    {
+      "id": "n33",
+      "type": "decision",
+      "text": "Is Vehicle Eligible for Goodwill"
+    },
+    {
+      "id": "n40",
+      "type": "start",
+      "text": "Customer Pay Tow"
+    },
+    {
+      "id": "n31",
+      "type": "decision",
+      "text": "Loaner Wheel Available"
+    },
+    {
+      "id": "n38",
+      "type": "decision",
+      "text": "Customer Chooses Loaner Wheel"
+    },
+    {
+      "id": "n32",
+      "type": "decision",
+      "text": "Is Vehicle Eligible for Goodwill"
+    },
+    {
+      "id": "n42",
+      "type": "decision",
+      "text": "Is Vehicle Eligible for Goodwill"
+    },
+    {
+      "id": "n54",
+      "type": "start",
+      "text": "Customer Pay Loaner Wheel"
+    },
+    {
+      "id": "n20",
+      "type": "decision",
+      "text": "Wheels/Tyres Replaced at Tesla?"
+    },
+    {
+      "id": "n28",
+      "type": "decision",
+      "text": "Same Brand/Spec as Factory?"
+    },
+    {
+      "id": "n57",
+      "type": "start",
+      "text": "Roadside Policy Covered Loaner Wheel"
+    },
+    {
+      "id": "n47",
+      "type": "decision",
+      "text": "Within 80km of LW Provider"
+    },
+    {
+      "id": "n61",
+      "type": "decision",
+      "text": "Vehicle in Range of Service Center"
+    },
+    {
+      "id": "n51",
+      "type": "decision",
+      "text": "Within 100km of LW Provider"
+    },
+    {
+      "id": "n56",
+      "type": "start",
+      "text": "Customer Pay Split Loaner Wheel"
+    },
+    {
+      "id": "n62",
+      "type": "process",
+      "text": "Cust. Keeping Damaged Wheel"
+    },
+    {
+      "id": "n69",
+      "type": "decision",
+      "text": "Customer Accepts Repair Quote"
+    },
+    {
+      "id": "n63",
+      "type": "start",
+      "text": "Post Repair Confirmation In SCA Comm Log"
+    },
+    {
+      "id": "n64",
+      "type": "process",
+      "text": "Destination set to Closest Service Center"
+    },
+    {
+      "id": "n67",
+      "type": "process",
+      "text": "Destination set to Virtual Roadside Australia"
+    },
+    {
+      "id": "n70",
+      "type": "start",
+      "text": "Organize Plan to Return LW with Customer"
+    },
+    {
+      "id": "n48",
+      "type": "decision",
+      "text": "Is the Tow for a Flat Tyre/s?"
+    },
+    {
+      "id": "n14",
+      "type": "decision",
+      "text": "Is Vehicle Drivable"
+    },
+    {
+      "id": "n36",
+      "type": "decision",
+      "text": "Is Vehicle Eligible for Goodwill"
+    },
+    {
+      "id": "n43",
+      "type": "start",
+      "text": "Goodwill Covered Tow"
+    },
+    {
+      "id": "n44",
+      "type": "start",
+      "text": "Customer Pay Tow"
+    },
+    {
+      "id": "n15",
+      "type": "decision",
+      "text": "Vehicle Eligible for Mobile Service"
+    },
+    {
+      "id": "n30",
+      "type": "decision",
+      "text": "Active Vehicle Warranty"
+    },
+    {
+      "id": "n16",
+      "type": "start",
+      "text": "Submit Mobile Service Request"
+    },
+    {
+      "id": "n22",
+      "type": "decision",
+      "text": "Is Tow Required?"
+    },
+    {
+      "id": "n39",
+      "type": "start",
+      "text": "Roadside Policy Covered Tow"
+    },
+    {
+      "id": "n21",
+      "type": "decision",
+      "text": "Customer Feels Unsafe to Drive"
+    },
+    {
+      "id": "n29",
+      "type": "decision",
+      "text": "Vehicle in Range of Service Center"
+    },
+    {
+      "id": "n35",
+      "type": "start",
+      "text": "Customer to Drive in to Service Center"
+    },
+    {
+      "id": "n5",
+      "type": "decision",
+      "text": "Is Vehicle out of Range?"
+    },
+    {
+      "id": "n46",
+      "type": "decision",
+      "text": "Within 80km of LW Provider"
+    },
+    {
+      "id": "n53",
+      "type": "decision",
+      "text": "Within 100km of LW Provider"
+    },
+    {
+      "id": "n52",
+      "type": "start",
+      "text": "Goodwill Covered Loaner Wheel"
+    },
+    {
+      "id": "n1",
+      "type": "process",
+      "text": "Verify Contact as Registered Owner or Authorised Driver"
+    },
+    {
+      "id": "n17",
+      "type": "decision",
+      "text": "Already Has a Loaner Wheel Assigned"
+    },
+    {
+      "id": "n66",
+      "type": "start",
+      "text": "In-Network Provider Dispatched"
+    },
+    {
+      "id": "n59",
+      "type": "process",
+      "text": "Find Out-Of-Network Provider"
+    },
+    {
+      "id": "n65",
+      "type": "decision",
+      "text": "Is there a Tilt Tray Available?"
+    },
+    {
+      "id": "n71",
+      "type": "start",
+      "text": "Get Quote and Dispatch Out-Of-Network Provider"
+    },
+    {
+      "id": "n72",
+      "type": "start",
+      "text": "Provider to Email Invoice to ServiceOps"
+    },
+    {
+      "id": "n58",
+      "type": "decision",
+      "text": "Is there an In-Network Tow Provider Avail."
+    },
+    {
+      "id": "n49",
+      "type": "decision",
+      "text": "Is Vehicle out of Range?"
+    },
+    {
+      "id": "n50",
+      "type": "start",
+      "text": "Customer Pay Tow to Supercharger Offered"
+    },
+    {
+      "id": "n55",
+      "type": "decision",
+      "text": "Vehicle Within 300km of Service Centre"
+    },
+    {
+      "id": "n60",
+      "type": "process",
+      "text": "Seek Supervisor/Senior Guidance"
+    },
+    {
+      "id": "n68",
+      "type": "decision",
+      "text": "Roadside Solution Viable?"
+    },
+    {
+      "id": "n73",
+      "type": "start",
+      "text": "Roadside Solution Dispatched"
+    },
+    {
+      "id": "n26",
+      "type": "decision",
+      "text": "Remote Unlock Available?"
+    },
+    {
+      "id": "n27",
+      "type": "start",
+      "text": "Remote Unlock Offered"
+    },
+    {
+      "id": "n23",
+      "type": "start",
+      "text": "Customer Offered Alternative Solutions"
+    },
+    {
+      "id": "n18",
+      "type": "decision",
+      "text": "Resolvable through other Means"
+    },
+    {
+      "id": "n19",
+      "type": "start",
+      "text": "Education for customer to Self-Resolve"
+    },
+    {
+      "id": "n10",
+      "type": "decision",
+      "text": "Vehicle Lockout?"
+    },
+    {
+      "id": "n11",
+      "type": "decision",
+      "text": "CX Still Need Assistance?"
+    },
+    {
+      "id": "n4",
+      "type": "decision",
+      "text": "Resolvable through Gen. Education"
+    },
+    {
+      "id": "n2",
+      "type": "start",
+      "text": "No Further Action Required"
+    },
+    {
+      "id": "n6",
+      "type": "decision",
+      "text": "Has the Vehicle been in a Collision"
+    },
+    {
+      "id": "n7",
+      "type": "start",
+      "text": "Refer Customer to Contact Insurance/Similar"
+    }
+  ],
+  "edges": [
+    {
+      "from": "n3",
+      "to": "n9",
+      "kind": "flow",
+      "label": null
+    },
+    {
+      "from": "n9",
+      "to": "n8",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n8",
+      "to": "n13",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n8",
+      "to": "n12",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n13",
+      "to": "n40",
+      "kind": "flow",
+      "label": null
+    },
+    {
+      "from": "n24",
+      "to": "n37",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n25",
+      "to": "n34",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n34",
+      "to": "n45",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n34",
+      "to": "n41",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n41",
+      "to": "n45",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n12",
+      "to": "n20",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n24",
+      "to": "n33",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n33",
+      "to": "n37",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n33",
+      "to": "n40",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n31",
+      "to": "n38",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n25",
+      "to": "n31",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n31",
+      "to": "n32",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n38",
+      "to": "n42",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n42",
+      "to": "n54",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n32",
+      "to": "n37",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n32",
+      "to": "n40",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n38",
+      "to": "n32",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n20",
+      "to": "n28",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n28",
+      "to": "n25",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n28",
+      "to": "n24",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n41",
+      "to": "n47",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n47",
+      "to": "n51",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n51",
+      "to": "n56",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n56",
+      "to": "n61",
+      "kind": "optional",
+      "label": null
+    },
+    {
+      "from": "n61",
+      "to": "n62",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n61",
+      "to": "n69",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n69",
+      "to": "n64",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n64",
+      "to": "n63",
+      "kind": "flow",
+      "label": null
+    },
+    {
+      "from": "n62",
+      "to": "n67",
+      "kind": "flow",
+      "label": null
+    },
+    {
+      "from": "n67",
+      "to": "n70",
+      "kind": "flow",
+      "label": null
+    },
+    {
+      "from": "n47",
+      "to": "n57",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n57",
+      "to": "n61",
+      "kind": "optional",
+      "label": null
+    },
+    {
+      "from": "n37",
+      "to": "n48",
+      "kind": "optional",
+      "label": null
+    },
+    {
+      "from": "n40",
+      "to": "n48",
+      "kind": "optional",
+      "label": null
+    },
+    {
+      "from": "n36",
+      "to": "n43",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n36",
+      "to": "n44",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n43",
+      "to": "n48",
+      "kind": "optional",
+      "label": null
+    },
+    {
+      "from": "n44",
+      "to": "n48",
+      "kind": "optional",
+      "label": null
+    },
+    {
+      "from": "n15",
+      "to": "n16",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n16",
+      "to": "n22",
+      "kind": "optional",
+      "label": null
+    },
+    {
+      "from": "n30",
+      "to": "n36",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n30",
+      "to": "n39",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n39",
+      "to": "n48",
+      "kind": "optional",
+      "label": null
+    },
+    {
+      "from": "n14",
+      "to": "n21",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n21",
+      "to": "n22",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n21",
+      "to": "n29",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n29",
+      "to": "n35",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n29",
+      "to": "n30",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n14",
+      "to": "n15",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n69",
+      "to": "n62",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n46",
+      "to": "n53",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n42",
+      "to": "n46",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n46",
+      "to": "n52",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n45",
+      "to": "n48",
+      "kind": "optional",
+      "label": null
+    },
+    {
+      "from": "n53",
+      "to": "n56",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n52",
+      "to": "n61",
+      "kind": "optional",
+      "label": null
+    },
+    {
+      "from": "n53",
+      "to": "n54",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n54",
+      "to": "n61",
+      "kind": "optional",
+      "label": null
+    },
+    {
+      "from": "n51",
+      "to": "n52",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n1",
+      "to": "n3",
+      "kind": "flow",
+      "label": null
+    },
+    {
+      "from": "n12",
+      "to": "n17",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n17",
+      "to": "n25",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n17",
+      "to": "n24",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n20",
+      "to": "n25",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n59",
+      "to": "n65",
+      "kind": "flow",
+      "label": null
+    },
+    {
+      "from": "n65",
+      "to": "n60",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n65",
+      "to": "n71",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n71",
+      "to": "n72",
+      "kind": "optional",
+      "label": null
+    },
+    {
+      "from": "n58",
+      "to": "n66",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n58",
+      "to": "n59",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n48",
+      "to": "n58",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n48",
+      "to": "n49",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n49",
+      "to": "n50",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n49",
+      "to": "n55",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n55",
+      "to": "n58",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n55",
+      "to": "n60",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n60",
+      "to": "n68",
+      "kind": "flow",
+      "label": null
+    },
+    {
+      "from": "n68",
+      "to": "n73",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n68",
+      "to": "n60",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n22",
+      "to": "n30",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n26",
+      "to": "n27",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n26",
+      "to": "n23",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n18",
+      "to": "n26",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n18",
+      "to": "n19",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n5",
+      "to": "n6",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n10",
+      "to": "n14",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n10",
+      "to": "n18",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n5",
+      "to": "n44",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n11",
+      "to": "n44",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n4",
+      "to": "n2",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n6",
+      "to": "n7",
+      "kind": "yes",
+      "label": "yes"
+    },
+    {
+      "from": "n9",
+      "to": "n4",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n7",
+      "to": "n11",
+      "kind": "optional",
+      "label": null
+    },
+    {
+      "from": "n4",
+      "to": "n5",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n6",
+      "to": "n10",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n15",
+      "to": "n22",
+      "kind": "no",
+      "label": "no"
+    },
+    {
+      "from": "n22",
+      "to": "n23",
+      "kind": "no",
+      "label": "no"
+    }
+  ]
+}

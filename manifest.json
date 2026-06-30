@@ -75,6 +75,7 @@
       "resources": [
         "icons/*.png",
         "TyreQuoteGenerator/tyre_prices.csv",
+        "AUNZRoadsideFlow/roadside-flow.json",
         "SCA_AutoMessager/scConfig.csv",
         "SCA_AutoMessager/brConfig.csv",
         "SCA_AutoMessager/temp.js",

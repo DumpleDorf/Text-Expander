@@ -344,13 +344,15 @@ input:checked + .slider:before { transform: translateX(22px); }
 /* ==========================
    Quote Section
 ========================== */
-#tyreQuoteSection {
+#tyreQuoteSection,
+#roadsideFlowSection {
   display: flex;
   justify-content: center;
   width: 100%;
 }
 
-#tyreQuoteSection .container {
+#tyreQuoteSection .container,
+#roadsideFlowSection .container {
   width: 420px;
   max-width: 100%;
   padding: 20px;
@@ -565,4 +567,56 @@ select {
   background-repeat: no-repeat;
   background-position: right 8px center; /* reduced from 12px to 8px */
   background-size: 16px;
+}
+
+/* ==========================
+   AUNZ Roadside Flow
+========================== */
+.roadside-step {
+  margin-bottom: 8px;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.roadside-question {
+  font-size: 16px;
+  color: #2c3e50;
+  line-height: 1.5;
+  white-space: pre-line;
+  margin: 8px 0 16px;
+  font-weight: 600;
+}
+
+.roadside-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.roadside-actions button {
+  flex: 1 1 calc(50% - 8px);
+  min-width: 120px;
+  margin: 0;
+}
+
+.roadside-btn-yes {
+  background: linear-gradient(135deg, #27ae60, #229954);
+}
+
+.roadside-btn-no {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+}
+
+.roadside-btn-end {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+}
+
+.roadside-btn-optional {
+  background: linear-gradient(135deg, #8e44ad, #7d3c98);
+}
+
+.roadside-btn-secondary {
+  background: #95a5a6;
+  flex: 1 1 100%;
 }

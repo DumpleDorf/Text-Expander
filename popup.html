@@ -30,6 +30,7 @@
 
       <div class="section section-support">
         <div class="section-header">Customer Support</div>
+        <button class="full-width-btn" id="roadsideFlowBtn">AUNZ Roadside Flow</button>
         <div class="menu-item">
           <span id="teamsFilterBtn" class="clickable-text">TCC Teams Filter</span>
           <label class="switch-wrapper visible" id="teamsToggleWrapper">
@@ -55,7 +56,7 @@
 
       <div class="section section-service">
         <div class="section-header">Service/Body</div>
-        <div class="menu-item">
+        <div class="menu-item" id="scAutoMessagerRow">
           <span id="scAutoMessagerBtn">SCA/RepairDot AutoMessager</span>
           <label class="switch-wrapper visible" id="scAutoMessagerWrapper">
             <input type="checkbox" id="scAutoMessagerToggle" />
@@ -151,9 +152,39 @@
       </div>
     </div>
 
+    <!-- AUNZ Roadside Flow -->
+    <div id="roadsideFlowSection" style="display:none;">
+      <div class="container">
+        <button id="roadsideBackBtn">Back</button>
+
+        <div class="header-row">
+          <div class="quote-title">AUNZ Roadside Flow</div>
+        </div>
+
+        <div class="roadside-step">
+          <div class="step-title" id="roadsideNodeType">STEP</div>
+          <div id="roadsideNodeText" class="roadside-question">Loading…</div>
+          <div id="roadsideActions" class="roadside-actions"></div>
+        </div>
+
+        <div class="quote-section" id="roadsidePathSection" style="display:none;">
+          <div class="quote-header">
+            <h3>Copy Flow/Case Notes</h3>
+            <div class="copy-wrapper">
+              <button class="copy-btn small" id="copyRoadsidePath" type="button">Copy</button>
+              <div class="copy-notification" id="copyNotificationRoadside"></div>
+            </div>
+          </div>
+          <pre class="quote-text" id="roadsidePathText"></pre>
+        </div>
+      </div>
+    </div>
+
   </div>
 
+  <script src="popupVisibility.js"></script>
   <script src="popup.js"></script>
+  <script src="AUNZRoadsideFlow/roadsideFlow.js"></script>
   <script src="TyreQuoteGenerator/tyreQuoteGenerator.js"></script>
 </body>
 </html>
