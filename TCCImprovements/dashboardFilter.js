@@ -1,16 +1,18 @@
-console.log('[AU Filter] Script loaded');
+console.log('[TCC QOL] AU dashboard filter script loaded');
 
-// -----------------------------
-// Activation state / helpers
-// -----------------------------
-// The TCC site is an Angular SPA, so navigating to the roadside dashboard often
-// happens without a full page load. The content script is now loaded across all
-// of customerconnect.tesla.com and self-activates based on the URL, so it works
-// whether you hard-load the dashboard or navigate to it in-app.
 const ROADSIDE_DASHBOARD_PATH = '/dashboard/roadsidedashboard';
 let isActive = false;
 let activeTimers = [];
 let countdownRafId = null;
+
+function isTccQolEnabled(callback) {
+  chrome.storage.sync.get({ tccQolEnabled: true, auFilterEnabled: true }, (items) => {
+    const enabled = items.tccQolEnabled !== null && items.tccQolEnabled !== undefined
+      ? items.tccQolEnabled
+      : items.auFilterEnabled;
+    callback(!!enabled);
+  });
+}
 
 function isOnRoadsideDashboard() {
     return location.pathname.toLowerCase().startsWith(ROADSIDE_DASHBOARD_PATH);
@@ -35,9 +37,6 @@ function stopAuFilter() {
 function auFilter() {
     console.log('[AU Filter] Script activated');
 
-    // -----------------------------
-    // Wait for "Stage" field to exist
-    // -----------------------------
     const waitForStage = trackInterval(() => {
         const stageField = document.querySelector(
             'div.tcc-dashboard-other-field:has(app-tcc-multi-select[label="Stage"])'
@@ -46,19 +45,12 @@ function auFilter() {
 
         clearInterval(waitForStage);
 
-        // Avoid injecting twice
         if (document.querySelector('#au-job-count-wrapper')) return;
 
-        // -----------------------------
-        // Inject Job Count + Countdown together
-        // -----------------------------
         injectJobCountAndTimer(stageField);
 
     }, 200);
 
-    // -----------------------------
-    // Count Active AU Jobs
-    // -----------------------------
     function getActiveJobCount() {
         const rows = document.querySelectorAll('mat-row');
         return Array.from(rows).filter(row => {
@@ -67,9 +59,6 @@ function auFilter() {
         }).length;
     }
 
-    // -----------------------------
-    // Remove non-AU rows
-    // -----------------------------
     function removeNonAU() {
         const rows = document.querySelectorAll('mat-row');
         let removedCount = 0;
@@ -83,9 +72,6 @@ function auFilter() {
         console.log(`[AU Filter] Removed ${removedCount} non-AU rows`);
     }
 
-    // -----------------------------
-    // Sort by ETA: --, negative, 0, positive
-    // -----------------------------
     function sortByETA() {
         const table = document.querySelector('div.tcc-roadside-dashboard-table mat-table');
         if (!table) return;
@@ -103,11 +89,7 @@ function auFilter() {
         rows.forEach(row => table.appendChild(row));
     }
 
-    // -----------------------------
-    // Inject Job Count + Countdown Timer together
-    // -----------------------------
     function injectJobCountAndTimer(stageField) {
-        // Wrapper for both elements
         const wrapper = document.createElement('div');
         wrapper.id = 'au-job-count-wrapper';
         wrapper.style.display = 'flex';
@@ -115,14 +97,12 @@ function auFilter() {
         wrapper.style.gap = '20px';
         wrapper.style.marginTop = '20px';
 
-        // --- Job Count ---
         const jobCountLabel = document.createElement('span');
         jobCountLabel.style.fontSize = '12px';
         jobCountLabel.style.color = '#666';
         jobCountLabel.innerHTML = `Current Active Dispatches: <span style="font-weight: 800;">${getActiveJobCount()}</span>`;
         wrapper.appendChild(jobCountLabel);
 
-        // --- Countdown Timer + Progress Bar ---
         const countdownContainer = document.createElement('div');
         countdownContainer.id = 'au-countdown-container';
         countdownContainer.style.display = 'flex';
@@ -159,15 +139,12 @@ function auFilter() {
 
         wrapper.appendChild(countdownContainer);
 
-        // Insert wrapper after the stage field
         stageField.parentNode.insertBefore(wrapper, stageField.nextSibling);
 
-        // Update job count every second
         trackInterval(() => {
             jobCountLabel.innerHTML = `Current Active Dispatches: <span style="font-weight: 800;">${getActiveJobCount()}</span>`;
         }, 1000);
 
-        // Countdown logic
         const totalSeconds = 5 * 60;
         const startTime = performance.now();
 
@@ -191,9 +168,6 @@ function auFilter() {
         countdownRafId = requestAnimationFrame(update);
     }
 
-    // -----------------------------
-    // Remove sort arrow
-    // -----------------------------
     function removeSortArrow() {
         const countryHeader = document.querySelector(
             'mat-header-cell.mat-column-country .mat-sort-header-container'
@@ -203,9 +177,6 @@ function auFilter() {
         if (sortArrow) sortArrow.remove();
     }
 
-    // -----------------------------
-    // Wait for table and header
-    // -----------------------------
     const tableInterval = trackInterval(() => {
         const rows = document.querySelectorAll('mat-row');
         const countryHeader = document.querySelector(
@@ -216,7 +187,6 @@ function auFilter() {
             clearInterval(tableInterval);
             console.log(`[AU Filter] Table loaded with ${rows.length} rows`);
 
-            // Sort AU jobs
             countryHeader.click();
             setTimeout(() => {
                 removeNonAU();
@@ -227,9 +197,6 @@ function auFilter() {
     }, 500);
 }
 
-// -----------------------------
-// Activate only on the roadside dashboard route, and only if enabled
-// -----------------------------
 function maybeActivate() {
     if (!isOnRoadsideDashboard()) {
         if (isActive) stopAuFilter();
@@ -237,11 +204,10 @@ function maybeActivate() {
     }
     if (isActive) return;
 
-    chrome.storage.sync.get('auFilterEnabled', (result) => {
-        // Guard against the route/state changing while storage was read
+    isTccQolEnabled((enabled) => {
         if (!isOnRoadsideDashboard() || isActive) return;
 
-        if (result.auFilterEnabled) {
+        if (enabled) {
             isActive = true;
             console.log('[AU Filter] Enabled — running filter');
             auFilter();
@@ -251,18 +217,20 @@ function maybeActivate() {
     });
 }
 
-// React to the popup toggle without needing a manual reload
 chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== 'sync' || !('auFilterEnabled' in changes)) return;
+    if (area !== 'sync' || (!('tccQolEnabled' in changes) && !('auFilterEnabled' in changes))) return;
 
-    if (changes.auFilterEnabled.newValue) {
+    const enabled = 'tccQolEnabled' in changes
+      ? changes.tccQolEnabled.newValue
+      : changes.auFilterEnabled.newValue;
+
+    if (enabled) {
         maybeActivate();
     } else if (isActive) {
         stopAuFilter();
     }
 });
 
-// Detect SPA navigation (Angular router uses history.pushState/replaceState)
 let lastPath = location.pathname;
 setInterval(() => {
     if (location.pathname !== lastPath) {
@@ -271,5 +239,4 @@ setInterval(() => {
     }
 }, 1000);
 
-// Initial check on injection
 maybeActivate();

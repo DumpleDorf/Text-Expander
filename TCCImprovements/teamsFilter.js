@@ -1,8 +1,5 @@
-console.log("TeamsFilter script loaded.");
+console.log("[TCC QOL] Teams filter script loaded.");
 
-// -----------------------------
-// CONSTANTS
-// -----------------------------
 const labelsToKeep = [
   'Charging Support',
   'Commerce Support',
@@ -12,9 +9,15 @@ const labelsToKeep = [
 ];
 const labelsToKeepSet = new Set(labelsToKeep);
 
-// -----------------------------
-// FILTER FUNCTIONS
-// -----------------------------
+function isTccQolEnabled(callback) {
+  chrome.storage.sync.get({ tccQolEnabled: true, teamsFilter: true }, (items) => {
+    const enabled = items.tccQolEnabled !== null && items.tccQolEnabled !== undefined
+      ? items.tccQolEnabled
+      : items.teamsFilter;
+    callback(!!enabled);
+  });
+}
+
 function filterDropdownOptions(dropdown) {
   if (!dropdown) return;
   const optionList = dropdown.querySelector('div.tds-form-input');
@@ -36,17 +39,14 @@ function resetDropdownVisibility(dropdown) {
   }
 }
 
-// -----------------------------
-// APPLY FILTER TO HEADER + SMS TEAM DROPDOWN
-// -----------------------------
 function applyFilter() {
   if (!chrome?.storage?.sync) return;
 
-  chrome.storage.sync.get({ teamsFilter: false }, (items) => {
+  isTccQolEnabled((enabled) => {
     const headerDropdown = document.querySelector('#tcc-header-team-id');
     const smsTeamDropdown = document.querySelector('app-log-communication tds-form-input-dropdown');
 
-    if (!items.teamsFilter) {
+    if (!enabled) {
       resetDropdownVisibility(headerDropdown);
       resetDropdownVisibility(smsTeamDropdown);
     } else {
@@ -56,18 +56,18 @@ function applyFilter() {
   });
 }
 
-// -----------------------------
-// THROTTLED CLICK HANDLER
-// -----------------------------
 let clickTimeout = null;
 document.addEventListener('click', () => {
   if (clickTimeout) clearTimeout(clickTimeout);
   clickTimeout = setTimeout(applyFilter, 100);
 });
 
-// -----------------------------
-// INITIAL DROPDOWN WAIT
-// -----------------------------
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'sync' && ('tccQolEnabled' in changes || 'teamsFilter' in changes)) {
+    applyFilter();
+  }
+});
+
 function waitForDropdown() {
   if (window.top !== window.self) return;
 
@@ -83,13 +83,6 @@ function waitForDropdown() {
 
 waitForDropdown();
 
-// -----------------------------
-// AUTO SELECT EN-AU FOR SMS + EMAIL PANELS
-// -----------------------------
-// Covers the SMS panel (app-log-communication) as well as the new email and
-// email reply panels (app-graph-email / app-send-graph-email, rendered inside a
-// mat-bottom-sheet-container). We scan every locale dropdown and only act on the
-// ones that actually expose an en-au option, so this stays safe across panels.
 function selectEnAuIfVisible() {
   try {
     const dropdowns = document.querySelectorAll(
@@ -127,9 +120,6 @@ function selectEnAuIfVisible() {
   }
 }
 
-// -----------------------------
-// SMS + EMAIL OBSERVER
-// -----------------------------
 const commsObserver = new MutationObserver(() => {
   const commsElement = document.querySelector(
     'app-log-communication .tcc-log-communication-container, app-graph-email .tcc-log-communication-container'

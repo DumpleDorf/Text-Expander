@@ -32,16 +32,16 @@
         <div class="section-header">Customer Support</div>
         <button class="full-width-btn" id="roadsideFlowBtn">AUNZ Roadside Flow</button>
         <div class="menu-item">
-          <span id="teamsFilterBtn" class="clickable-text">TCC Teams Filter</span>
-          <label class="switch-wrapper visible" id="teamsToggleWrapper">
-            <input type="checkbox" id="teamsToggle" />
+          <span id="tccQolBtn" class="clickable-text">TCC QOL Improvements</span>
+          <label class="switch-wrapper visible" id="tccQolToggleWrapper">
+            <input type="checkbox" id="tccQolToggle" />
             <span class="slider"></span>
           </label>
         </div>
         <div class="menu-item">
-          <span id="auFilterText">RS Dashboard AU Filter</span>
-          <label class="switch-wrapper visible" id="auFilterWrapper">
-            <input type="checkbox" id="auFilterToggle" />
+          <span id="paceQolBtn" class="clickable-text">PACE QOL Improvements</span>
+          <label class="switch-wrapper visible" id="paceQolToggleWrapper">
+            <input type="checkbox" id="paceQolToggle" />
             <span class="slider"></span>
           </label>
         </div>
@@ -113,6 +113,12 @@
 
         <div class="step" id="stepBrandSize" style="display:none; overflow: hidden; max-height: 0; transition: max-height 0.4s ease, opacity 0.4s ease;">
           <div class="step-title">2. Select Tyre Brand & Size</div>
+          <div id="positionRow" class="position-row" style="display:none;">
+            <div class="button-group position-buttons" id="positionButtons">
+              <div class="btn-option" data-position="front">Front</div>
+              <div class="btn-option" data-position="rear">Rear</div>
+            </div>
+          </div>
           <div class="brand-size-row">
             <div class="button-group" id="brandButtons">
               <div class="group-title">Brand</div>

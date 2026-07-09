@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Tesla Support Tool",
-  "version": "2.8.2",
+  "version": "2.9.0",
   "description": "Support Tool with text expander, tyre quoting and more.",
   "permissions": [
     "storage",
@@ -33,7 +33,10 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["TextExpander/textExpander.js"],
+      "js": [
+        "TextExpander/textExpander.js",
+        "PACEImprovements/transferPicker.js"
+      ],
       "all_frames": true,
       "match_about_blank": true
     },
@@ -45,7 +48,10 @@
     },
     {
       "matches": ["https://customerconnect.tesla.com/*"],
-      "js": ["TeamsDropdownFilter/teamsFilter.js"],
+      "js": [
+        "TCCImprovements/teamsFilter.js",
+        "TCCImprovements/dashboardFilter.js"
+      ],
       "all_frames": true,
       "match_about_blank": true
     },
@@ -55,12 +61,6 @@
         "https://repair.tesla.com/*"
       ],
       "js": ["SCA_AutoMessager/autoMessager.js"],
-      "all_frames": true
-    },
-    {
-      "matches": ["https://customerconnect.tesla.com/*"],
-      "js": ["RoadsideDashboardFilter/dashboardFilter.js"],
-      "run_at": "document_idle",
       "all_frames": true
     },
     {
@@ -75,6 +75,8 @@
       "resources": [
         "icons/*.png",
         "TyreQuoteGenerator/tyre_prices.csv",
+        "PACEImprovements/transferTeams.csv",
+        "PACEImprovements/transferPicker.css",
         "AUNZRoadsideFlow/roadside-flow.json",
         "SCA_AutoMessager/scConfig.csv",
         "SCA_AutoMessager/brConfig.csv",

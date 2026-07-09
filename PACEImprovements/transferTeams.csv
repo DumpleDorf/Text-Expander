@@ -1,0 +1,17 @@
+Button,Department,State,Group Name
+NSW Virtual Sales,Sales,NSW,AP-AU-NSW-Virtual:Voice:Sales
+NSW Delivery,Delivery,NSW,AP-AU-NSW-Virtual:Voice:Delivery
+VIC Virtual Sales,Sales,VIC,AP-AU-VIC-Virtual:Voice:Sales
+VIC Delivery,Delivery,VIC,AP-AU-VIC-Virtual:Voice:Delivery
+SA Virtual Sales,Sales,SA,AP-AU-SA-Virtual:Voice:Sales
+SA Delivery,Delivery,SA,AP-AU-SA-Virtual:Voice:Delivery
+QLD Virtual Sales,Sales,QLD,AP-AU-QLD-Virtual:Voice:Sales
+QLD Delivery,Delivery,QLD,AP-AU-QLD-Virtual:Voice:Delivery
+WA Virtual Sales,Sales,WA,AP-AU-WA-Virtual:Voice:Sales
+WA Delivery,Delivery,WA,AP-AU-WA-Virtual:Voice:Delivery
+ACT Virtual Sales,Sales,ACT,AP-AU-ACT-Virtual:Voice:Sales
+ACT Delivery,Delivery,ACT,AP-AU-ACT-Virtual:Voice:Delivery
+TAS Virtual Sales,Sales,TAS,AP-AU-TAS-Virtual:Voice:Sales
+TAS Delivery,Delivery,TAS,AP-AU-TAS-Virtual:Voice:Delivery
+NT Virtual Sales,Sales,NT,AP-AU-NT-Virtual:Voice:Sales
+NT Delivery,Delivery,NT,AP-AU-NT-Virtual:Voice:Delivery

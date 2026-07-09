@@ -1,5 +1,116 @@
 console.log("tyreQuoteGenerator.js loaded");
 
+const MODEL_DISPLAY_NAMES = {
+  "Model Y": "Model Y/YL"
+};
+
+const BRAND_DISPLAY_NAMES = {
+  "Continental": "Continental (YL)"
+};
+
+function tyreMatchesSelectedModel(tyreModel, selectedModel) {
+  if (selectedModel === "Model Y") {
+    return tyreModel === "Model Y" || tyreModel === "Model YL";
+  }
+  return tyreModel === selectedModel;
+}
+
+function csvHasModel(csvModels, model) {
+  if (model === "Model Y") {
+    return csvModels.includes("Model Y") || csvModels.includes("Model YL");
+  }
+  return csvModels.includes(model);
+}
+
+function isModelYLFromText(text) {
+  if (!text) return false;
+  return /Model\s*YL\b/i.test(text);
+}
+
+function detectWheelSizeFromText(text) {
+  if (!text) return null;
+
+  const inch = `(?:\\u2033|\\u201D|\\u201C|"|'|\\u2019){1,3}`;
+  const patterns = [
+    new RegExp(`WHEELS\\s*[\\r\\n]+(\\d{2})\\s*${inch}`, "i"),
+    new RegExp(`WHEELS[\\s\\S]{0,160}?(\\d{2})\\s*${inch}`, "i"),
+    new RegExp(`(\\d{2})\\s*${inch}\\s*(?:Gemini|Sports\\s+Apollo|Apollo)[\\w\\s()$]*Wheels`, "i"),
+    new RegExp(`(\\d{2})\\s*${inch}\\s+[\\w\\s()$]+Wheels`, "i"),
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match) {
+      const wheel = parseInt(match[1], 10);
+      if (wheel >= 18 && wheel <= 23) return wheel;
+    }
+  }
+  return null;
+}
+
+async function waitForTyreData(timeout = 5000) {
+  const start = Date.now();
+  while (!window.tyreData?.length && Date.now() - start < timeout) {
+    await new Promise(r => setTimeout(r, 50));
+  }
+  return window.tyreData?.length > 0;
+}
+
+async function waitForBrandSizeButtons(timeout = 3000) {
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    if (document.querySelectorAll("#brandButtons .btn-option").length > 0) {
+      return true;
+    }
+    await new Promise(r => setTimeout(r, 50));
+  }
+  return false;
+}
+
+function isTyreQuoteAutoSelectUrl(url) {
+  return url.startsWith("https://customerconnect.tesla.com/") ||
+    /^https:\/\/os\.tesla\.com\/en-AU\/pace\//i.test(url);
+}
+
+function getTyreQuoteScriptTarget(tabId, url) {
+  return isTyreQuoteAutoSelectUrl(url)
+    ? { tabId, allFrames: true }
+    : { tabId };
+}
+
+function clearPositionFlash() {
+  if (window.positionFlashTimeout) {
+    clearTimeout(window.positionFlashTimeout);
+    window.positionFlashTimeout = null;
+  }
+  document.getElementById('positionRow')?.classList.remove('flash-position');
+}
+
+function schedulePositionFlash(delayMs = 0) {
+  const row = document.getElementById('positionRow');
+  if (!row?.classList.contains('needs-selection')) return;
+
+  clearPositionFlash();
+  window.positionFlashTimeout = setTimeout(() => {
+    row.classList.add('flash-position');
+    window.positionFlashTimeout = null;
+  }, delayMs);
+}
+
+function scrollToQuoteControlsIfNeeded() {
+  const generateBtn = document.getElementById("generateQuote");
+  if (!generateBtn) return;
+
+  const needsPosition = hasAmbiguousRimSizes() && !selectedPosition;
+  const needsMoreInput = generateBtn.disabled || needsPosition;
+
+  if (!needsMoreInput) return;
+
+  setTimeout(() => {
+    generateBtn.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, 150);
+}
+
 // -------------------------
 // CSV LOAD & UI INIT
 // -------------------------
@@ -49,8 +160,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       const url = tab?.url || "";
 
-      if (url.startsWith("https://customerconnect.tesla.com/")) {
-        console.log("[Tyre Quote] CustomerConnect page detected: running full auto-select.");
+      if (isTyreQuoteAutoSelectUrl(url)) {
+        console.log("[Tyre Quote] TCC page detected (CustomerConnect or PACE): running full auto-select.");
+        const dataReady = await waitForTyreData();
+        if (!dataReady) {
+          console.warn("[Tyre Quote] Tyre data not loaded in time; auto-select skipped.");
+          return;
+        }
         await autoSelectTyreAndGenerate(); // full flow
       } else {
         console.log("[Tyre Quote] External page: only running VIN detection + model select.");
@@ -80,18 +196,18 @@ async function detectVinFromPage() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab?.id) return null;
-    if (!tab.url.startsWith("https://")) return null;
+    if (!tab.url?.startsWith("https://")) return null;
 
     const results = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
+      target: getTyreQuoteScriptTarget(tab.id, tab.url),
       func: () => {
-        const allText = document.body.innerText;
+        const allText = document.body?.innerText || "";
         const vinMatch = allText.match(/\b[A-HJ-NPR-Z0-9]{17}\b/i);
         return vinMatch ? vinMatch[0] : null;
       }
     });
 
-    return results[0]?.result || null;
+    return results.map(r => r.result).find(v => v) || null;
   } catch {
     return null;
   }
@@ -139,7 +255,10 @@ async function handleVinAutoSelect() {
 // -------------------------
 async function autoSelectTyreAndGenerate() {
   console.log("[Tyre Quote] Starting auto-select process...");
+  window.tyreQuoteAutoFlow = true;
+  clearPositionFlash();
 
+  try {
   // Helper: wait for element to exist
   async function waitForElement(selector, timeout = 3000) {
     const el = document.querySelector(selector);
@@ -192,24 +311,71 @@ async function autoSelectTyreAndGenerate() {
   modelDropdown.dispatchEvent(new Event("change"));
   console.log("[Tyre Quote] Model selected in popup");
 
-  // 4️⃣ Wait for page refresh
-  await new Promise(r => setTimeout(r, 100));
+  await waitForBrandSizeButtons();
 
   // 5️⃣ Detect wheel size from page
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) return;
 
   const wheelResult = await chrome.scripting.executeScript({
-    target: { tabId: tab.id },
+    target: getTyreQuoteScriptTarget(tab.id, tab.url),
     func: async () => {
       const sleep = ms => new Promise(r => setTimeout(r, ms));
       const click = el => el?.click();
+
+      const hasTccContext = () => {
+        const text = document.body?.innerText || "";
+        return location.hostname.includes("customerconnect.tesla.com") ||
+          document.getElementById("tcc-asset-panel-detail-icon") ||
+          document.querySelector('img[mattooltip="Vehicle Details"]') ||
+          /WHEELS/i.test(text) ||
+          /Model\s*Y/i.test(text);
+      };
+
+      if (!hasTccContext()) {
+        return { wheel: null, drawerOpenedBy: null, isModelYL: false };
+      }
+
+      const detectWheelSizeFromText = (text) => {
+        if (!text) return null;
+        const inch = `(?:\\u2033|\\u201D|\\u201C|"|'|\\u2019){1,3}`;
+        const patterns = [
+          new RegExp(`WHEELS\\s*[\\r\\n]+(\\d{2})\\s*${inch}`, "i"),
+          new RegExp(`WHEELS[\\s\\S]{0,160}?(\\d{2})\\s*${inch}`, "i"),
+          new RegExp(`(\\d{2})\\s*${inch}\\s*(?:Gemini|Sports\\s+Apollo|Apollo)[\\w\\s()$]*Wheels`, "i"),
+          new RegExp(`(\\d{2})\\s*${inch}\\s+[\\w\\s()$]+Wheels`, "i"),
+        ];
+        for (const pattern of patterns) {
+          const match = text.match(pattern);
+          if (match) {
+            const wheel = parseInt(match[1], 10);
+            if (wheel >= 18 && wheel <= 23) return wheel;
+          }
+        }
+        return null;
+      };
+
+      const isModelYLFromText = (text) => {
+        if (!text) return false;
+        return /Model\s*YL\b/i.test(text);
+      };
+
+      const collectPageText = () => {
+        const chunks = [document.body?.innerText || ""];
+        document.querySelectorAll(
+          "mat-expansion-panel, .mat-expansion-panel-content, .mat-expansion-panel-body, mat-drawer, .mat-drawer-inner-container"
+        ).forEach(el => {
+          const text = el.innerText?.trim();
+          if (text) chunks.push(text);
+        });
+        return chunks.join("\n");
+      };
 
       let drawerOpenedBy = null;
       let clickedVehicle = false;
       let clickedInfo = false;
 
-      for (let attempt = 1; attempt <= 10; attempt++) {
+      for (let attempt = 1; attempt <= 12; attempt++) {
         console.log(`[Page] Wheel detect attempt ${attempt}`);
 
         // Open Details panel if closed
@@ -217,7 +383,7 @@ async function autoSelectTyreAndGenerate() {
           .find(h => h.innerText.trim().toLowerCase() === "details");
         if (detailsHeader && detailsHeader.getAttribute("aria-expanded") !== "true") {
           click(detailsHeader);
-          await sleep(100);
+          await sleep(300);
         }
 
         // Click Info / Vehicle icons only once
@@ -234,32 +400,39 @@ async function autoSelectTyreAndGenerate() {
           clickedVehicle = true;
         }
 
-        await sleep(200);
+        await sleep(400);
 
-        // Detect wheel size in page text
-        const match = document.body.innerText.match(/WHEELS?\s*[\s\S]{0,80}?(\d{2})\s*(?:’’|”|″|")/i);
-        if (match) {
-          console.log("[Page] Wheel size detected:", match[1]);
-          return { wheel: parseInt(match[1], 10), drawerOpenedBy };
+        const pageText = collectPageText();
+        const wheel = detectWheelSizeFromText(pageText);
+        const isModelYL = isModelYLFromText(pageText);
+        if (wheel) {
+          console.log("[Page] Wheel size detected:", wheel, "| Model YL:", isModelYL);
+          return { wheel, drawerOpenedBy, isModelYL };
         }
 
         await sleep(500);
       }
 
-      console.warn("[Page] Failed to detect wheel size after 10 attempts");
-      return { wheel: null, drawerOpenedBy: null };
+      console.warn("[Page] Failed to detect wheel size after 12 attempts");
+      const pageText = collectPageText();
+      const isModelYL = isModelYLFromText(pageText);
+      return { wheel: null, drawerOpenedBy, isModelYL };
     }
   });
 
-  // ✅ Extract wheel from result safely
-  const wheel = wheelResult[0]?.result?.wheel;
-  const drawerOpenedBy = wheelResult[0]?.result?.drawerOpenedBy;
+  // ✅ Extract wheel from result safely (prefer frame that found a wheel)
+  const frameResults = (wheelResult || []).map(r => r.result).filter(Boolean);
+  const bestWheelResult = frameResults.find(r => r.wheel) || frameResults[0];
+  const wheel = bestWheelResult?.wheel;
+  const drawerOpenedBy = bestWheelResult?.drawerOpenedBy;
+  const isModelYL = bestWheelResult?.isModelYL;
 
   if (!wheel) {
     console.warn("[Tyre Quote] Wheel size not detected.");
     return;
   }
   console.log("[Tyre Quote] Detected wheel:", wheel);
+  console.log("[Tyre Quote] Vehicle type:", isModelYL ? "Model YL" : "Model Y");
 
   // 6️⃣ Map wheel → tyre size using CSV
   if (!window.tyreData || !Array.isArray(window.tyreData)) {
@@ -267,7 +440,13 @@ async function autoSelectTyreAndGenerate() {
     return;
   }
 
-  const modelTyres = window.tyreData.filter(t => t.Model === modelName);
+  let modelTyres = window.tyreData.filter(t => tyreMatchesSelectedModel(t.Model, modelName));
+  if (modelName === "Model Y") {
+    // Scrape-based: "Model YL" on page → Continental YL tyres, otherwise standard Model Y
+    modelTyres = isModelYL
+      ? modelTyres.filter(t => t.Model === "Model YL")
+      : modelTyres.filter(t => t.Model !== "Model YL");
+  }
   const matchingTyres = modelTyres.filter(t => {
     const match = t.Size.match(/R(\d{2})/);
     return match && parseInt(match[1], 10) === wheel;
@@ -278,29 +457,58 @@ async function autoSelectTyreAndGenerate() {
     return;
   }
 
-  const tyreSize = matchingTyres[0].Size;
-  console.log("[Tyre Quote] Selecting tyre size from CSV:", tyreSize);
+  const uniqueSizes = [...new Set(matchingTyres.map(t => t.Size))];
+  const isAmbiguous = uniqueSizes.length >= 2;
 
-  // 7️⃣ Select tyre size
-  const sizeButtons = document.querySelectorAll("#sizeButtons .btn-option");
-  sizeButtons.forEach(btn => {
-    if (btn.dataset.size === tyreSize) btn.click();
-  });
-  await new Promise(r => setTimeout(r, 200));
+  if (isAmbiguous) {
+    window.detectedWheelRim = wheel;
+    updatePositionRowVisibility();
+    console.log("[Tyre Quote] Front/rear selection required for rim size:", wheel);
+  } else {
+    window.detectedWheelRim = null;
+    const tyreSize = matchingTyres[0].Size;
+    console.log("[Tyre Quote] Selecting tyre size from CSV:", tyreSize);
 
-  // 8️⃣ Auto-select brand if only one enabled
+    const sizeButtons = document.querySelectorAll("#sizeButtons .btn-option");
+    sizeButtons.forEach(btn => {
+      if (btn.dataset.size === tyreSize) btn.click();
+    });
+    await new Promise(r => setTimeout(r, 200));
+  }
+
+  // 8️⃣ Auto-select brand — Continental for YL, otherwise the only matching brand for this wheel
+  const matchingBrands = [...new Set(matchingTyres.map(t => t.Brand))];
   const brandButtons = [...document.querySelectorAll("#brandButtons .btn-option")]
     .filter(b => !b.classList.contains("disabled"));
-  if (brandButtons.length === 1) {
+
+  if (isModelYL && modelName === "Model Y") {
+    const continentalBtn = brandButtons.find(b => b.dataset.brand === "Continental");
+    if (continentalBtn) {
+      continentalBtn.click();
+      console.log("[Tyre Quote] Auto-selected Continental for Model YL");
+      await new Promise(r => setTimeout(r, 200));
+      updatePositionRowVisibility();
+    }
+  } else if (matchingBrands.length === 1) {
+    const brandBtn = brandButtons.find(b => b.dataset.brand === matchingBrands[0]);
+    if (brandBtn) {
+      brandBtn.click();
+      console.log("[Tyre Quote] Auto-selected brand:", matchingBrands[0]);
+      await new Promise(r => setTimeout(r, 200));
+      updatePositionRowVisibility();
+    }
+  } else if (brandButtons.length === 1) {
     brandButtons[0].click();
     console.log("[Tyre Quote] Auto-selected brand:", brandButtons[0].dataset.brand);
   }
 
-  // 9️⃣ Generate quote
+  // 9️⃣ Generate quote (skip if front/rear selection still required)
   const generateBtn = await waitForElement("#generateQuote", 3000);
-  if (generateBtn && !generateBtn.disabled) {
+  if (!isAmbiguous && generateBtn && !generateBtn.disabled) {
     generateBtn.click();
     console.log("[Tyre Quote] Generate button clicked");
+  } else if (isAmbiguous) {
+    console.warn("[Tyre Quote] Generate skipped — select front or rear tyre first");
   } else {
     console.warn("[Tyre Quote] Generate button disabled or not found");
   }
@@ -308,7 +516,7 @@ async function autoSelectTyreAndGenerate() {
   // 🔟 Close drawer if we opened it
   if (drawerOpenedBy) {
     await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
+      target: getTyreQuoteScriptTarget(tab.id, tab.url),
       func: (openedBy) => {
         const click = el => el?.click();
         if (openedBy === "info") {
@@ -325,6 +533,14 @@ async function autoSelectTyreAndGenerate() {
   }
 
   console.log("[Tyre Quote] Auto-select process completed.");
+  scrollToQuoteControlsIfNeeded();
+  updatePositionRowVisibility();
+  if (hasAmbiguousRimSizes() && !selectedPosition) {
+    schedulePositionFlash(750);
+  }
+  } finally {
+    window.tyreQuoteAutoFlow = false;
+  }
 }
 
 // -------------------------
@@ -349,6 +565,10 @@ function setupEventListeners() {
   modelSelect.addEventListener('change', onModelChange);
 
   document.getElementById('generateQuote').addEventListener('click', generateQuote);
+
+  document.querySelectorAll('#positionButtons .btn-option').forEach(btn => {
+    btn.addEventListener('click', () => togglePosition(btn));
+  });
 
   document.getElementById('copyQuote').addEventListener('click', () => 
     copyTextToClipboard('customerSupportText', 'copyNotificationCustomer', 'Customer quote copied!')
@@ -391,10 +611,10 @@ function populateModels() {
   const csvModels = [...new Set(window.tyreData.map(item => item.Model))];
 
   desiredOrder.forEach(model => {
-    if (csvModels.includes(model)) {
+    if (csvHasModel(csvModels, model)) {
       const option = document.createElement('option');
       option.value = model;
-      option.textContent = model;
+      option.textContent = MODEL_DISPLAY_NAMES[model] || model;
       modelSelect.appendChild(option);
     }
   });
@@ -409,14 +629,166 @@ function enableInterface() {
 // -------------------------
 let selectedBrand = null;
 let selectedSize = null;
+let selectedPosition = null;
 let filteredData = [];
+
+function getRimDiameter(size) {
+  const match = size.match(/R(\d{2})/i);
+  return match ? parseInt(match[1], 10) : null;
+}
+
+function getTyreWidth(size) {
+  const match = size.match(/^(\d+)/);
+  return match ? parseInt(match[1], 10) : null;
+}
+
+function getRelevantTyreData() {
+  if (selectedBrand) {
+    return filteredData.filter(t => t.Brand === selectedBrand);
+  }
+  return filteredData;
+}
+
+function getAmbiguousRimGroups(data = getRelevantTyreData()) {
+  const byRim = {};
+  data.forEach(t => {
+    const rim = getRimDiameter(t.Size);
+    if (rim == null) return;
+    if (!byRim[rim]) byRim[rim] = new Set();
+    byRim[rim].add(t.Size);
+  });
+  return Object.entries(byRim)
+    .filter(([, sizes]) => sizes.size >= 2)
+    .map(([rim, sizes]) => ({ rim: parseInt(rim, 10), sizes: [...sizes] }));
+}
+
+function hasAmbiguousRimSizes() {
+  if (!selectedBrand) return false;
+  return getAmbiguousRimGroups().length > 0;
+}
+
+function resolveSizeForPosition(position, data = getRelevantTyreData(), targetRim = window.detectedWheelRim ?? null) {
+  const groups = getAmbiguousRimGroups(data);
+  if (groups.length === 0) return null;
+
+  let group;
+  if (groups.length === 1) {
+    // Only one front/rear pair for this brand — use it regardless of stale auto-detect rim
+    group = groups[0];
+  } else if (targetRim != null) {
+    group = groups.find(g => g.rim === targetRim);
+  } else {
+    group = groups[0];
+  }
+
+  if (!group || group.sizes.length < 2) return null;
+
+  const sizesWithWidth = group.sizes
+    .map(size => ({ size, width: getTyreWidth(size) }))
+    .sort((a, b) => a.width - b.width);
+
+  return position === "front"
+    ? sizesWithWidth[0].size
+    : sizesWithWidth[sizesWithWidth.length - 1].size;
+}
+
+function selectSizeProgrammatically(size) {
+  selectedSize = size;
+  document.querySelectorAll('#sizeButtons .btn-option').forEach(btn => {
+    btn.classList.toggle('selected', btn.dataset.size === size);
+  });
+}
+
+function clearPositionSelection() {
+  selectedPosition = null;
+  document.querySelectorAll('#positionButtons .btn-option').forEach(btn => btn.classList.remove('selected'));
+}
+
+function updatePositionRowVisibility() {
+  const row = document.getElementById('positionRow');
+  if (!row) return;
+
+  const show = hasAmbiguousRimSizes();
+  row.style.display = show ? 'block' : 'none';
+
+  if (!show) {
+    clearPositionSelection();
+    row.classList.remove('needs-selection');
+    clearPositionFlash();
+    return;
+  }
+
+  const needsInput = !selectedPosition;
+  row.classList.toggle('needs-selection', needsInput);
+
+  if (needsInput && !window.tyreQuoteAutoFlow) {
+    schedulePositionFlash(0);
+  } else if (!needsInput) {
+    clearPositionFlash();
+  }
+
+  if (selectedPosition) {
+    const size = resolveSizeForPosition(selectedPosition);
+    if (size) {
+      selectSizeProgrammatically(size);
+    } else {
+      clearPositionSelection();
+      selectedSize = null;
+      document.querySelectorAll('#sizeButtons .btn-option').forEach(btn => btn.classList.remove('selected'));
+    }
+  }
+}
+
+function syncPositionFromSize(size) {
+  if (!hasAmbiguousRimSizes()) return;
+
+  const rim = getRimDiameter(size);
+  const group = getAmbiguousRimGroups().find(g => g.rim === rim && g.sizes.includes(size));
+  if (!group) return;
+
+  const frontSize = resolveSizeForPosition('front', getRelevantTyreData(), rim);
+  const rearSize = resolveSizeForPosition('rear', getRelevantTyreData(), rim);
+
+  let position = null;
+  if (size === frontSize) position = 'front';
+  else if (size === rearSize) position = 'rear';
+
+  selectedPosition = position;
+  document.querySelectorAll('#positionButtons .btn-option').forEach(btn => {
+    btn.classList.toggle('selected', btn.dataset.position === position);
+  });
+}
+
+function togglePosition(btn) {
+  const position = btn.dataset.position;
+
+  if (selectedPosition === position) {
+    clearPositionSelection();
+    selectedSize = null;
+    document.querySelectorAll('#sizeButtons .btn-option').forEach(s => s.classList.remove('selected'));
+  } else {
+    selectedPosition = position;
+    document.querySelectorAll('#positionButtons .btn-option').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+
+    const size = resolveSizeForPosition(position);
+    if (size) selectSizeProgrammatically(size);
+  }
+
+  updateSizeCompatibility();
+  updateBrandCompatibility();
+  updatePositionRowVisibility();
+  updateGenerateButton();
+}
 
 function onModelChange() {
   const model = document.getElementById('modelSelect').value;
-  filteredData = model ? window.tyreData.filter(t => t.Model === model) : [];
+  filteredData = model ? window.tyreData.filter(t => tyreMatchesSelectedModel(t.Model, model)) : [];
   resetButtonGroups();
   populateBrandButtons();
   populateSizeButtons();
+  updateBrandCompatibility();
+  updatePositionRowVisibility();
 
   const stepBrandSize = document.getElementById('stepBrandSize');
 
@@ -431,7 +803,7 @@ function onModelChange() {
       stepBrandSize.offsetHeight;
 
       stepBrandSize.style.opacity = 1;
-      stepBrandSize.style.maxHeight = '500px'; // large enough to fit content
+      stepBrandSize.style.maxHeight = '600px'; // large enough to fit content
     }
   } else {
     // Hide with slide-up
@@ -447,6 +819,9 @@ function resetButtonGroups() {
   document.getElementById('sizeButtons').querySelectorAll('.btn-option').forEach(s => s.remove());
   selectedBrand = null;
   selectedSize = null;
+  clearPositionSelection();
+  window.detectedWheelRim = null;
+  updatePositionRowVisibility();
   updateGenerateButton();
 }
 
@@ -462,7 +837,7 @@ function populateBrandButtons() {
 
   brandSet.forEach(brand => {
     const btn = document.createElement('div');
-    btn.textContent = brand;
+    btn.textContent = BRAND_DISPLAY_NAMES[brand] || brand;
     btn.className = 'btn-option';
     btn.dataset.brand = brand;
     btn.addEventListener('click', () => toggleBrand(btn));
@@ -488,20 +863,41 @@ function toggleBrand(btn) {
   if (btn.classList.contains('disabled')) return;
 
   if (selectedBrand === btn.dataset.brand) {
-    // unselect if clicked again
     selectedBrand = null;
     btn.classList.remove('selected');
-  } else {
-    selectedBrand = btn.dataset.brand;
-    document.querySelectorAll('#brandButtons .btn-option').forEach(b => b.classList.remove('selected'));
-    btn.classList.add('selected');
+    clearPositionSelection();
+    updateSizeCompatibility();
+    updateBrandCompatibility();
+    updatePositionRowVisibility();
+    updateGenerateButton();
+    return;
   }
 
+  selectedBrand = btn.dataset.brand;
+  document.querySelectorAll('#brandButtons .btn-option').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+
+  const previousSize = selectedSize;
+  clearPositionSelection();
+  window.detectedWheelRim = null;
+
   updateSizeCompatibility();
+
+  if (previousSize && filteredData.some(t => t.Brand === selectedBrand && t.Size === previousSize)) {
+    selectedSize = previousSize;
+    document.querySelectorAll('#sizeButtons .btn-option').forEach(s => {
+      s.classList.toggle('selected', s.dataset.size === previousSize);
+    });
+    syncPositionFromSize(previousSize);
+  } else {
+    selectedSize = null;
+    document.querySelectorAll('#sizeButtons .btn-option').forEach(s => s.classList.remove('selected'));
+  }
+
+  updateBrandCompatibility();
+  updatePositionRowVisibility();
   updateGenerateButton();
 }
-
-// --- Toggle Size ---
 function toggleSize(btn) {
   if (btn.classList.contains('disabled')) return;
 
@@ -509,14 +905,30 @@ function toggleSize(btn) {
     // unselect if clicked again
     selectedSize = null;
     btn.classList.remove('selected');
+    clearPositionSelection();
   } else {
     selectedSize = btn.dataset.size;
     document.querySelectorAll('#sizeButtons .btn-option').forEach(s => s.classList.remove('selected'));
     btn.classList.add('selected');
+    syncPositionFromSize(selectedSize);
   }
 
+  updateSizeCompatibility();
   updateBrandCompatibility();
+  updatePositionRowVisibility();
   updateGenerateButton();
+}
+
+function updateBrandCompatibility() {
+  document.querySelectorAll('#brandButtons .btn-option').forEach(brandBtn => {
+    // Size-first only: once a brand is chosen, keep all brands switchable
+    if (selectedBrand || !selectedSize) {
+      brandBtn.classList.remove('disabled');
+      return;
+    }
+    const match = filteredData.find(t => t.Size === selectedSize && t.Brand === brandBtn.dataset.brand);
+    brandBtn.classList.toggle('disabled', !match);
+  });
 }
 
 function updateSizeCompatibility() {
@@ -531,22 +943,12 @@ function updateSizeCompatibility() {
   });
 }
 
-function updateBrandCompatibility() {
-  document.querySelectorAll('#brandButtons .btn-option').forEach(brandBtn => {
-    const match = selectedSize ? filteredData.find(t => t.Size === selectedSize && t.Brand === brandBtn.dataset.brand) : true;
-    if (!match) {
-      brandBtn.classList.add('disabled');
-      if (selectedBrand === brandBtn.dataset.brand) selectedBrand = null;
-    } else {
-      brandBtn.classList.remove('disabled');
-    }
-  });
-}
-
 // --- Generate Quote Button ---
 function updateGenerateButton() {
   const generateBtn = document.getElementById('generateQuote');
-  const validSelection = selectedBrand && selectedSize &&
+  const positionRequired = hasAmbiguousRimSizes();
+  const positionValid = !positionRequired || selectedPosition;
+  const validSelection = selectedBrand && selectedSize && positionValid &&
     filteredData.some(t => t.Brand === selectedBrand && t.Size === selectedSize);
   
   generateBtn.disabled = !validSelection;
@@ -559,6 +961,8 @@ function updateGenerateButton() {
     generateBtn.style.background = '#bdc3c7'; // greyed out
     generateBtn.style.color = '#666';
   }
+
+  updatePositionRowVisibility();
 }
 
 // -------------------------
@@ -571,8 +975,13 @@ function generateQuote() {
     return;
   }
 
+  if (hasAmbiguousRimSizes() && !selectedPosition) {
+    alert("Please select Front or Rear tyre.");
+    return;
+  }
+
   const matchingTyre = window.tyreData.find(item =>
-    item.Model === model &&
+    tyreMatchesSelectedModel(item.Model, model) &&
     item.Brand === selectedBrand &&
     item.Size === selectedSize
   );
@@ -586,10 +995,17 @@ function generateQuote() {
     const isNZ = data.region === 'NZ';
     const currencyLabel = isNZ ? 'NZD' : '$';
 
-    const basePrice = parseFloat(matchingTyre["SCA Price"] || 0);
-    const singleLabour = parseFloat(matchingTyre["Single Tyre Labour + Disposal"] || 0);
-    let singleTyreReplacement = basePrice + singleLabour;
-    if (!isNZ) singleTyreReplacement *= 1.1;
+    const tyrePrice = parseFloat(matchingTyre["SCA Price"] || 0);
+    const labourCost = parseFloat(matchingTyre["Labour Cost"] || 0);
+    const disposalCost = parseFloat(matchingTyre["Disposal Cost"] || 0);
+    const preGstSubtotal = tyrePrice + labourCost + disposalCost;
+    let singleTyreReplacement;
+    if (isNZ) {
+      singleTyreReplacement = preGstSubtotal;
+    } else {
+      const gst = preGstSubtotal * 0.1;
+      singleTyreReplacement = preGstSubtotal + gst;
+    }
 
     const tyreRepairPrice = 95;
     const repairDisplay = isNZ ? 'NZD' : `${currencyLabel}${tyreRepairPrice.toFixed(2)}`;

@@ -2,6 +2,141 @@
 // Background Script
 // -------------------------
 
+const TCC_QOL_MIGRATION_KEY = 'tccQolDefaultEnabledV1';
+const PACE_QOL_MIGRATION_KEY = 'paceQolDefaultEnabledV1';
+
+function enableTccQol(enabled = true) {
+  chrome.storage.sync.set({
+    tccQolEnabled: enabled,
+    teamsFilter: enabled,
+    auFilterEnabled: enabled
+  });
+}
+
+function enablePaceQol(enabled = true) {
+  chrome.storage.sync.set({ paceQolEnabled: enabled });
+}
+
+const PACE_URL_PATTERN = /^https:\/\/os\.tesla\.com\/en-AU\/pace(\/|$|\?)/i;
+
+function isPacePageUrl(url) {
+  return PACE_URL_PATTERN.test(url || "");
+}
+
+function shouldInjectPaceQol(url) {
+  return isPacePageUrl(url);
+}
+
+async function injectPaceTransferPicker(tabId, url) {
+  const items = await chrome.storage.sync.get({ paceQolEnabled: true });
+  if (items.paceQolEnabled === false) return;
+
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: ['PACEImprovements/transferPicker.js']
+    });
+    console.log('[PACE QOL] Injected into PACE tab', tabId, url || '');
+  } catch (err) {
+    console.warn('[PACE QOL] Injection failed for tab', tabId, url || '', err.message);
+  }
+}
+
+function injectPaceQolIntoMatchingTabs() {
+  chrome.tabs.query({}, (tabs) => {
+    tabs.forEach((tab) => {
+      if (tab.id && tab.url && shouldInjectPaceQol(tab.url)) {
+        injectPaceTransferPicker(tab.id, tab.url);
+      }
+    });
+  });
+}
+
+function registerPaceContentScript() {
+  chrome.scripting.unregisterContentScripts({ ids: ['pace-qol-transfer-picker'] }, () => {
+    chrome.scripting.registerContentScripts([{
+      id: 'pace-qol-transfer-picker',
+      js: ['PACEImprovements/transferPicker.js'],
+      matches: [
+        'https://os.tesla.com/en-AU/pace',
+        'https://os.tesla.com/en-AU/pace/',
+        'https://os.tesla.com/en-AU/pace/*'
+      ],
+      runAt: 'document_idle',
+      persistAcrossSessions: true
+    }]).then(() => {
+      console.log('[PACE QOL] Registered dynamic content script');
+    }).catch((err) => {
+      console.warn('[PACE QOL] Dynamic registration failed:', err.message);
+    });
+  });
+}
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (!tab.url || !shouldInjectPaceQol(tab.url)) return;
+  if (changeInfo.status === 'complete' || changeInfo.url) {
+    injectPaceTransferPicker(tabId, tab.url);
+  }
+});
+
+chrome.tabs.onActivated.addListener((activeInfo) => {
+  chrome.tabs.get(activeInfo.tabId, (tab) => {
+    if (chrome.runtime.lastError || !tab?.url) return;
+    if (shouldInjectPaceQol(tab.url)) {
+      injectPaceTransferPicker(tab.id, tab.url);
+    }
+  });
+});
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'sync' || !changes.paceQolEnabled) return;
+  if (changes.paceQolEnabled.newValue !== false) {
+    injectPaceQolIntoMatchingTabs();
+  }
+});
+
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason === 'install') {
+    enableTccQol(true);
+    enablePaceQol(true);
+    chrome.storage.sync.set({
+      [TCC_QOL_MIGRATION_KEY]: true,
+      [PACE_QOL_MIGRATION_KEY]: true
+    });
+    console.log('[TCC QOL] Enabled by default on install');
+    console.log('[PACE QOL] Enabled by default on install');
+    registerPaceContentScript();
+    injectPaceQolIntoMatchingTabs();
+    return;
+  }
+
+  if (details.reason === 'update') {
+    chrome.storage.sync.get({
+      [TCC_QOL_MIGRATION_KEY]: false,
+      [PACE_QOL_MIGRATION_KEY]: false
+    }, (items) => {
+      if (!items[TCC_QOL_MIGRATION_KEY]) {
+        enableTccQol(true);
+        chrome.storage.sync.set({ [TCC_QOL_MIGRATION_KEY]: true });
+        console.log('[TCC QOL] Enabled for existing users on update');
+      }
+      if (!items[PACE_QOL_MIGRATION_KEY]) {
+        enablePaceQol(true);
+        chrome.storage.sync.set({ [PACE_QOL_MIGRATION_KEY]: true });
+        console.log('[PACE QOL] Enabled for existing users on update');
+      }
+      injectPaceQolIntoMatchingTabs();
+      registerPaceContentScript();
+    });
+  }
+
+  registerPaceContentScript();
+  injectPaceQolIntoMatchingTabs();
+});
+
+registerPaceContentScript();
+injectPaceQolIntoMatchingTabs();
+
 let towbookAudioNotifierEnabled = false;
 let oceanaNotifierEnabled = false;
 
@@ -43,10 +178,9 @@ chrome.storage.onChanged.addListener((changes, area) => {
       });
     }
 
-    // AU Filter toggle is now handled entirely in the content script
-    if ("auFilterEnabled" in changes) {
-      console.log(`[AU Filter] Toggle changed to ${changes.auFilterEnabled.newValue ? 'ON' : 'OFF'}`);
-      // No injection needed
+    // TCC QOL toggle is handled in the content scripts
+    if ("tccQolEnabled" in changes) {
+      console.log(`[TCC QOL] Toggle changed to ${changes.tccQolEnabled.newValue ? 'ON' : 'OFF'}`);
     }
   }
 });
