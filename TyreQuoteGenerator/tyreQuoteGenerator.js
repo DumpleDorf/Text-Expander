@@ -27,22 +27,30 @@ function isModelYLFromText(text) {
   return /Model\s*YL\b/i.test(text);
 }
 
+function isValidRimSize(wheel) {
+  return wheel >= 18 && wheel <= 23;
+}
+
 function detectWheelSizeFromText(text) {
   if (!text) return null;
 
-  const inch = `(?:\\u2033|\\u201D|\\u201C|"|'|\\u2019){1,3}`;
+  const inch = `(?:''|''|["\u201C\u201D\u2033]+|['\u2019\u2032]+)+`;
   const patterns = [
+    /WHEELS\s*[\r\n]+\s*(\d{2})\b/i,
     new RegExp(`WHEELS\\s*[\\r\\n]+(\\d{2})\\s*${inch}`, "i"),
-    new RegExp(`WHEELS[\\s\\S]{0,160}?(\\d{2})\\s*${inch}`, "i"),
+    new RegExp(`WHEELS[\\s\\S]{0,200}?(\\d{2})\\s*${inch}`, "i"),
     new RegExp(`(\\d{2})\\s*${inch}\\s*(?:Gemini|Sports\\s+Apollo|Apollo)[\\w\\s()$]*Wheels`, "i"),
     new RegExp(`(\\d{2})\\s*${inch}\\s+[\\w\\s()$]+Wheels`, "i"),
+    /(\d{2})\s*(?:''|['\u2019]{2})\s*Sports\s+Apollo/i,
+    /(\d{2})\s*["\u201D]\s*Sports\s+Apollo/i,
+    /(\d{2})\s*(?:''|['\u2019]{2}|["\u201D]|\u2033)\s*(?:Gemini|Sports)/i,
   ];
 
   for (const pattern of patterns) {
     const match = text.match(pattern);
     if (match) {
       const wheel = parseInt(match[1], 10);
-      if (wheel >= 18 && wheel <= 23) return wheel;
+      if (isValidRimSize(wheel)) return wheel;
     }
   }
   return null;
@@ -72,11 +80,167 @@ function isTyreQuoteAutoSelectUrl(url) {
     /^https:\/\/os\.tesla\.com\/en-AU\/pace\//i.test(url);
 }
 
-function getTyreQuoteScriptTarget(tabId, url) {
-  return isTyreQuoteAutoSelectUrl(url)
-    ? { tabId, allFrames: true }
-    : { tabId };
+async function getTyreQuoteScriptTarget(tabId, url) {
+  if (!isTyreQuoteAutoSelectUrl(url)) {
+    return { tabId };
+  }
+
+  if (/customerconnect\.tesla\.com/i.test(url || "")) {
+    return { tabId };
+  }
+
+  try {
+    const frames = await chrome.webNavigation.getAllFrames({ tabId });
+    const tccFrameIds = frames
+      .filter(frame => frame.url && /customerconnect\.tesla\.com/i.test(frame.url))
+      .map(frame => frame.frameId);
+    if (tccFrameIds.length > 0) {
+      console.log("[Tyre Quote] Targeting TCC iframe frame(s):", tccFrameIds);
+      return { tabId, frameIds: tccFrameIds };
+    }
+  } catch (err) {
+    console.warn("[Tyre Quote] Could not resolve TCC iframe frames:", err);
+  }
+
+  return { tabId, allFrames: true };
 }
+
+async function runTccWheelDetectionOnPage() {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const click = el => el?.click();
+
+  const detectWheelSizeFromText = (text) => {
+    if (!text) return null;
+    const inch = `(?:''|''|["\u201C\u201D\u2033]+|['\u2019\u2032]+)+`;
+    const patterns = [
+      /WHEELS\s*[\r\n]+\s*(\d{2})\b/i,
+      new RegExp(`WHEELS\\s*[\\r\\n]+(\\d{2})\\s*${inch}`, "i"),
+      new RegExp(`WHEELS[\\s\\S]{0,200}?(\\d{2})\\s*${inch}`, "i"),
+      new RegExp(`(\\d{2})\\s*${inch}\\s*(?:Gemini|Sports\\s+Apollo|Apollo)[\\w\\s()$]*Wheels`, "i"),
+      new RegExp(`(\\d{2})\\s*${inch}\\s+[\\w\\s()$]+Wheels`, "i"),
+      /(\d{2})\s*(?:''|['\u2019]{2})\s*Sports\s+Apollo/i,
+      /(\d{2})\s*["\u201D]\s*Sports\s+Apollo/i,
+      /(\d{2})\s*(?:''|['\u2019]{2}|["\u201D]|\u2033)\s*(?:Gemini|Sports)/i,
+    ];
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match) {
+        const wheel = parseInt(match[1], 10);
+        if (wheel >= 18 && wheel <= 23) return wheel;
+      }
+    }
+    return null;
+  };
+
+  const collectPageText = () => {
+    const chunks = new Set();
+    const visit = (node) => {
+      if (!node) return;
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const text = node.innerText?.trim() || node.textContent?.trim();
+        if (text && text.length > 2) chunks.add(text);
+      }
+      if (node.shadowRoot) visit(node.shadowRoot);
+      for (const child of node.childNodes || []) visit(child);
+    };
+
+    visit(document.body);
+    document.querySelectorAll(
+      "mat-expansion-panel, mat-expansion-panel-header, mat-expansion-panel-content, " +
+      ".mat-expansion-panel-content, .mat-expansion-panel-body, mat-drawer, " +
+      ".mat-drawer-inner-container, [class*='detail'], [class*='asset']"
+    ).forEach(el => {
+      const text = el.innerText?.trim() || el.textContent?.trim();
+      if (text) chunks.add(text);
+    });
+    return [...chunks].join("\n");
+  };
+
+  const detectWheelFromDom = () => {
+    for (const el of document.querySelectorAll("span, div, td, th, label, dt, dd, p, li")) {
+      if (!/^WHEELS$/i.test(el.textContent?.trim() || "")) continue;
+      const container = el.closest(
+        "tr, mat-list-item, .mat-list-item, mat-expansion-panel, section, div"
+      ) || el.parentElement;
+      if (container) {
+        const wheel = detectWheelSizeFromText("WHEELS\n" + container.textContent);
+        if (wheel) return wheel;
+      }
+      const next = el.nextElementSibling;
+      if (next) {
+        const wheel = detectWheelSizeFromText(next.textContent || "");
+        if (wheel) return wheel;
+      }
+    }
+    return null;
+  };
+
+  const isModelYLFromText = (text) => /Model\s*YL\b/i.test(text || "");
+
+  const hasTccContext = () =>
+    location.hostname.includes("customerconnect.tesla.com") ||
+    !!document.getElementById("tcc-asset-panel-detail-icon") ||
+    !!document.querySelector('img[mattooltip="Vehicle Details"]') ||
+    !!document.querySelector("#tcc-log-communication-close") ||
+    !!document.querySelector("mat-expansion-panel-header");
+
+  if (!hasTccContext()) {
+    return { wheel: null, drawerOpenedBy: null, isModelYL: false, host: location.hostname };
+  }
+
+  let drawerOpenedBy = null;
+  let clickedVehicle = false;
+  let clickedInfo = false;
+
+  for (let attempt = 1; attempt <= 18; attempt++) {
+    const infoIcon = document.getElementById("tcc-asset-panel-detail-icon");
+    const vehicleIcon = document.querySelector('img[mattooltip="Vehicle Details"]');
+
+    if (!clickedInfo && infoIcon && !infoIcon.classList.contains("tcc-sms-disabled")) {
+      click(infoIcon);
+      drawerOpenedBy = "info";
+      clickedInfo = true;
+      await sleep(600);
+    } else if (!clickedVehicle && vehicleIcon) {
+      click(vehicleIcon);
+      drawerOpenedBy = "vehicle";
+      clickedVehicle = true;
+      await sleep(600);
+    }
+
+    await sleep(attempt <= 3 ? 700 : 450);
+
+    const pageText = collectPageText();
+    let wheel = detectWheelFromDom() || detectWheelSizeFromText(pageText);
+    const isModelYL = isModelYLFromText(pageText);
+    if (wheel) {
+      return { wheel, drawerOpenedBy, isModelYL, host: location.hostname };
+    }
+
+    if (/WHEELS/i.test(pageText)) {
+      await sleep(300);
+      const retryText = collectPageText();
+      wheel = detectWheelFromDom() || detectWheelSizeFromText(retryText);
+      if (wheel) {
+        return {
+          wheel,
+          drawerOpenedBy,
+          isModelYL: isModelYLFromText(retryText),
+          host: location.hostname
+        };
+      }
+    }
+  }
+
+  const pageText = collectPageText();
+  return {
+    wheel: null,
+    drawerOpenedBy,
+    isModelYL: isModelYLFromText(pageText),
+    host: location.hostname
+  };
+}
+
 
 function clearPositionFlash() {
   if (window.positionFlashTimeout) {
@@ -199,9 +363,20 @@ async function detectVinFromPage() {
     if (!tab.url?.startsWith("https://")) return null;
 
     const results = await chrome.scripting.executeScript({
-      target: getTyreQuoteScriptTarget(tab.id, tab.url),
+      target: await getTyreQuoteScriptTarget(tab.id, tab.url),
       func: () => {
-        const allText = document.body?.innerText || "";
+        const chunks = new Set();
+        const visit = (node) => {
+          if (!node) return;
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const text = node.innerText?.trim() || node.textContent?.trim();
+            if (text && text.length > 2) chunks.add(text);
+          }
+          if (node.shadowRoot) visit(node.shadowRoot);
+          for (const child of node.childNodes || []) visit(child);
+        };
+        visit(document.body);
+        const allText = [...chunks].join("\n");
         const vinMatch = allText.match(/\b[A-HJ-NPR-Z0-9]{17}\b/i);
         return vinMatch ? vinMatch[0] : null;
       }
@@ -318,117 +493,25 @@ async function autoSelectTyreAndGenerate() {
   if (!tab?.id) return;
 
   const wheelResult = await chrome.scripting.executeScript({
-    target: getTyreQuoteScriptTarget(tab.id, tab.url),
-    func: async () => {
-      const sleep = ms => new Promise(r => setTimeout(r, ms));
-      const click = el => el?.click();
-
-      const hasTccContext = () => {
-        const text = document.body?.innerText || "";
-        return location.hostname.includes("customerconnect.tesla.com") ||
-          document.getElementById("tcc-asset-panel-detail-icon") ||
-          document.querySelector('img[mattooltip="Vehicle Details"]') ||
-          /WHEELS/i.test(text) ||
-          /Model\s*Y/i.test(text);
-      };
-
-      if (!hasTccContext()) {
-        return { wheel: null, drawerOpenedBy: null, isModelYL: false };
-      }
-
-      const detectWheelSizeFromText = (text) => {
-        if (!text) return null;
-        const inch = `(?:\\u2033|\\u201D|\\u201C|"|'|\\u2019){1,3}`;
-        const patterns = [
-          new RegExp(`WHEELS\\s*[\\r\\n]+(\\d{2})\\s*${inch}`, "i"),
-          new RegExp(`WHEELS[\\s\\S]{0,160}?(\\d{2})\\s*${inch}`, "i"),
-          new RegExp(`(\\d{2})\\s*${inch}\\s*(?:Gemini|Sports\\s+Apollo|Apollo)[\\w\\s()$]*Wheels`, "i"),
-          new RegExp(`(\\d{2})\\s*${inch}\\s+[\\w\\s()$]+Wheels`, "i"),
-        ];
-        for (const pattern of patterns) {
-          const match = text.match(pattern);
-          if (match) {
-            const wheel = parseInt(match[1], 10);
-            if (wheel >= 18 && wheel <= 23) return wheel;
-          }
-        }
-        return null;
-      };
-
-      const isModelYLFromText = (text) => {
-        if (!text) return false;
-        return /Model\s*YL\b/i.test(text);
-      };
-
-      const collectPageText = () => {
-        const chunks = [document.body?.innerText || ""];
-        document.querySelectorAll(
-          "mat-expansion-panel, .mat-expansion-panel-content, .mat-expansion-panel-body, mat-drawer, .mat-drawer-inner-container"
-        ).forEach(el => {
-          const text = el.innerText?.trim();
-          if (text) chunks.push(text);
-        });
-        return chunks.join("\n");
-      };
-
-      let drawerOpenedBy = null;
-      let clickedVehicle = false;
-      let clickedInfo = false;
-
-      for (let attempt = 1; attempt <= 12; attempt++) {
-        console.log(`[Page] Wheel detect attempt ${attempt}`);
-
-        // Open Details panel if closed
-        const detailsHeader = [...document.querySelectorAll("mat-expansion-panel-header")]
-          .find(h => h.innerText.trim().toLowerCase() === "details");
-        if (detailsHeader && detailsHeader.getAttribute("aria-expanded") !== "true") {
-          click(detailsHeader);
-          await sleep(300);
-        }
-
-        // Click Info / Vehicle icons only once
-        const infoIcon = document.getElementById("tcc-asset-panel-detail-icon");
-        const vehicleIcon = document.querySelector('img[mattooltip="Vehicle Details"]');
-
-        if (!clickedInfo && infoIcon && !infoIcon.classList.contains("tcc-sms-disabled")) {
-          click(infoIcon);
-          drawerOpenedBy = "info";
-          clickedInfo = true;
-        } else if (!clickedVehicle && vehicleIcon) {
-          click(vehicleIcon);
-          drawerOpenedBy = "vehicle";
-          clickedVehicle = true;
-        }
-
-        await sleep(400);
-
-        const pageText = collectPageText();
-        const wheel = detectWheelSizeFromText(pageText);
-        const isModelYL = isModelYLFromText(pageText);
-        if (wheel) {
-          console.log("[Page] Wheel size detected:", wheel, "| Model YL:", isModelYL);
-          return { wheel, drawerOpenedBy, isModelYL };
-        }
-
-        await sleep(500);
-      }
-
-      console.warn("[Page] Failed to detect wheel size after 12 attempts");
-      const pageText = collectPageText();
-      const isModelYL = isModelYLFromText(pageText);
-      return { wheel: null, drawerOpenedBy, isModelYL };
-    }
+    target: await getTyreQuoteScriptTarget(tab.id, tab.url),
+    func: runTccWheelDetectionOnPage
   });
 
-  // ✅ Extract wheel from result safely (prefer frame that found a wheel)
+  // Prefer the customerconnect frame that found a wheel size.
   const frameResults = (wheelResult || []).map(r => r.result).filter(Boolean);
-  const bestWheelResult = frameResults.find(r => r.wheel) || frameResults[0];
+  const bestWheelResult =
+    frameResults.find(r => r.wheel && /customerconnect/i.test(r.host || "")) ||
+    frameResults.find(r => r.wheel) ||
+    frameResults.find(r => /customerconnect/i.test(r.host || "")) ||
+    frameResults[0];
   const wheel = bestWheelResult?.wheel;
   const drawerOpenedBy = bestWheelResult?.drawerOpenedBy;
   const isModelYL = bestWheelResult?.isModelYL;
 
   if (!wheel) {
-    console.warn("[Tyre Quote] Wheel size not detected.");
+    console.warn("[Tyre Quote] Wheel size not detected.", {
+      frames: frameResults.map(r => ({ host: r.host, hasWheel: !!r.wheel }))
+    });
     return;
   }
   console.log("[Tyre Quote] Detected wheel:", wheel);
@@ -516,7 +599,7 @@ async function autoSelectTyreAndGenerate() {
   // 🔟 Close drawer if we opened it
   if (drawerOpenedBy) {
     await chrome.scripting.executeScript({
-      target: getTyreQuoteScriptTarget(tab.id, tab.url),
+      target: await getTyreQuoteScriptTarget(tab.id, tab.url),
       func: (openedBy) => {
         const click = el => el?.click();
         if (openedBy === "info") {
