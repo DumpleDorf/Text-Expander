@@ -36,45 +36,75 @@ section.tds-modal-content.pace-transfer-modal-active #pace-transfer-picker {
   align-self: start;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  align-items: stretch;
+  gap: 10px;
   width: 100%;
   min-width: 0;
 }
 
-section.tds-modal-content .pace-transfer-row {
+/* Reserve just enough for 3 compact Energy option rows */
+section.tds-modal-content #pace-transfer-picker .pace-transfer-picker-body {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 8px;
   width: 100%;
+  height: 138px;
+  min-height: 138px;
+  max-height: 138px;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
-section.tds-modal-content .pace-transfer-row--hidden {
+section.tds-modal-content #pace-transfer-picker .pace-transfer-row {
+  display: grid !important;
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+section.tds-modal-content #pace-transfer-picker .pace-transfer-row--hidden {
   display: none !important;
 }
 
-section.tds-modal-content .pace-transfer-row--department .pace-transfer-btn {
-  flex: 1 1 calc(50% - 4px);
+/* Virtual Sales / Delivery / Energy — always one equal-width row */
+section.tds-modal-content #pace-transfer-picker .pace-transfer-row--department {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-section.tds-modal-content .pace-transfer-row--state .pace-transfer-btn {
-  flex: 1 1 calc(25% - 6px);
+/* State options — 4 equal columns across full width */
+section.tds-modal-content #pace-transfer-picker .pace-transfer-row--state {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-section.tds-modal-content .pace-transfer-btn {
+/* Energy follow-up options — 2 equal columns across full width */
+section.tds-modal-content #pace-transfer-picker .pace-transfer-row--energy {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Installer support type — 3 equal columns */
+section.tds-modal-content #pace-transfer-picker .pace-transfer-row--energy-support {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+section.tds-modal-content #pace-transfer-picker .pace-transfer-btn {
   box-sizing: border-box;
-  display: block;
-  min-width: 0;
-  margin: 0;
-  padding: 8px 6px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 6px 4px;
   border-radius: 4px;
   border: 1px solid #5c5e62;
   background: transparent;
   color: #e2e3e3;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   cursor: pointer;
   font-family: "Universal Sans Text", "Segoe UI", Tahoma, sans-serif;
-  line-height: 1.25;
+  line-height: 1.2;
   text-align: center;
   white-space: normal;
   word-break: break-word;
@@ -83,18 +113,18 @@ section.tds-modal-content .pace-transfer-btn {
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-section.tds-modal-content .pace-transfer-btn:hover {
+section.tds-modal-content #pace-transfer-picker .pace-transfer-btn:hover {
   background: rgba(255, 255, 255, 0.08);
   border-color: #8e8e8e;
 }
 
-section.tds-modal-content .pace-transfer-btn.selected {
+section.tds-modal-content #pace-transfer-picker .pace-transfer-btn.selected {
   background: #3e6ae1 !important;
   border-color: #3e6ae1 !important;
   color: #fff !important;
 }
 
-section.tds-modal-content .pace-transfer-btn.selected:hover {
+section.tds-modal-content #pace-transfer-picker .pace-transfer-btn.selected:hover {
   background: #3e6ae1 !important;
   border-color: #3e6ae1 !important;
 }

@@ -10,7 +10,56 @@
 
   const DEPARTMENT_LABELS = {
     Sales: "Virtual Sales Transfer",
-    Delivery: "Delivery Transfer"
+    Delivery: "Delivery Transfer",
+    Energy: "Energy Transfer"
+  };
+
+  const ENERGY_TEAM_MAP = {
+    customer: {
+      wallconnector: "AP-AU-Energy-CS-WallConnector:Voice",
+      powerwall: "AP-AU-Energy-CS-Powerwall:Voice"
+    },
+    installer: {
+      wallconnector: {
+        install: "AP-AU-Energy-CI-DayOfInstall-WallConnector:Voice",
+        onsite: "AP-AU-Energy-CI-OSM-WallConnector:Voice",
+        general: "AP-AU-Energy-CI-NotOnSite-WallConnector:Voice"
+      },
+      powerwall: {
+        install: "AP-AU-Energy-CI-DayOfInstall-Powerwall:Voice",
+        onsite: "AP-AU-Energy-CI-OSM-Powerwall:Voice",
+        general: "AP-AU-Energy-CI-NotOnSite-Powerwall:Voice"
+      }
+    }
+  };
+
+  const ENERGY_FLOW = {
+    audience: [
+      { id: "customer", label: "Customer Facing" },
+      { id: "installer", label: "Installer Facing" }
+    ],
+    product: {
+      customer: [
+        { id: "wallconnector", label: "Wall Connector Support" },
+        { id: "powerwall", label: "Powerwall Support" }
+      ],
+      installer: [
+        { id: "wallconnector", label: "Wall Connector" },
+        { id: "powerwall", label: "Powerwall" }
+      ]
+    },
+    support: {
+      wallconnector: [
+        { id: "install", label: "Onsite Installation Support" },
+        { id: "onsite", label: "Onsite Maintenance or Warranty Works" },
+        { id: "general", label: "General Support" }
+      ],
+      powerwall: [
+        { id: "install", label: "Onsite Installation Support" },
+        { id: "onsite", label: "Onsite Maintenance or Warranty Works" },
+        { id: "general", label: "General Support" }
+      ]
+    }
   };
 
   const STATE_ORDER = ["NSW", "VIC", "SA", "QLD", "WA", "ACT", "TAS", "NT"];
@@ -18,17 +67,25 @@
   let transferData = [];
   let selectedDepartment = null;
   let selectedStateGroup = null;
+  let selectedEnergyAudience = null;
+  let selectedEnergyProduct = null;
+  let selectedEnergySupportType = null;
   let activeDialog = null;
   let wasModalOpen = false;
   let wasTeamSearchVisible = false;
   let checkTimer = null;
 
   function injectStyles() {
-    if (document.getElementById("pace-transfer-picker-styles")) return;
+    const existing = document.getElementById("pace-transfer-picker-styles");
+    const href = chrome.runtime.getURL("PACEImprovements/transferPicker.css");
+    if (existing) {
+      if (existing.getAttribute("href") !== href) existing.setAttribute("href", href);
+      return;
+    }
     const link = document.createElement("link");
     link.id = "pace-transfer-picker-styles";
     link.rel = "stylesheet";
-    link.href = chrome.runtime.getURL("PACEImprovements/transferPicker.css");
+    link.href = href;
     (document.head || document.documentElement).appendChild(link);
   }
 
@@ -84,6 +141,58 @@
   function resetSelectionState() {
     selectedDepartment = null;
     selectedStateGroup = null;
+    selectedEnergyAudience = null;
+    selectedEnergyProduct = null;
+    selectedEnergySupportType = null;
+  }
+
+  function resetEnergySelectionState() {
+    selectedEnergyAudience = null;
+    selectedEnergyProduct = null;
+    selectedEnergySupportType = null;
+  }
+
+  function getEnergyGroupName() {
+    if (!selectedEnergyAudience || !selectedEnergyProduct) return null;
+
+    if (selectedEnergyAudience === "customer") {
+      return ENERGY_TEAM_MAP.customer[selectedEnergyProduct] || null;
+    }
+
+    if (!selectedEnergySupportType) return null;
+    return ENERGY_TEAM_MAP.installer[selectedEnergyProduct]?.[selectedEnergySupportType] || null;
+  }
+
+  function applyTeamSelection(groupName, dialog) {
+    if (!groupName) return;
+    renderPicker(dialog);
+    selectTeamInDropdown(groupName, dialog);
+  }
+
+  function createTransferButton(label, isSelected, onClick) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "pace-transfer-btn";
+    btn.textContent = label;
+    if (isSelected) btn.classList.add("selected");
+    btn.addEventListener("click", onClick);
+    return btn;
+  }
+
+  function setRowVisibility(row, visible) {
+    if (!row) return;
+    row.classList.toggle("pace-transfer-row--hidden", !visible);
+  }
+
+  function renderButtonRow(row, options, selectedId, onSelect) {
+    row.innerHTML = "";
+    options.forEach(option => {
+      row.appendChild(createTransferButton(
+        option.label,
+        selectedId === option.id,
+        () => onSelect(option.id)
+      ));
+    });
   }
 
   function resetPickerState() {
@@ -119,67 +228,141 @@
 
     const deptRow = picker.querySelector('[data-level="department"]');
     const stateRow = picker.querySelector('[data-level="state"]');
-    if (!deptRow || !stateRow) return;
+    const audienceRow = picker.querySelector('[data-level="energy-audience"]');
+    const productRow = picker.querySelector('[data-level="energy-product"]');
+    const supportRow = picker.querySelector('[data-level="energy-support"]');
+    if (!deptRow || !stateRow || !audienceRow || !productRow || !supportRow) return;
 
     deptRow.innerHTML = "";
-
     Object.entries(DEPARTMENT_LABELS).forEach(([department, label]) => {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "pace-transfer-btn";
-      btn.textContent = label;
-      if (selectedDepartment === department) btn.classList.add("selected");
-
-      btn.addEventListener("click", () => {
-        if (selectedDepartment === department) {
-          selectedDepartment = null;
-          selectedStateGroup = null;
-          clearTeamSelection(dialog);
-        } else {
-          selectedDepartment = department;
-          selectedStateGroup = null;
-          clearTeamSelection(dialog);
+      deptRow.appendChild(createTransferButton(
+        label,
+        selectedDepartment === department,
+        () => {
+          if (selectedDepartment === department) {
+            selectedDepartment = null;
+            selectedStateGroup = null;
+            resetEnergySelectionState();
+            clearTeamSelection(dialog);
+          } else {
+            selectedDepartment = department;
+            selectedStateGroup = null;
+            resetEnergySelectionState();
+            clearTeamSelection(dialog);
+          }
+          renderPicker(dialog);
         }
+      ));
+    });
+
+    const isEnergy = selectedDepartment === "Energy";
+    const isMotors = selectedDepartment === "Sales" || selectedDepartment === "Delivery";
+
+    setRowVisibility(stateRow, isMotors);
+    setRowVisibility(audienceRow, isEnergy);
+    setRowVisibility(productRow, isEnergy && !!selectedEnergyAudience);
+    setRowVisibility(
+      supportRow,
+      isEnergy && selectedEnergyAudience === "installer" && !!selectedEnergyProduct
+    );
+
+    stateRow.innerHTML = "";
+    if (isMotors) {
+      transferData
+        .filter(entry => entry.Department === selectedDepartment)
+        .sort((a, b) => STATE_ORDER.indexOf(a.State) - STATE_ORDER.indexOf(b.State))
+        .forEach(entry => {
+          const groupName = entry["Group Name"];
+          stateRow.appendChild(createTransferButton(
+            entry.Button,
+            selectedStateGroup === groupName,
+            () => {
+              if (selectedStateGroup === groupName) {
+                selectedStateGroup = null;
+                clearTeamSelection(dialog);
+                renderPicker(dialog);
+                return;
+              }
+              selectedStateGroup = groupName;
+              applyTeamSelection(groupName, dialog);
+            }
+          ));
+        });
+    }
+
+    if (isEnergy) {
+      renderButtonRow(audienceRow, ENERGY_FLOW.audience, selectedEnergyAudience, (audienceId) => {
+        if (selectedEnergyAudience === audienceId) {
+          selectedEnergyAudience = null;
+          selectedEnergyProduct = null;
+          selectedEnergySupportType = null;
+          clearTeamSelection(dialog);
+          renderPicker(dialog);
+          return;
+        }
+
+        selectedEnergyAudience = audienceId;
+        selectedEnergyProduct = null;
+        selectedEnergySupportType = null;
+        clearTeamSelection(dialog);
         renderPicker(dialog);
       });
 
-      deptRow.appendChild(btn);
-    });
+      if (selectedEnergyAudience) {
+        renderButtonRow(
+          productRow,
+          ENERGY_FLOW.product[selectedEnergyAudience],
+          selectedEnergyProduct,
+          (productId) => {
+            if (selectedEnergyProduct === productId) {
+              selectedEnergyProduct = null;
+              selectedEnergySupportType = null;
+              clearTeamSelection(dialog);
+              renderPicker(dialog);
+              return;
+            }
 
-    stateRow.innerHTML = "";
+            selectedEnergyProduct = productId;
+            selectedEnergySupportType = null;
 
-    if (!selectedDepartment) {
-      stateRow.classList.add("pace-transfer-row--hidden");
-      return;
-    }
+            if (selectedEnergyAudience === "customer") {
+              applyTeamSelection(getEnergyGroupName(), dialog);
+              return;
+            }
 
-    stateRow.classList.remove("pace-transfer-row--hidden");
-
-    transferData
-      .filter(entry => entry.Department === selectedDepartment)
-      .sort((a, b) => STATE_ORDER.indexOf(a.State) - STATE_ORDER.indexOf(b.State))
-      .forEach(entry => {
-        const groupName = entry["Group Name"];
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "pace-transfer-btn";
-        btn.textContent = entry.Button;
-        if (selectedStateGroup === groupName) btn.classList.add("selected");
-
-        btn.addEventListener("click", () => {
-          if (selectedStateGroup === groupName) {
-            selectedStateGroup = null;
             clearTeamSelection(dialog);
             renderPicker(dialog);
-            return;
           }
-          selectedStateGroup = groupName;
-          renderPicker(dialog);
-          selectTeamInDropdown(groupName, dialog);
-        });
+        );
+      } else {
+        productRow.innerHTML = "";
+      }
 
-        stateRow.appendChild(btn);
-      });
+      if (selectedEnergyAudience === "installer" && selectedEnergyProduct) {
+        renderButtonRow(
+          supportRow,
+          ENERGY_FLOW.support[selectedEnergyProduct],
+          selectedEnergySupportType,
+          (supportId) => {
+            if (selectedEnergySupportType === supportId) {
+              selectedEnergySupportType = null;
+              clearTeamSelection(dialog);
+              renderPicker(dialog);
+              return;
+            }
+
+            selectedEnergySupportType = supportId;
+            applyTeamSelection(getEnergyGroupName(), dialog);
+          }
+        );
+      } else {
+        supportRow.innerHTML = "";
+      }
+    } else {
+      audienceRow.innerHTML = "";
+      productRow.innerHTML = "";
+      supportRow.innerHTML = "";
+    }
   }
 
   async function selectTeamInDropdown(groupName, dialog) {
@@ -221,12 +404,32 @@
     deptRow.className = "pace-transfer-row pace-transfer-row--department";
     deptRow.dataset.level = "department";
 
+    const body = document.createElement("div");
+    body.className = "pace-transfer-picker-body";
+
     const stateRow = document.createElement("div");
     stateRow.className = "pace-transfer-row pace-transfer-row--state pace-transfer-row--hidden";
     stateRow.dataset.level = "state";
 
+    const audienceRow = document.createElement("div");
+    audienceRow.className = "pace-transfer-row pace-transfer-row--energy pace-transfer-row--hidden";
+    audienceRow.dataset.level = "energy-audience";
+
+    const productRow = document.createElement("div");
+    productRow.className = "pace-transfer-row pace-transfer-row--energy pace-transfer-row--hidden";
+    productRow.dataset.level = "energy-product";
+
+    const supportRow = document.createElement("div");
+    supportRow.className = "pace-transfer-row pace-transfer-row--energy pace-transfer-row--energy-support pace-transfer-row--hidden";
+    supportRow.dataset.level = "energy-support";
+
+    body.appendChild(stateRow);
+    body.appendChild(audienceRow);
+    body.appendChild(productRow);
+    body.appendChild(supportRow);
+
     picker.appendChild(deptRow);
-    picker.appendChild(stateRow);
+    picker.appendChild(body);
     return picker;
   }
 

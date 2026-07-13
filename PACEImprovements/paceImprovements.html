@@ -19,9 +19,22 @@
         <br>
         <p>How it works:</p>
         <ul>
-          <li>Choose <b>Virtual Sales Transfer</b> or <b>Delivery Transfer</b></li>
-          <li>Pick the state option (e.g. <b>QLD Virtual Sales</b>, <b>WA Delivery</b>)</li>
+          <li>Choose <b>Virtual Sales Transfer</b>, <b>Delivery Transfer</b>, or <b>Energy Transfer</b></li>
+          <li>For Sales/Delivery, pick the state option (e.g. <b>QLD Virtual Sales</b>, <b>WA Delivery</b>)</li>
+          <li>For Energy, follow the guided flow (Customer/Installer → product → support type where needed)</li>
           <li>The matching team queue is auto-selected in the dropdown</li>
+        </ul>
+        <br>
+        <p><b>Energy transfer queues:</b></p>
+        <ul>
+          <li>Customer + Wall Connector → <code>AP-AU-Energy-CS-WallConnector:Voice</code></li>
+          <li>Customer + Powerwall → <code>AP-AU-Energy-CS-Powerwall:Voice</code></li>
+          <li>Installer + Wall Connector + Onsite Installation → <code>AP-AU-Energy-CI-DayOfInstall-WallConnector:Voice</code></li>
+          <li>Installer + Wall Connector + Onsite Maintenance/Warranty → <code>AP-AU-Energy-CI-OSM-WallConnector:Voice</code></li>
+          <li>Installer + Wall Connector + General Support → <code>AP-AU-Energy-CI-NotOnSite-WallConnector:Voice</code></li>
+          <li>Installer + Powerwall + Onsite Installation → <code>AP-AU-Energy-CI-DayOfInstall-Powerwall:Voice</code></li>
+          <li>Installer + Powerwall + Onsite Maintenance/Warranty → <code>AP-AU-Energy-CI-OSM-Powerwall:Voice</code></li>
+          <li>Installer + Powerwall + General Support → <code>AP-AU-Energy-CI-NotOnSite-Powerwall:Voice</code></li>
         </ul>
         <br>
         <p>
