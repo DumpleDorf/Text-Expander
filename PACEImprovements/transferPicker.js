@@ -163,12 +163,6 @@
     return ENERGY_TEAM_MAP.installer[selectedEnergyProduct]?.[selectedEnergySupportType] || null;
   }
 
-  function applyTeamSelection(groupName, dialog) {
-    if (!groupName) return;
-    renderPicker(dialog);
-    selectTeamInDropdown(groupName, dialog);
-  }
-
   function createTransferButton(label, isSelected, onClick) {
     const btn = document.createElement("button");
     btn.type = "button";
@@ -216,8 +210,10 @@
   function clearTeamSelection(dialog) {
     const input = dialog.querySelector("#search-team");
     if (!input) return;
-    const clearBtn = input.closest(".tds-form-input")?.querySelector(".tds-form-input-search-clear button");
-    if (clearBtn) clearBtn.click();
+    if (input.value) {
+      const clearBtn = input.closest(".tds-form-input")?.querySelector(".tds-form-input-search-clear button");
+      if (clearBtn) clearBtn.click();
+    }
     setInputValue(input, "");
     dispatchInputEvents(input);
   }
@@ -284,7 +280,8 @@
                 return;
               }
               selectedStateGroup = groupName;
-              applyTeamSelection(groupName, dialog);
+              renderPicker(dialog);
+              selectTeamInDropdown(groupName, dialog);
             }
           ));
         });
@@ -326,7 +323,9 @@
             selectedEnergySupportType = null;
 
             if (selectedEnergyAudience === "customer") {
-              applyTeamSelection(getEnergyGroupName(), dialog);
+              selectedStateGroup = null;
+              renderPicker(dialog);
+              selectTeamInDropdown(getEnergyGroupName(), dialog);
               return;
             }
 
@@ -352,7 +351,8 @@
             }
 
             selectedEnergySupportType = supportId;
-            applyTeamSelection(getEnergyGroupName(), dialog);
+            renderPicker(dialog);
+            selectTeamInDropdown(getEnergyGroupName(), dialog);
           }
         );
       } else {
@@ -369,11 +369,12 @@
     const input = dialog.querySelector("#search-team");
     if (!input) return;
 
-    const clearBtn = input.closest(".tds-form-input")?.querySelector(".tds-form-input-search-clear button");
-    if (clearBtn && input.value) clearBtn.click();
+    if (input.value) {
+      const clearBtn = input.closest(".tds-form-input")?.querySelector(".tds-form-input-search-clear button");
+      if (clearBtn) clearBtn.click();
+    }
 
     input.focus();
-    input.click();
     setInputValue(input, groupName);
     dispatchInputEvents(input);
 
@@ -390,7 +391,6 @@
 
       if (option && option.getAttribute("aria-disabled") !== "true") {
         option.click();
-        dispatchInputEvents(input);
         return;
       }
     }
