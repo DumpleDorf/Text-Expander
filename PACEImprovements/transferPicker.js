@@ -52,12 +52,12 @@
       wallconnector: [
         { id: "install", label: "Onsite Installation Support" },
         { id: "onsite", label: "Onsite Maintenance or Warranty Works" },
-        { id: "general", label: "General Support" }
+        { id: "general", label: "(Not Onsite) General Support" }
       ],
       powerwall: [
         { id: "install", label: "Onsite Installation Support" },
         { id: "onsite", label: "Onsite Maintenance or Warranty Works" },
-        { id: "general", label: "General Support" }
+        { id: "general", label: "(Not Onsite) General Support" }
       ]
     }
   };

@@ -106,14 +106,38 @@ html.pace-advisor-wallboard-open body {
   padding: 16px 20px 24px;
 }
 
+.pace-advisor-wallboard-columns {
+  display: block;
+  width: 100%;
+  min-height: 0;
+}
+
+.pace-advisor-wallboard-table--split {
+  overflow: hidden;
+}
+
+.pace-advisor-wallboard-table--split .pace-advisor-wallboard-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  height: 100%;
+  align-items: start;
+}
+
 .pace-advisor-wallboard-grid {
   display: grid;
-  grid-template-columns: minmax(18em, 2fr) minmax(10em, 1.2fr) minmax(8em, 0.9fr);
+  grid-template-columns: minmax(10em, 2fr) minmax(7em, 1.2fr) minmax(5em, 0.9fr);
   width: 100%;
   border: 1px solid #d0d1d2;
   border-radius: 4px;
   overflow: hidden;
   background: #fff;
+  align-content: start;
+}
+
+.pace-advisor-wallboard-table--split .pace-advisor-wallboard-grid {
+  max-height: 100%;
+  overflow: auto;
 }
 
 .pace-advisor-cell {
@@ -161,7 +185,13 @@ html.pace-advisor-wallboard-open body {
 }
 
 .pace-advisor-wallboard .pace-wallboard-wait--red {
-  background-color: #e85c5c !important;
-  background: #e85c5c !important;
+  background-color: #ef7a7a !important;
+  background: #ef7a7a !important;
+  color: #171a20 !important;
+}
+
+.pace-advisor-wallboard .pace-wallboard-wait--blue {
+  background-color: #b8d4f0 !important;
+  background: #b8d4f0 !important;
   color: #171a20 !important;
 }

@@ -170,30 +170,11 @@
     const value = normalize(state).toLowerCase();
     if (!value) return null;
     if (value === "available" || value === "ready") return "green";
-    if (value === "on call" || value === "on chat" || value === "on case" || value === "acw") return "yellow";
-    if (
-      value === "busy" ||
-      value === "rona" ||
-      value.includes("max capacity") ||
-      value === "pending aux" ||
-      value === "lunch" ||
-      value === "break" ||
-      value === "training" ||
-      value === "not ready" ||
-      value === "meeting" ||
-      value === "emails" ||
-      value === "outbound" ||
-      value === "escalation" ||
-      value === "peer assistance" ||
-      value === "roadside" ||
-      value === "resolutions" ||
-      value === "pipeline" ||
-      value === "it assistance" ||
-      value === "dispatch" ||
-      value === "project" ||
-      value === "additional work"
-    ) return "red";
-    return null;
+    if (value === "on call" || value === "on chat" || value === "on case") return "yellow";
+    if (value === "lunch" || value === "break") return null;
+    if (value === "meeting" || value === "project" || value === "training" || value === "roadside") return "blue";
+    // ACW and everything else
+    return "red";
   }
 
   function stateSortRank(state) {
@@ -271,8 +252,11 @@
           <button type="button" class="pace-advisor-wallboard-close" data-close aria-label="Exit Wallboard">×</button>
         </div>
       </div>
-      <div class="pace-advisor-wallboard-table">
-        <div class="pace-advisor-wallboard-grid" data-grid></div>
+      <div class="pace-advisor-wallboard-table" data-table>
+        <div class="pace-advisor-wallboard-columns" data-columns>
+          <div class="pace-advisor-wallboard-grid" data-grid-left></div>
+          <div class="pace-advisor-wallboard-grid" data-grid-right hidden></div>
+        </div>
       </div>
     `;
 
@@ -283,20 +267,14 @@
     return root;
   }
 
-  function renderGrid(rows) {
-    if (!overlay) return;
-    const grid = overlay.querySelector("[data-grid]");
-    if (!grid) return;
-
-    const now = Date.now();
-    const sorted = sortAdvisors(rows);
+  function buildGridHtml(rows, now, { showEmpty = false } = {}) {
     const parts = [
       `<div class="pace-advisor-cell pace-advisor-cell--head">Name</div>`,
       `<div class="pace-advisor-cell pace-advisor-cell--head">State</div>`,
       `<div class="pace-advisor-cell pace-advisor-cell--head">Time</div>`
     ];
 
-    sorted.forEach(row => {
+    rows.forEach(row => {
       const seconds = row.updatedAt ? rowSeconds(row, now) : null;
       const timeText = formatDuration(seconds);
       const stateClass = stateStatus(row.state);
@@ -310,11 +288,77 @@
       );
     });
 
-    if (!sorted.length) {
+    if (showEmpty && !rows.length) {
       parts.push(`<div class="pace-advisor-cell pace-advisor-cell--empty">No advisors found on this page</div>`);
     }
 
-    grid.innerHTML = parts.join("");
+    return parts.join("");
+  }
+
+  function estimateFitCount(tableEl, probeGrid) {
+    const style = getComputedStyle(tableEl);
+    const padY = (parseFloat(style.paddingTop) || 0) + (parseFloat(style.paddingBottom) || 0);
+    const available = tableEl.clientHeight - padY;
+    if (available <= 0) return Infinity;
+
+    const head = probeGrid.querySelector(".pace-advisor-cell--head");
+    const nameCell = probeGrid.querySelector(".pace-advisor-cell--name:not(.pace-advisor-cell--head)");
+    const headHeight = head?.getBoundingClientRect().height || 42;
+    const rowHeight = nameCell?.getBoundingClientRect().height || 42;
+    if (rowHeight <= 0) return Infinity;
+
+    return Math.max(1, Math.floor((available - headHeight) / rowHeight));
+  }
+
+  function renderGrid(rows) {
+    if (!overlay) return;
+    const tableEl = overlay.querySelector("[data-table]");
+    const columnsEl = overlay.querySelector("[data-columns]");
+    const leftGrid = overlay.querySelector("[data-grid-left]");
+    const rightGrid = overlay.querySelector("[data-grid-right]");
+    if (!tableEl || !columnsEl || !leftGrid || !rightGrid) return;
+
+    const now = Date.now();
+    const sorted = sortAdvisors(rows);
+
+    // Probe as a single column first
+    tableEl.classList.remove("pace-advisor-wallboard-table--split");
+    rightGrid.hidden = true;
+    rightGrid.innerHTML = "";
+    leftGrid.innerHTML = buildGridHtml(sorted, now, { showEmpty: true });
+
+    const applySplit = () => {
+      if (!overlay || !tableEl.isConnected) return;
+
+      if (sorted.length < 2) {
+        tableEl.classList.remove("pace-advisor-wallboard-table--split");
+        rightGrid.hidden = true;
+        rightGrid.innerHTML = "";
+        leftGrid.innerHTML = buildGridHtml(sorted, now, { showEmpty: true });
+        return;
+      }
+
+      const fit = estimateFitCount(tableEl, leftGrid);
+      if (sorted.length <= fit) {
+        tableEl.classList.remove("pace-advisor-wallboard-table--split");
+        rightGrid.hidden = true;
+        rightGrid.innerHTML = "";
+        leftGrid.innerHTML = buildGridHtml(sorted, now, { showEmpty: true });
+        return;
+      }
+
+      // Fill left to capacity, spill remaining into the right column
+      const leftCount = Math.max(1, Math.min(fit, sorted.length - 1));
+      const leftRows = sorted.slice(0, leftCount);
+      const rightRows = sorted.slice(leftCount);
+
+      tableEl.classList.add("pace-advisor-wallboard-table--split");
+      rightGrid.hidden = false;
+      leftGrid.innerHTML = buildGridHtml(leftRows, now);
+      rightGrid.innerHTML = buildGridHtml(rightRows, now);
+    };
+
+    requestAnimationFrame(applySplit);
   }
 
   function escapeHtml(value) {
@@ -354,6 +398,12 @@
     renderGrid(cachedRows);
   }
 
+  function onViewportChange() {
+    if (!overlay) return;
+    clearTimeout(onViewportChange._debounce);
+    onViewportChange._debounce = setTimeout(() => renderGrid(cachedRows), 100);
+  }
+
   function openWallboard() {
     if (overlay) return;
     injectStyles();
@@ -366,6 +416,16 @@
 
     clearInterval(tickTimer);
     tickTimer = setInterval(tickDurations, TICK_MS);
+
+    window.addEventListener("resize", onViewportChange);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", onViewportChange);
+    }
+    if (typeof ResizeObserver !== "undefined") {
+      openWallboard._ro = new ResizeObserver(onViewportChange);
+      const tableEl = overlay.querySelector("[data-table]");
+      if (tableEl) openWallboard._ro.observe(tableEl);
+    }
 
     if (observer) observer.disconnect();
     observer = new MutationObserver(() => {
@@ -384,6 +444,14 @@
   function closeWallboard() {
     clearInterval(tickTimer);
     tickTimer = null;
+    window.removeEventListener("resize", onViewportChange);
+    if (window.visualViewport) {
+      window.visualViewport.removeEventListener("resize", onViewportChange);
+    }
+    if (openWallboard._ro) {
+      openWallboard._ro.disconnect();
+      openWallboard._ro = null;
+    }
     if (observer) {
       observer.disconnect();
       observer = null;
