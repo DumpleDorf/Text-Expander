@@ -89,6 +89,43 @@
     (document.head || document.documentElement).appendChild(link);
   }
 
+  function parseRgb(value) {
+    if (!value || value === "transparent" || value === "rgba(0, 0, 0, 0)") return null;
+    const match = value.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+    if (!match) return null;
+    return { r: Number(match[1]), g: Number(match[2]), b: Number(match[3]) };
+  }
+
+  function luminance({ r, g, b }) {
+    return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  }
+
+  // Mirror TDS label colour instead of guessing the site theme.
+  // Default stays light text (dark mode). Only switches when the nearby
+  // "Select Team" label is clearly dark (light mode).
+  function syncPickerColors(dialog) {
+    const picker = dialog?.querySelector("#pace-transfer-picker");
+    if (!picker) return;
+
+    const label = dialog.querySelector('label.tds-form-label[for="search-team"]')
+      || dialog.querySelector("label.tds-form-label");
+    const labelColor = label ? window.getComputedStyle(label).color : null;
+    const rgb = parseRgb(labelColor);
+
+    if (!rgb || luminance(rgb) >= 0.55) {
+      picker.style.removeProperty("--pace-transfer-btn-color");
+      picker.style.removeProperty("--pace-transfer-btn-border");
+      picker.style.removeProperty("--pace-transfer-btn-border-hover");
+      picker.style.removeProperty("--pace-transfer-btn-hover-bg");
+      return;
+    }
+
+    picker.style.setProperty("--pace-transfer-btn-color", labelColor);
+    picker.style.setProperty("--pace-transfer-btn-border", `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.45)`);
+    picker.style.setProperty("--pace-transfer-btn-border-hover", `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.7)`);
+    picker.style.setProperty("--pace-transfer-btn-hover-bg", `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.08)`);
+  }
+
   function isPaceQolEnabled(callback) {
     chrome.storage.sync.get({ paceQolEnabled: true }, (items) => {
       callback(items.paceQolEnabled !== false);
@@ -459,6 +496,7 @@
 
     if (existing) {
       renderPicker(dialog);
+      syncPickerColors(dialog);
       alignPickerLabels(dialog);
       return;
     }
@@ -474,6 +512,7 @@
     section.appendChild(createPickerElement());
     dropdown.insertAdjacentElement("afterend", section);
     renderPicker(dialog);
+    syncPickerColors(dialog);
     alignPickerLabels(dialog);
   }
 
@@ -495,6 +534,7 @@
     resetSelectionState();
     clearTeamSelection(dialog);
     renderPicker(dialog);
+    syncPickerColors(dialog);
     alignPickerLabels(dialog);
   }
 

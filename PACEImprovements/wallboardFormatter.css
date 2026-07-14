@@ -1,0 +1,27 @@
+/* Oldest Interaction Waiting / Waiting status colours */
+.gm-wallboard-table .gm-cell.pace-wallboard-wait--green,
+.gm-wallboard-columns .gm-cell.pace-wallboard-wait--green,
+.gm-cell.pace-wallboard-wait--green,
+.pace-wallboard-wait--green {
+  background-color: #3cb56a !important;
+  background: #3cb56a !important;
+  color: #ffffff !important;
+}
+
+.gm-wallboard-table .gm-cell.pace-wallboard-wait--yellow,
+.gm-wallboard-columns .gm-cell.pace-wallboard-wait--yellow,
+.gm-cell.pace-wallboard-wait--yellow,
+.pace-wallboard-wait--yellow {
+  background-color: #ffe566 !important;
+  background: #ffe566 !important;
+  color: #171a20 !important;
+}
+
+.gm-wallboard-table .gm-cell.pace-wallboard-wait--red,
+.gm-wallboard-columns .gm-cell.pace-wallboard-wait--red,
+.gm-cell.pace-wallboard-wait--red,
+.pace-wallboard-wait--red {
+  background-color: #e04545 !important;
+  background: #e04545 !important;
+  color: #ffffff !important;
+}
