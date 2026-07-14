@@ -37,21 +37,18 @@ section.tds-modal-content.pace-transfer-modal-active #pace-transfer-picker {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
   min-width: 0;
 }
 
-/* Reserve just enough for 3 compact Energy option rows */
+/* Follow-up option rows — same gap as department → options */
 section.tds-modal-content #pace-transfer-picker .pace-transfer-picker-body {
   display: flex;
   flex-direction: column;
   gap: 8px;
   width: 100%;
-  height: 138px;
-  min-height: 138px;
-  max-height: 138px;
-  overflow: hidden;
+  min-height: 180px;
   box-sizing: border-box;
 }
 
@@ -62,18 +59,41 @@ section.tds-modal-content #pace-transfer-picker .pace-transfer-row {
   box-sizing: border-box;
 }
 
-section.tds-modal-content #pace-transfer-picker .pace-transfer-row--hidden {
+/* Must beat per-row display overrides (e.g. motors-channel flex) */
+section.tds-modal-content #pace-transfer-picker .pace-transfer-row.pace-transfer-row--hidden {
   display: none !important;
 }
 
-/* Virtual Sales / Delivery / Energy — always one equal-width row */
+/* Virtual Sales/Delivery / Energy / CSAU — always one equal-width row */
 section.tds-modal-content #pace-transfer-picker .pace-transfer-row--department {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+/* Virtual Sales vs Delivery — keep side-by-side on one line */
+section.tds-modal-content #pace-transfer-picker .pace-transfer-row--motors-channel {
+  display: flex !important;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 6px;
+}
+
+section.tds-modal-content #pace-transfer-picker .pace-transfer-row--motors-channel .pace-transfer-btn {
+  flex: 1 1 0;
+  width: auto !important;
+  white-space: nowrap;
+  word-break: normal;
+}
+
 /* State options — 4 equal columns across full width */
-section.tds-modal-content #pace-transfer-picker .pace-transfer-row--state {
+section.tds-modal-content #pace-transfer-picker .pace-transfer-row--state,
+section.tds-modal-content #pace-transfer-picker .pace-transfer-row--csau {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+section.tds-modal-content #pace-transfer-picker .pace-transfer-row--state .pace-transfer-btn,
+section.tds-modal-content #pace-transfer-picker .pace-transfer-row--csau .pace-transfer-btn {
+  min-height: 48px;
 }
 
 /* Energy follow-up options — 2 equal columns across full width */

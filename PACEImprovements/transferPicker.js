@@ -9,10 +9,23 @@
   injectStyles();
 
   const DEPARTMENT_LABELS = {
-    Sales: "Virtual Sales Transfer",
-    Delivery: "Delivery Transfer",
-    Energy: "Energy Transfer"
+    SalesDelivery: "Virtual Sales/Delivery",
+    Energy: "Energy Transfer",
+    CSAU: "CSAU Transfer"
   };
+
+  const MOTORS_CHANNEL_OPTIONS = [
+    { id: "Sales", label: "Virtual Sales" },
+    { id: "Delivery", label: "Delivery" }
+  ];
+
+  const CSAU_OPTIONS = [
+    { id: "rs", label: "Roadside", group: "AP-AU-Vehicle-CustomerSupport-RS:Voice" },
+    { id: "vs", label: "Vehicle Support", group: "AP-AU-Vehicle-CustomerSupport-VS:Voice" },
+    { id: "sc", label: "Service Center", group: "AP-AU-Vehicle-CustomerSupport-ServiceCenter:Voice" },
+    { id: "hc", label: "Home Charging", group: "AP-AU-Vehicle-CustomerSupport-HomeCharging:Voice" },
+    { id: "bs", label: "Body Shop", group: "AP-AU-Vehicle-CustomerSupport-BodyShop:Voice" }
+  ];
 
   const ENERGY_TEAM_MAP = {
     customer: {
@@ -66,6 +79,7 @@
 
   let transferData = [];
   let selectedDepartment = null;
+  let selectedMotorsChannel = null;
   let selectedStateGroup = null;
   let selectedEnergyAudience = null;
   let selectedEnergyProduct = null;
@@ -177,6 +191,7 @@
 
   function resetSelectionState() {
     selectedDepartment = null;
+    selectedMotorsChannel = null;
     selectedStateGroup = null;
     selectedEnergyAudience = null;
     selectedEnergyProduct = null;
@@ -187,6 +202,11 @@
     selectedEnergyAudience = null;
     selectedEnergyProduct = null;
     selectedEnergySupportType = null;
+  }
+
+  function resetMotorsSelectionState() {
+    selectedMotorsChannel = null;
+    selectedStateGroup = null;
   }
 
   function getEnergyGroupName() {
@@ -260,11 +280,13 @@
     if (!picker) return;
 
     const deptRow = picker.querySelector('[data-level="department"]');
+    const motorsChannelRow = picker.querySelector('[data-level="motors-channel"]');
     const stateRow = picker.querySelector('[data-level="state"]');
+    const csauRow = picker.querySelector('[data-level="csau"]');
     const audienceRow = picker.querySelector('[data-level="energy-audience"]');
     const productRow = picker.querySelector('[data-level="energy-product"]');
     const supportRow = picker.querySelector('[data-level="energy-support"]');
-    if (!deptRow || !stateRow || !audienceRow || !productRow || !supportRow) return;
+    if (!deptRow || !motorsChannelRow || !stateRow || !csauRow || !audienceRow || !productRow || !supportRow) return;
 
     deptRow.innerHTML = "";
     Object.entries(DEPARTMENT_LABELS).forEach(([department, label]) => {
@@ -274,12 +296,12 @@
         () => {
           if (selectedDepartment === department) {
             selectedDepartment = null;
-            selectedStateGroup = null;
+            resetMotorsSelectionState();
             resetEnergySelectionState();
             clearTeamSelection(dialog);
           } else {
             selectedDepartment = department;
-            selectedStateGroup = null;
+            resetMotorsSelectionState();
             resetEnergySelectionState();
             clearTeamSelection(dialog);
           }
@@ -289,9 +311,12 @@
     });
 
     const isEnergy = selectedDepartment === "Energy";
-    const isMotors = selectedDepartment === "Sales" || selectedDepartment === "Delivery";
+    const isMotors = selectedDepartment === "SalesDelivery";
+    const isCsau = selectedDepartment === "CSAU";
 
-    setRowVisibility(stateRow, isMotors);
+    setRowVisibility(motorsChannelRow, isMotors);
+    setRowVisibility(stateRow, isMotors && !!selectedMotorsChannel);
+    setRowVisibility(csauRow, isCsau);
     setRowVisibility(audienceRow, isEnergy);
     setRowVisibility(productRow, isEnergy && !!selectedEnergyAudience);
     setRowVisibility(
@@ -299,10 +324,27 @@
       isEnergy && selectedEnergyAudience === "installer" && !!selectedEnergyProduct
     );
 
-    stateRow.innerHTML = "";
+    motorsChannelRow.innerHTML = "";
     if (isMotors) {
+      renderButtonRow(motorsChannelRow, MOTORS_CHANNEL_OPTIONS, selectedMotorsChannel, (channelId) => {
+        if (selectedMotorsChannel === channelId) {
+          selectedMotorsChannel = null;
+          selectedStateGroup = null;
+          clearTeamSelection(dialog);
+          renderPicker(dialog);
+          return;
+        }
+        selectedMotorsChannel = channelId;
+        selectedStateGroup = null;
+        clearTeamSelection(dialog);
+        renderPicker(dialog);
+      });
+    }
+
+    stateRow.innerHTML = "";
+    if (isMotors && selectedMotorsChannel) {
       transferData
-        .filter(entry => entry.Department === selectedDepartment)
+        .filter(entry => entry.Department === selectedMotorsChannel)
         .sort((a, b) => STATE_ORDER.indexOf(a.State) - STATE_ORDER.indexOf(b.State))
         .forEach(entry => {
           const groupName = entry["Group Name"];
@@ -322,6 +364,27 @@
             }
           ));
         });
+    }
+
+    csauRow.innerHTML = "";
+    if (isCsau) {
+      CSAU_OPTIONS.forEach(option => {
+        csauRow.appendChild(createTransferButton(
+          option.label,
+          selectedStateGroup === option.group,
+          () => {
+            if (selectedStateGroup === option.group) {
+              selectedStateGroup = null;
+              clearTeamSelection(dialog);
+              renderPicker(dialog);
+              return;
+            }
+            selectedStateGroup = option.group;
+            renderPicker(dialog);
+            selectTeamInDropdown(option.group, dialog);
+          }
+        ));
+      });
     }
 
     if (isEnergy) {
@@ -448,6 +511,14 @@
     stateRow.className = "pace-transfer-row pace-transfer-row--state pace-transfer-row--hidden";
     stateRow.dataset.level = "state";
 
+    const motorsChannelRow = document.createElement("div");
+    motorsChannelRow.className = "pace-transfer-row pace-transfer-row--motors-channel pace-transfer-row--hidden";
+    motorsChannelRow.dataset.level = "motors-channel";
+
+    const csauRow = document.createElement("div");
+    csauRow.className = "pace-transfer-row pace-transfer-row--csau pace-transfer-row--hidden";
+    csauRow.dataset.level = "csau";
+
     const audienceRow = document.createElement("div");
     audienceRow.className = "pace-transfer-row pace-transfer-row--energy pace-transfer-row--hidden";
     audienceRow.dataset.level = "energy-audience";
@@ -460,7 +531,9 @@
     supportRow.className = "pace-transfer-row pace-transfer-row--energy pace-transfer-row--energy-support pace-transfer-row--hidden";
     supportRow.dataset.level = "energy-support";
 
+    body.appendChild(motorsChannelRow);
     body.appendChild(stateRow);
+    body.appendChild(csauRow);
     body.appendChild(audienceRow);
     body.appendChild(productRow);
     body.appendChild(supportRow);
