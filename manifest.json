@@ -58,8 +58,14 @@
     },
     {
       "matches": ["https://os.tesla.com/*/pace/*"],
-      "js": ["PACEImprovements/wallboardFormatter.js"],
-      "css": ["PACEImprovements/wallboardFormatter.css"],
+      "js": [
+        "PACEImprovements/wallboardFormatter.js",
+        "PACEImprovements/advisorAvailabilityWallboard.js"
+      ],
+      "css": [
+        "PACEImprovements/wallboardFormatter.css",
+        "PACEImprovements/advisorAvailabilityWallboard.css"
+      ],
       "run_at": "document_idle",
       "all_frames": true
     },
@@ -86,6 +92,7 @@
         "PACEImprovements/transferTeams.csv",
         "PACEImprovements/transferPicker.css",
         "PACEImprovements/wallboardFormatter.css",
+        "PACEImprovements/advisorAvailabilityWallboard.css",
         "AUNZRoadsideFlow/roadside-flow.json",
         "SCA_AutoMessager/scConfig.csv",
         "SCA_AutoMessager/brConfig.csv",

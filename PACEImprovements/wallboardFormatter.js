@@ -13,8 +13,33 @@
     "pace-wallboard-wait--red"
   ];
 
+  // Display labels + preferred row order for AU Vehicle Support queues
+  const GROUP_CONFIG = [
+    {
+      label: "Roadside",
+      patterns: [/CustomerSupport-RS(?::Voice)?/i, /^Roadside$/i]
+    },
+    {
+      label: "Vehicle Support",
+      patterns: [/CustomerSupport-VS(?::Voice)?/i, /^Vehicle Support$/i]
+    },
+    {
+      label: "Service Center",
+      patterns: [/CustomerSupport-ServiceCenter(?::Voice)?/i, /^Service Center$/i]
+    },
+    {
+      label: "Home Charging",
+      patterns: [/CustomerSupport-HomeCharging(?::Voice)?/i, /^Home Charging$/i]
+    },
+    {
+      label: "Body Shop",
+      patterns: [/CustomerSupport-BodyShop(?::Voice)?/i, /^Body Shop$/i]
+    }
+  ];
+
   let observer = null;
   let refreshTimer = null;
+  let applying = false;
 
   function injectStyles() {
     if (document.getElementById("pace-wallboard-formatter-styles")) return;
@@ -27,6 +52,10 @@
 
   function normalizeHeaderText(text) {
     return (text || "").replace(/\s+/g, " ").trim().toLowerCase();
+  }
+
+  function normalizeText(text) {
+    return (text || "").replace(/\s+/g, " ").trim();
   }
 
   function getVisibleGrid() {
@@ -57,6 +86,98 @@
       }
     }
     return -1;
+  }
+
+  function getNameColumnIndex(cells, columnCount) {
+    const heads = cells.filter(cell => cell.classList.contains("gm-cell--head"));
+    const matchIdx = heads.findIndex(cell => {
+      const text = normalizeHeaderText(cell.textContent);
+      return text.includes("group") || text.includes("queue") || text.includes("store") || text === "name";
+    });
+    if (matchIdx >= 0) return matchIdx;
+    return 0;
+  }
+
+  function resolveGroup(text) {
+    const value = normalizeText(text);
+    if (!value) return null;
+    for (let i = 0; i < GROUP_CONFIG.length; i++) {
+      const config = GROUP_CONFIG[i];
+      if (config.patterns.some(pattern => pattern.test(value))) {
+        return { label: config.label, order: i };
+      }
+    }
+    return null;
+  }
+
+  function getDataRows(cells, columnCount) {
+    const rows = [];
+    for (let rowStart = columnCount; rowStart < cells.length; rowStart += columnCount) {
+      const rowCells = cells.slice(rowStart, rowStart + columnCount);
+      if (rowCells.length < columnCount) break;
+      if (rowCells.every(cell => cell.classList.contains("gm-cell--head"))) continue;
+      rows.push(rowCells);
+    }
+    return rows;
+  }
+
+  function applyGroupLabelsAndOrder() {
+    const grid = getVisibleGrid();
+    if (!grid) return;
+
+    const cells = getGridCells(grid);
+    const columnCount = getColumnCount(cells);
+    if (columnCount <= 0) return;
+
+    const nameIndex = getNameColumnIndex(cells, columnCount);
+    const rows = getDataRows(cells, columnCount);
+    if (!rows.length) return;
+
+    const decorated = rows.map((rowCells, fallbackOrder) => {
+      const nameCell = rowCells[nameIndex];
+      if (!nameCell) {
+        return { rowCells, order: 1000 + fallbackOrder, label: "" };
+      }
+
+      const original = nameCell.getAttribute("data-pace-group-original") || normalizeText(nameCell.textContent);
+      if (!nameCell.getAttribute("data-pace-group-original") && original) {
+        nameCell.setAttribute("data-pace-group-original", original);
+      }
+
+      const resolved = resolveGroup(original) || resolveGroup(nameCell.textContent);
+      if (resolved && normalizeText(nameCell.textContent) !== resolved.label) {
+        nameCell.textContent = resolved.label;
+      }
+
+      return {
+        rowCells,
+        order: resolved ? resolved.order : 1000 + fallbackOrder,
+        label: resolved?.label || normalizeText(nameCell.textContent)
+      };
+    });
+
+    decorated.sort((a, b) => {
+      if (a.order !== b.order) return a.order - b.order;
+      return a.label.localeCompare(b.label, undefined, { sensitivity: "base" });
+    });
+
+    let needsReorder = false;
+    for (let i = 0; i < decorated.length; i++) {
+      if (rows[i] !== decorated[i].rowCells) {
+        needsReorder = true;
+        break;
+      }
+    }
+    if (!needsReorder) return;
+
+    applying = true;
+    try {
+      decorated.forEach(({ rowCells }) => {
+        rowCells.forEach(cell => grid.appendChild(cell));
+      });
+    } finally {
+      applying = false;
+    }
   }
 
   function getWaitRowPairs() {
@@ -158,6 +279,8 @@
   }
 
   function refreshFormatting() {
+    if (applying) return;
+    applyGroupLabelsAndOrder();
     const pairs = getWaitRowPairs();
     pairs.forEach(pair => {
       const seconds = parseWaitSeconds(pair.oldest.textContent);
@@ -166,6 +289,7 @@
   }
 
   function scheduleRefresh() {
+    if (applying) return;
     clearTimeout(refreshTimer);
     refreshTimer = setTimeout(() => {
       try {
