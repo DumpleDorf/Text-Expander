@@ -107,7 +107,7 @@ function startAddressPolling() {
 
             if ((address.endsWith('Australia') || address.endsWith('AU')) && firstDropdownValue === 'Yes') {
                 executeAutomation();
-                copyWarrantyInline();
+                addWarrantyBadgesInline();
             }
         }
     }, 500);
@@ -178,41 +178,81 @@ function executeAutomation() {
 
 // -------------------------
 // Copy warranty elements inline (BAT, DU, VEH)
+// Place between Payment Details heading and the Payment Department/Type row
 // -------------------------
-function addWarrantyBadgesInline() {
-    const header = Array.from(document.querySelectorAll('div.padding-top-10 h1.mat-h3'))
-        .find(h => h.textContent.trim() === 'Payment Details');
-    if (!header) return;
+function findPaymentDetailsSection() {
+    const heading = Array.from(document.querySelectorAll('.tcc-heading-h3, h1.mat-h3, .mat-h3'))
+        .find((el) => el.textContent.trim() === 'Payment Details');
+    if (!heading) return null;
 
-    const container = header.parentElement;
-    if (container.querySelector('.inline-warranty-wrapper')) return;
+    const headingRow = heading.parentElement;
+    const section = headingRow?.parentElement;
+    if (!section) return null;
+
+    // The payment fields row: display:flex + gap, contains Payment Department
+    const fieldsRow = Array.from(section.children).find((child) => {
+        if (child === headingRow) return false;
+        if (child.classList?.contains('inline-warranty-wrapper')) return false;
+        const style = child.getAttribute('style') || '';
+        const hasGap = /gap\s*:\s*10px/i.test(style) || getComputedStyle(child).gap === '10px';
+        const hasPaymentField = !!child.querySelector(
+            'label.tds-form-label, tds-form-label, tds-form-input-dropdown'
+        );
+        return hasGap || hasPaymentField;
+    }) || null;
+
+    return { section, headingRow, fieldsRow };
+}
+
+function findWarrantyBadgeWrappers() {
+    const modern = Array.from(document.querySelectorAll('.tcc-warranty-chip-wrapper'));
+    if (modern.length) return modern;
+
+    // Legacy fallback
+    return Array.from(document.querySelectorAll('.tds-tooltip-wrapper--inline')).filter((wrapper) => {
+        const label = wrapper.querySelector('label.tcc-warranty-details-badge-text');
+        return label && !label.classList.contains('status--hide');
+    });
+}
+
+function addWarrantyBadgesInline() {
+    const targets = findPaymentDetailsSection();
+    if (!targets) return;
+
+    const { section, headingRow, fieldsRow } = targets;
+    if (section.querySelector('.inline-warranty-wrapper')) return;
+
+    const badgeWrappers = findWarrantyBadgeWrappers();
+    if (!badgeWrappers.length) return;
 
     const wrapper = document.createElement('div');
     wrapper.className = 'inline-warranty-wrapper';
     wrapper.style.display = 'flex';
-    wrapper.style.gap = '2px';
+    wrapper.style.gap = '6px';
     wrapper.style.alignItems = 'center';
-    wrapper.style.marginLeft = '20px';
-    wrapper.style.paddingTop = '5px';
+    wrapper.style.flexWrap = 'wrap';
+    wrapper.style.margin = '8px 0';
 
-    // Grab all visible badges (skip ones with status--hide)
-    const badgeWrappers = Array.from(document.querySelectorAll('.tds-tooltip-wrapper--inline'))
-        .filter(wrapper => {
-            const label = wrapper.querySelector('label.tcc-warranty-details-badge-text');
-            return label && !label.classList.contains('status--hide');
-        });
-
-    badgeWrappers.forEach(tooltipWrapper => {
+    badgeWrappers.forEach((tooltipWrapper) => {
         const clone = tooltipWrapper.cloneNode(true);
+        clone.classList.add('inline-warranty-chip');
         clone.style.display = 'inline-flex';
-        clone.style.paddingTop = '5px'; // consistent spacing
+        clone.style.alignItems = 'center';
         wrapper.appendChild(clone);
     });
 
-    if (wrapper.childNodes.length) {
-        container.appendChild(wrapper);
-        console.log('[Extension] All visible warranty badges added inline with Payment Details');
+    if (!wrapper.childNodes.length) return;
+
+    // Insert below Payment Details heading and above Payment Department/Type row
+    if (fieldsRow) {
+        section.insertBefore(wrapper, fieldsRow);
+    } else if (headingRow?.nextSibling) {
+        section.insertBefore(wrapper, headingRow.nextSibling);
+    } else {
+        section.appendChild(wrapper);
     }
+
+    console.log('[Extension] Warranty badges added between Payment Details and payment fields');
 }
 
 // Run every 5 seconds indefinitely

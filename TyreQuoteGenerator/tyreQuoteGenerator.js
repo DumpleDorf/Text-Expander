@@ -177,12 +177,33 @@ async function runTccWheelDetectionOnPage() {
 
   const isModelYLFromText = (text) => /Model\s*YL\b/i.test(text || "");
 
+  const findVehicleDetailsButton = () =>
+    document.querySelector('img[mattooltip="Vehicle Details"]') ||
+    document.querySelector('tds-chip[text="Vehicle Details"]') ||
+    document.querySelector('span.tds-chip[title="Vehicle Details"]') ||
+    [...document.querySelectorAll("tds-chip, span.tds-chip, .tds-chip-text, button, a")].find((el) =>
+      /^Vehicle Details$/i.test(el.textContent?.trim() || "")
+    ) ||
+    null;
+
+  const findCloseButton = () =>
+    document.querySelector('button.tds-modal-close[aria-label="Close Modal"]') ||
+    document.querySelector('button[aria-label="Close Modal"]') ||
+    document.querySelector('img[mattooltip="Close"]') ||
+    document.getElementById("tcc-log-communication-close") ||
+    [...document.querySelectorAll("tds-tooltip-wrapper")].find((wrapper) => {
+      const tip = wrapper.querySelector("tds-tooltip, .tds-tooltip");
+      return tip && /^Close$/i.test(tip.textContent?.trim() || "");
+    })?.querySelector("button.tds-icon-btn, button") ||
+    null;
+
   const hasTccContext = () =>
     location.hostname.includes("customerconnect.tesla.com") ||
     !!document.getElementById("tcc-asset-panel-detail-icon") ||
-    !!document.querySelector('img[mattooltip="Vehicle Details"]') ||
-    !!document.querySelector("#tcc-log-communication-close") ||
-    !!document.querySelector("mat-expansion-panel-header");
+    !!findVehicleDetailsButton() ||
+    !!findCloseButton() ||
+    !!document.querySelector("mat-expansion-panel-header") ||
+    !!document.querySelector("dialog.tds-modal");
 
   if (!hasTccContext()) {
     return { wheel: null, drawerOpenedBy: null, isModelYL: false, host: location.hostname };
@@ -194,7 +215,7 @@ async function runTccWheelDetectionOnPage() {
 
   for (let attempt = 1; attempt <= 18; attempt++) {
     const infoIcon = document.getElementById("tcc-asset-panel-detail-icon");
-    const vehicleIcon = document.querySelector('img[mattooltip="Vehicle Details"]');
+    const vehicleIcon = findVehicleDetailsButton();
 
     if (!clickedInfo && infoIcon && !infoIcon.classList.contains("tcc-sms-disabled")) {
       click(infoIcon);
@@ -596,18 +617,41 @@ async function autoSelectTyreAndGenerate() {
     console.warn("[Tyre Quote] Generate button disabled or not found");
   }
 
-  // 🔟 Close drawer if we opened it
+  // 🔟 Close drawer/modal if we opened it
   if (drawerOpenedBy) {
     await chrome.scripting.executeScript({
       target: await getTyreQuoteScriptTarget(tab.id, tab.url),
       func: (openedBy) => {
-        const click = el => el?.click();
-        if (openedBy === "info") {
-          const closeBtn = document.querySelector('img[mattooltip="Close"]');
-          if (closeBtn) click(closeBtn);
-        } else if (openedBy === "vehicle") {
-          const closeBtn = document.getElementById("tcc-log-communication-close");
-          if (closeBtn) click(closeBtn);
+        const click = (el) => el?.click();
+
+        const findTooltipCloseButton = () =>
+          [...document.querySelectorAll("tds-tooltip-wrapper")].find((wrapper) => {
+            const tip = wrapper.querySelector("tds-tooltip, .tds-tooltip");
+            return tip && /^Close$/i.test(tip.textContent?.trim() || "");
+          })?.querySelector("button.tds-icon-btn, button") || null;
+
+        let closeBtn = null;
+        if (openedBy === "vehicle") {
+          // Vehicle Details path uses the inline icon-button with "Close" tooltip
+          closeBtn =
+            findTooltipCloseButton() ||
+            document.querySelector('button.tds-modal-close[aria-label="Close Modal"]') ||
+            document.querySelector('button[aria-label="Close Modal"]') ||
+            document.getElementById("tcc-log-communication-close");
+        } else {
+          closeBtn =
+            document.querySelector('button.tds-modal-close[aria-label="Close Modal"]') ||
+            document.querySelector('button[aria-label="Close Modal"]') ||
+            document.querySelector('img[mattooltip="Close"]') ||
+            findTooltipCloseButton() ||
+            document.getElementById("tcc-log-communication-close");
+        }
+
+        if (closeBtn) {
+          click(closeBtn);
+          console.log("[Tyre Quote] Clicked close control for:", openedBy);
+        } else {
+          console.warn("[Tyre Quote] Close control not found for:", openedBy);
         }
       },
       args: [drawerOpenedBy]
