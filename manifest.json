@@ -50,7 +50,6 @@
     {
       "matches": ["https://customerconnect.tesla.com/*"],
       "js": [
-        "TCCImprovements/teamsFilter.js",
         "TCCImprovements/dashboardFilter.js"
       ],
       "all_frames": true,

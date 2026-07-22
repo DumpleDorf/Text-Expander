@@ -1,3 +1,8 @@
+// Disabled — teams dropdown filter is turned off for now.
+// Re-enable by restoring this file in manifest.json content_scripts.
+console.log("[TCC QOL] Teams filter disabled.");
+
+/*
 console.log("[TCC QOL] Teams filter script loaded.");
 
 const labelsToKeep = [
@@ -128,3 +133,4 @@ const commsObserver = new MutationObserver(() => {
 });
 
 commsObserver.observe(document.body, { childList: true, subtree: true });
+*/
