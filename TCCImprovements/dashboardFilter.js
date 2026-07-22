@@ -13,8 +13,10 @@ let countdownRafId = null;
 let tableObserver = null;
 let searchApplied = false;
 let filteringInProgress = false;
+let suppressTableObserver = false;
 let selectedCountryCode = 'AU';
 let countdownStartTime = null;
+let lastProcessedSignature = '';
 const COUNTDOWN_TOTAL_SECONDS = 5 * 60;
 
 function isTccQolEnabled(callback) {
@@ -70,6 +72,8 @@ function stopAuFilter() {
   isActive = false;
   searchApplied = false;
   filteringInProgress = false;
+  suppressTableObserver = false;
+  lastProcessedSignature = '';
   countdownStartTime = null;
   console.log('[AU Filter] Stopped');
 }
@@ -269,6 +273,17 @@ function waitForTableUpdate(previousSignature, timeoutMs = 8000) {
   });
 }
 
+function withTableMutationsPaused(fn) {
+  suppressTableObserver = true;
+  try {
+    return fn();
+  } finally {
+    setTimeout(() => {
+      suppressTableObserver = false;
+    }, 100);
+  }
+}
+
 function deleteNonMatchingCountryRows() {
   const table = findDashboardTable();
   const countryIdx = getColumnIndex(table, (label) => /^Country$/i.test(label));
@@ -276,42 +291,48 @@ function deleteNonMatchingCountryRows() {
 
   const rows = getTableRows(table);
   const country = getSelectedCountry();
-  let removed = 0;
-  let kept = 0;
+  const toRemove = rows.filter((row) => !matchesSelectedCountry(getCellText(row, countryIdx)));
+  if (!toRemove.length) return rows.length;
 
-  if (!deleteNonMatchingCountryRows._loggedSample && rows[0]) {
-    const cell = getRowCells(rows[0])[countryIdx];
-    console.log('[AU Filter] Country col=', countryIdx, 'sample text=', JSON.stringify(getCellRawText(cell)));
-    console.log('[AU Filter] Country sample HTML=', cell?.innerHTML?.slice(0, 200));
-    deleteNonMatchingCountryRows._loggedSample = true;
-  }
+  toRemove.forEach((row) => row.remove());
 
-  rows.forEach((row) => {
-    const value = getCellText(row, countryIdx);
-    if (matchesSelectedCountry(value)) {
-      kept++;
-      return;
-    }
-    row.remove();
-    removed++;
-  });
-
-  console.log(`[AU Filter] Kept ${kept} ${country.code} rows, deleted ${removed} other rows`);
+  const kept = rows.length - toRemove.length;
+  console.log(`[AU Filter] Kept ${kept} ${country.code} rows, deleted ${toRemove.length} other rows`);
   return kept;
 }
 
 function sortByEtaDescending() {
   const table = findDashboardTable();
-  if (!table) return;
+  if (!table) return false;
 
   const etaIdx = getColumnIndex(table, (label) => /^ETA\b/i.test(label));
   const tbody = table.querySelector('tbody') || table;
   const rows = getTableRows(table);
-  if (etaIdx < 0 || rows.length < 2) return;
+  if (etaIdx < 0 || rows.length < 2) return false;
 
-  rows.sort((a, b) => parseEtaValue(getCellText(b, etaIdx)) - parseEtaValue(getCellText(a, etaIdx)));
-  rows.forEach((row) => tbody.appendChild(row));
+  const sorted = [...rows].sort(
+    (a, b) => parseEtaValue(getCellText(b, etaIdx)) - parseEtaValue(getCellText(a, etaIdx))
+  );
+  const alreadySorted = rows.every((row, i) => row === sorted[i]);
+  if (alreadySorted) return false;
+
+  sorted.forEach((row) => tbody.appendChild(row));
   console.log('[AU Filter] Sorted by ETA (mins) descending');
+  return true;
+}
+
+function applyRowCleanup() {
+  if (filteringInProgress || suppressTableObserver) return;
+
+  const table = findDashboardTable();
+  const signature = getRowSignature(table);
+  if (signature === lastProcessedSignature) return;
+
+  withTableMutationsPaused(() => {
+    deleteNonMatchingCountryRows();
+    sortByEtaDescending();
+  });
+  lastProcessedSignature = getRowSignature(findDashboardTable());
 }
 
 function getActiveJobCount() {
@@ -428,18 +449,25 @@ async function onCountryChanged(code) {
   console.log('[AU Filter] Country changed to', code);
   saveSelectedCountry(code);
   searchApplied = false;
-  deleteNonMatchingCountryRows._loggedSample = false;
+  lastProcessedSignature = '';
   startCountdownTimer();
 
-  // Always push the new code into the dashboard search bar first
-  const searchInput = findDashboardSearchInput();
-  if (searchInput) {
-    await typeSearchValue(searchInput, code);
-  }
-
-  // Allow a forced re-run even if a pipeline is mid-flight
+  // Pause observer while country switch rewrites the table
+  suppressTableObserver = true;
   filteringInProgress = false;
-  await runFilterPipeline(true);
+
+  try {
+    const searchInput = findDashboardSearchInput();
+    if (searchInput) {
+      await typeSearchValue(searchInput, code);
+    }
+    await runFilterPipeline(true);
+  } finally {
+    setTimeout(() => {
+      suppressTableObserver = false;
+      lastProcessedSignature = getRowSignature(findDashboardTable());
+    }, 500);
+  }
 }
 
 function injectToolbar(stageField) {
@@ -568,8 +596,11 @@ async function runFilterPipeline(forceSearch = false) {
       return false;
     }
 
-    deleteNonMatchingCountryRows();
-    sortByEtaDescending();
+    withTableMutationsPaused(() => {
+      deleteNonMatchingCountryRows();
+      sortByEtaDescending();
+    });
+    lastProcessedSignature = getRowSignature(findDashboardTable());
 
     const stageField = findStageField();
     if (stageField) injectToolbar(stageField);
@@ -595,27 +626,37 @@ function auFilter() {
       console.log('[AU Filter] Initial pipeline complete for', getSelectedCountry().code);
 
       const table = findDashboardTable();
-      if (table && !tableObserver) {
+      const tbody = table?.querySelector('tbody') || table;
+      if (tbody && !tableObserver) {
         let debounce = null;
-        tableObserver = new MutationObserver(() => {
+        tableObserver = new MutationObserver((mutations) => {
+          if (suppressTableObserver || filteringInProgress) return;
+
+          // Only react to rows being added/removed — ignore class/style flash updates
+          const rowStructureChanged = mutations.some((mutation) => {
+            if (mutation.type !== 'childList') return false;
+            return [...mutation.addedNodes, ...mutation.removedNodes].some(
+              (node) => node.nodeType === 1 && (node.matches?.('tr') || node.querySelector?.('tr'))
+            );
+          });
+          if (!rowStructureChanged) return;
+
           clearTimeout(debounce);
-          debounce = setTimeout(() => {
-            if (filteringInProgress) return;
-            deleteNonMatchingCountryRows();
-            sortByEtaDescending();
-          }, 300);
+          debounce = setTimeout(applyRowCleanup, 400);
         });
-        tableObserver.observe(table, { childList: true, subtree: true });
+        tableObserver.observe(tbody, { childList: true, subtree: false });
       }
 
+      // Light recovery if Angular clears the search value; avoid constant re-pipelines
       trackInterval(() => {
+        if (filteringInProgress || suppressTableObserver) return;
         const searchInput = findDashboardSearchInput();
         const country = getSelectedCountry();
-        if (searchInput && searchInput.value !== country.code) {
+        if (searchInput && normalizeText(searchInput.value) !== country.code) {
           searchApplied = false;
           runFilterPipeline(true);
         }
-      }, 3000);
+      }, 10000);
     }, 500);
   });
 }
