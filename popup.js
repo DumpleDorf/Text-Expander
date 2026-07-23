@@ -53,7 +53,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function setTccQolEnabled(enabled) {
     chrome.storage.sync.set({
       tccQolEnabled: enabled,
-      teamsFilter: enabled,
+      // Teams filter stays off; AU roadside dashboard filter follows QOL
+      teamsFilter: false,
       auFilterEnabled: enabled
     }, () => {
       console.log(`[TCC QOL] Toggle changed to ${enabled ? 'ON' : 'OFF'}`);
@@ -125,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
     towbookAudioNotifier: false,
     tccQolEnabled: true,
     paceQolEnabled: true,
-    teamsFilter: true,
+    teamsFilter: false,
     scAutoMessagerEnabled: false,
     auFilterEnabled: true,
     oceanaNotifierEnabled: false
@@ -134,6 +135,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tccQolEnabled === null || tccQolEnabled === undefined) {
       tccQolEnabled = true;
       setTccQolEnabled(true);
+    }
+
+    // Legacy teams filter must stay off
+    if (items.teamsFilter) {
+      chrome.storage.sync.set({ teamsFilter: false });
     }
 
     if (towbookToggle) towbookToggle.checked = items.towbookAudioNotifier;

@@ -10,39 +10,27 @@
   <div class="container">
     <h1>TCC QOL Improvements</h1>
 
-    <div class="section flex-row">
-      <div class="text-content">
-        <h2>Teams Filter</h2>
-        <p>
-          The Teams Filter allows you to filter the team dropdown in the top right corner of TCC to only the relevant teams in Customer Support. The filtered teams are currently hard coded to Charging Support, Commerce Support, Pacific Tesla Support, Roadside, and Service Center. Any other teams can still be searched manually.
-        </p>
-        <br>
-        <p>
-          If these hard-coded teams need to be changed, please reach out to <b>Darian George</b> on teams.
-        </p>
-      </div>
-      <div class="image-content">
-        <img src="teamsFilterExample.png" alt="Teams Filter Example">
-      </div>
-    </div>
-
     <div class="section">
       <div class="text-content">
-        <h2>RS Dashboard AU Filter</h2>
+        <h2>RS Dashboard Country Filter</h2>
         <p>
-          The AU Dashboard Filter automatically filters the Customer Connect roadside dashboard to only show dispatches in <b>Australia (AU)</b>. It removes non-AU rows and sorts AU dispatches by ETA for quick prioritization.
+          On the roadside dashboard, automatically filters to
+          <b>Australia (AU)</b> or <b>New Zealand (NZ)</b>, hides non-matching rows,
+          and sorts remaining dispatches by ETA.
         </p>
         <br>
-        <p>Key features include:</p>
+        <p>Key features:</p>
         <ul>
-          <li>Automatically removes non-AU dispatch rows from the dashboard.</li>
-          <li>Displays a live countdown timer with a progress bar indicating the next refresh.</li>
-          <li>Shows the <b>Current Active Dispatches</b> count inline for AU jobs, updated every second.</li>
-          <li>Sorts AU jobs by ETA, prioritizing negative, zero, and positive ETA values accordingly.</li>
+          <li>Country dropdown (Australia / New Zealand) next to Stage</li>
+          <li>Types the country code into the dashboard Search bar only</li>
+          <li>Hides non-matching rows (does not delete them)</li>
+          <li>Live countdown timer and active dispatch count</li>
+          <li>Sorts jobs by ETA (highest urgency first)</li>
         </ul>
         <br>
         <p>
-          The script activates automatically on the roadside dashboard route when TCC QOL Improvements is enabled.
+          Activates only on the roadside dashboard when TCC QOL Improvements is enabled.
+          The old Teams dropdown filter remains disabled.
         </p>
       </div>
       <div class="image-content full-width">

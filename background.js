@@ -5,13 +5,21 @@
 const TCC_QOL_MIGRATION_KEY = 'tccQolDefaultEnabledV1';
 const PACE_QOL_MIGRATION_KEY = 'paceQolDefaultEnabledV1';
 
+// Teams dropdown filter stays permanently off (it reset the header team /
+// version modal). AU dashboard filter is re-enabled with the QOL toggle.
+function forceTeamsFilterOff() {
+  chrome.storage.sync.set({ teamsFilter: false });
+}
+
 function enableTccQol(enabled = true) {
   chrome.storage.sync.set({
     tccQolEnabled: enabled,
-    teamsFilter: enabled,
+    teamsFilter: false,
     auFilterEnabled: enabled
   });
 }
+
+forceTeamsFilterOff();
 
 function enablePaceQol(enabled = true) {
   chrome.storage.sync.set({ paceQolEnabled: enabled });

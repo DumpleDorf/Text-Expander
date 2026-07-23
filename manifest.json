@@ -34,30 +34,24 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": [
-        "TextExpander/textExpander.js",
-        "PACEImprovements/transferPicker.js"
-      ],
-      "all_frames": true,
-      "match_about_blank": true
-    },
-    {
-      "matches": ["https://customerconnect.tesla.com/*"],
       "js": ["TextExpander/textExpander.js"],
       "all_frames": true,
       "match_about_blank": true
     },
     {
       "matches": ["https://customerconnect.tesla.com/*"],
-      "js": [
-        "TCCImprovements/dashboardFilter.js"
-      ],
-      "all_frames": true,
-      "match_about_blank": true
+      "js": ["TCCImprovements/dashboardFilter.js"],
+      "all_frames": false,
+      "run_at": "document_idle"
     },
     {
-      "matches": ["https://os.tesla.com/*/pace/*"],
+      "matches": [
+        "https://os.tesla.com/en-AU/pace",
+        "https://os.tesla.com/en-AU/pace/",
+        "https://os.tesla.com/en-AU/pace/*"
+      ],
       "js": [
+        "PACEImprovements/transferPicker.js",
         "PACEImprovements/wallboardFormatter.js",
         "PACEImprovements/advisorAvailabilityWallboard.js"
       ],

@@ -1,8 +1,29 @@
 // -----------------------------
 // 1️⃣ Attach input listener to editors (textarea, input, contentEditable)
 // -----------------------------
+function shouldSkipExpander(el) {
+    if (!el || !(el instanceof Element)) return true;
+
+    // Never touch TCC header team control — attaching listeners/data attrs
+    // can interfere with Angular selection persistence.
+    if (el.closest?.("#tcc-header-team-id, [id='tcc-header-team-id']")) return true;
+
+    // Skip non-text / combobox plumbing inputs
+    const type = (el.getAttribute?.("type") || el.type || "").toLowerCase();
+    if (["checkbox", "radio", "button", "submit", "reset", "file", "hidden", "color", "range"].includes(type)) {
+        return true;
+    }
+    if (el.getAttribute?.("role") === "combobox" || el.getAttribute?.("aria-haspopup") === "listbox") {
+        return true;
+    }
+    if (el.readOnly || el.disabled) return true;
+
+    return false;
+}
+
 function attachExpander(el) {
     if (!el || el.dataset.expanderAttached) return;
+    if (shouldSkipExpander(el)) return;
     el.dataset.expanderAttached = "true";
 
     el.addEventListener("input", (event) => {

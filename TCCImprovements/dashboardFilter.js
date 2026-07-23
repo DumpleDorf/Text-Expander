@@ -9,7 +9,7 @@ const COUNTRY_OPTIONS = [
 
 let isActive = false;
 let activeTimers = [];
-let countdownRafId = null;
+let countdownTimerId = null;
 let tableObserver = null;
 let searchApplied = false;
 let filteringInProgress = false;
@@ -17,7 +17,15 @@ let suppressTableObserver = false;
 let selectedCountryCode = 'AU';
 let countdownStartTime = null;
 let lastProcessedSignature = '';
+let activatedAt = 0;
+let allowSearchTyping = true;
+let lastSearchTouchAt = 0;
+let lastJobCount = -1;
 const COUNTDOWN_TOTAL_SECONDS = 5 * 60;
+// Give TCC time to finish boot / version-modal checks before we touch inputs
+const BOOT_QUIET_MS = 6000;
+const MODAL_CLEAR_MS = 2000;
+const HIDDEN_ROW_CLASS = 'au-filter-hidden';
 
 function isTccQolEnabled(callback) {
   chrome.storage.sync.get({ tccQolEnabled: true, auFilterEnabled: true }, (items) => {
@@ -46,7 +54,12 @@ function saveSelectedCountry(code) {
 }
 
 function isOnRoadsideDashboard() {
-  return location.pathname.toLowerCase().startsWith(ROADSIDE_DASHBOARD_PATH);
+  const path = location.pathname.toLowerCase();
+  return path.includes('roadsidedashboard') || path.startsWith(ROADSIDE_DASHBOARD_PATH);
+}
+
+function isTccModalOpen() {
+  return !!document.querySelector('dialog.tds-modal[open], dialog[open].tds-modal');
 }
 
 function trackInterval(fn, ms) {
@@ -62,19 +75,26 @@ function normalizeText(text) {
 function stopAuFilter() {
   activeTimers.forEach(clearInterval);
   activeTimers = [];
-  if (countdownRafId) cancelAnimationFrame(countdownRafId);
-  countdownRafId = null;
+  if (countdownTimerId) {
+    clearInterval(countdownTimerId);
+    countdownTimerId = null;
+  }
   if (tableObserver) {
     tableObserver.disconnect();
     tableObserver = null;
   }
   document.querySelector('#au-filter-toolbar')?.remove();
+  restoreAllCountryRows();
   isActive = false;
   searchApplied = false;
   filteringInProgress = false;
   suppressTableObserver = false;
   lastProcessedSignature = '';
   countdownStartTime = null;
+  activatedAt = 0;
+  allowSearchTyping = true;
+  lastSearchTouchAt = 0;
+  lastJobCount = -1;
   console.log('[AU Filter] Stopped');
 }
 
@@ -95,7 +115,7 @@ function findDashboardTable() {
   }
   return (
     document.querySelector('div.tcc-roadside-dashboard-table table') ||
-    document.querySelector('table.tds-data-table') ||
+    document.querySelector('.tcc-roadside-dashboard table.tds-data-table') ||
     null
   );
 }
@@ -152,6 +172,14 @@ function getCellText(row, columnIndex) {
   return getCellRawText(getRowCells(row)[columnIndex]);
 }
 
+// Hot path for row filtering — avoid cloneNode on every cell
+function getCellTextFast(row, columnIndex) {
+  if (columnIndex < 0) return '';
+  const cell = getRowCells(row)[columnIndex];
+  if (!cell) return '';
+  return normalizeText(cell.textContent);
+}
+
 function matchesSelectedCountry(text) {
   const value = normalizeText(text);
   if (!value) return false;
@@ -175,15 +203,59 @@ function findStageField() {
   );
 }
 
-function findDashboardSearchInput() {
-  const scoped =
-    document.querySelector('tds-form-input-search input.tds-form-input-search[placeholder="Search"]') ||
-    document.querySelector('input.tds-form-input-search[placeholder="Search"]');
-  if (scoped) return scoped;
+// Never type into the header team dropdown / transfer team search / modals.
+// A global querySelector('input[placeholder=Search]') previously matched the
+// header team combobox first, which reset the selected team and forced TCC's
+// "Customer Connect Updated" modal on every refresh.
+function isForbiddenSearchInput(input) {
+  if (!input || !(input instanceof Element)) return true;
 
-  return [...document.querySelectorAll('input.tds-form-input-search')].find((input) =>
-    /search/i.test(input.getAttribute('placeholder') || '')
-  ) || null;
+  if (
+    input.closest?.(
+      '#tcc-header-team-id, [id="tcc-header-team-id"], ' +
+      '#search-team, [id="search-team"], ' +
+      'dialog.tds-modal, dialog, tds-modal, ' +
+      'header, .tcc-header, app-tcc-header, .tds-site-header'
+    )
+  ) {
+    return true;
+  }
+
+  if (input.id === 'search-team') return true;
+  if (input.getAttribute('aria-controls')?.includes('tcc-header-team')) return true;
+
+  return false;
+}
+
+function isDashboardSearchCandidate(input) {
+  if (isForbiddenSearchInput(input)) return false;
+  if (!/search/i.test(input.getAttribute('placeholder') || '')) return false;
+  return true;
+}
+
+function findDashboardSearchInput() {
+  const stageField = findStageField();
+  const table = findDashboardTable();
+  const scopes = [
+    stageField?.parentElement,
+    stageField?.closest?.('.tcc-dashboard-filters, .tcc-dashboard, .tcc-roadside-dashboard, form, section'),
+    table?.closest?.('.tcc-roadside-dashboard, .tcc-dashboard, .tcc-roadside-dashboard-table, section, main'),
+    document.querySelector('.tcc-roadside-dashboard, .tcc-roadside-dashboard-table, div.tcc-dashboard')
+  ].filter(Boolean);
+
+  const selector =
+    'tds-form-input-search input.tds-form-input-search[placeholder="Search"], ' +
+    'input.tds-form-input-search[placeholder="Search"]';
+
+  for (const scope of scopes) {
+    const match = [...scope.querySelectorAll(selector)].find(isDashboardSearchCandidate);
+    if (match) return match;
+  }
+
+  // Last resort: first non-header Search input (still excludes team dropdown)
+  return [...document.querySelectorAll(
+    `${selector}, input.tds-form-input-search`
+  )].find(isDashboardSearchCandidate) || null;
 }
 
 function setNativeInputValue(input, value) {
@@ -192,52 +264,55 @@ function setNativeInputValue(input, value) {
   else input.value = value;
 }
 
-function clearSearchInput(input) {
-  const clearBtn =
-    input.closest('tds-form-input-search, .tds-form-input, .tds-tooltip-wrapper')
-      ?.querySelector('.tds-form-input-search-clear button, tds-icon-button button, button.tds-icon-btn');
+function describeSearchInput(input) {
+  if (!input) return 'null';
+  const host = input.closest('tds-form-input-search, .tds-form-item, #tcc-header-team-id') || input.parentElement;
+  return {
+    id: input.id || '',
+    placeholder: input.getAttribute('placeholder') || '',
+    hostTag: host?.tagName || '',
+    hostClass: host?.className || '',
+    inHeaderTeam: !!input.closest('#tcc-header-team-id')
+  };
+}
 
-  if (clearBtn && input.value) {
-    clearBtn.click();
+// Gentle write only — no focus(), no clear-button clicks, no Enter.
+// Those were opening TCC's version modal during page boot.
+async function typeSearchValue(input, value) {
+  if (!input || !allowSearchTyping) return false;
+
+  if (isForbiddenSearchInput(input) || !isDashboardSearchCandidate(input)) {
+    console.error('[AU Filter] Refusing to type into non-dashboard search input', describeSearchInput(input));
+    return false;
+  }
+
+  if (normalizeText(input.value) === value) {
+    console.log('[AU Filter] Dashboard search already', JSON.stringify(value));
     return true;
   }
 
-  setNativeInputValue(input, '');
-  input.dispatchEvent(new InputEvent('input', { bubbles: true, composed: true, inputType: 'deleteContentBackward' }));
-  input.dispatchEvent(new Event('change', { bubbles: true }));
-  return false;
-}
-
-async function typeSearchValue(input, value) {
-  if (!input) return;
-
-  input.focus();
-  const usedClearButton = clearSearchInput(input);
-  if (usedClearButton || input.value !== value) {
-    await new Promise((r) => setTimeout(r, 120));
-  }
+  console.log('[AU Filter] Gently setting dashboard search', describeSearchInput(input), '→', value);
+  lastSearchTouchAt = Date.now();
 
   setNativeInputValue(input, value);
-  input.dispatchEvent(new InputEvent('input', {
-    bubbles: true,
-    composed: true,
-    data: value,
-    inputType: 'insertText'
-  }));
   input.dispatchEvent(new Event('input', { bubbles: true }));
   input.dispatchEvent(new Event('change', { bubbles: true }));
-  input.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter', code: 'Enter' }));
-  input.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: 'Enter', code: 'Enter' }));
 
-  // Retry once if Angular ignored the first write
-  if (normalizeText(input.value) !== value) {
-    await new Promise((r) => setTimeout(r, 80));
-    setNativeInputValue(input, value);
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-    input.dispatchEvent(new Event('change', { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 50));
+
+  // If our typing caused the version modal, disable further search writes this session
+  if (isTccModalOpen()) {
+    allowSearchTyping = false;
+    console.warn('[AU Filter] TCC modal opened after search write — disabling search typing for this page load');
+    return false;
   }
 
-  console.log('[AU Filter] Search bar set to', JSON.stringify(input.value));
+  console.log('[AU Filter] Dashboard search set to', JSON.stringify(input.value));
+  return normalizeText(input.value) === value;
+}
+
+function modalOpenedAfterSearchTouch() {
+  return isTccModalOpen() && lastSearchTouchAt > 0 && Date.now() - lastSearchTouchAt < 5000;
 }
 
 function getRowSignature(table) {
@@ -284,21 +359,48 @@ function withTableMutationsPaused(fn) {
   }
 }
 
-function deleteNonMatchingCountryRows() {
+// Hide instead of removing nodes — deleting rows can scramble Angular state
+// (header team selection / version dialog) across TCC.
+function hideNonMatchingCountryRows() {
   const table = findDashboardTable();
   const countryIdx = getColumnIndex(table, (label) => /^Country$/i.test(label));
   if (!table || countryIdx < 0) return 0;
 
   const rows = getTableRows(table);
   const country = getSelectedCountry();
-  const toRemove = rows.filter((row) => !matchesSelectedCountry(getCellText(row, countryIdx)));
-  if (!toRemove.length) return rows.length;
+  let kept = 0;
+  let hidden = 0;
+  let changed = 0;
 
-  toRemove.forEach((row) => row.remove());
+  for (const row of rows) {
+    const match = matchesSelectedCountry(getCellTextFast(row, countryIdx));
+    const isHidden = row.classList.contains(HIDDEN_ROW_CLASS);
+    if (match) {
+      if (isHidden) {
+        row.classList.remove(HIDDEN_ROW_CLASS);
+        changed++;
+      }
+      kept++;
+    } else {
+      if (!isHidden) {
+        row.classList.add(HIDDEN_ROW_CLASS);
+        changed++;
+      }
+      hidden++;
+    }
+  }
 
-  const kept = rows.length - toRemove.length;
-  console.log(`[AU Filter] Kept ${kept} ${country.code} rows, deleted ${toRemove.length} other rows`);
+  if (changed) {
+    console.log(`[AU Filter] Showing ${kept} ${country.code} rows, hid ${hidden} other rows`);
+  }
   return kept;
+}
+
+function restoreAllCountryRows() {
+  getTableRows(findDashboardTable()).forEach((row) => {
+    row.classList.remove(HIDDEN_ROW_CLASS);
+    if (row.style.display === 'none') row.style.display = '';
+  });
 }
 
 function sortByEtaDescending() {
@@ -307,36 +409,55 @@ function sortByEtaDescending() {
 
   const etaIdx = getColumnIndex(table, (label) => /^ETA\b/i.test(label));
   const tbody = table.querySelector('tbody') || table;
-  const rows = getTableRows(table);
+  const rows = getTableRows(table).filter((row) => !row.classList.contains(HIDDEN_ROW_CLASS));
   if (etaIdx < 0 || rows.length < 2) return false;
 
   const sorted = [...rows].sort(
-    (a, b) => parseEtaValue(getCellText(b, etaIdx)) - parseEtaValue(getCellText(a, etaIdx))
+    (a, b) => parseEtaValue(getCellTextFast(b, etaIdx)) - parseEtaValue(getCellTextFast(a, etaIdx))
   );
   const alreadySorted = rows.every((row, i) => row === sorted[i]);
   if (alreadySorted) return false;
 
-  sorted.forEach((row) => tbody.appendChild(row));
+  // Single batch reflow
+  const frag = document.createDocumentFragment();
+  sorted.forEach((row) => frag.appendChild(row));
+  tbody.appendChild(frag);
   console.log('[AU Filter] Sorted by ETA (mins) descending');
   return true;
 }
 
 function applyRowCleanup() {
-  if (filteringInProgress || suppressTableObserver) return;
+  if (filteringInProgress || suppressTableObserver || isTccModalOpen()) return;
 
   const table = findDashboardTable();
   const signature = getRowSignature(table);
   if (signature === lastProcessedSignature) return;
 
   withTableMutationsPaused(() => {
-    deleteNonMatchingCountryRows();
+    hideNonMatchingCountryRows();
     sortByEtaDescending();
   });
   lastProcessedSignature = getRowSignature(findDashboardTable());
 }
 
 function getActiveJobCount() {
-  return getTableRows(findDashboardTable()).length;
+  return getTableRows(findDashboardTable()).filter(
+    (row) => !row.classList.contains(HIDDEN_ROW_CLASS) && row.style.display !== 'none'
+  ).length;
+}
+
+function updateJobCountLabel() {
+  const labelEl = document.querySelector('#au-job-count-label');
+  if (!labelEl) return;
+  const count = getActiveJobCount();
+  if (count === lastJobCount) return;
+  lastJobCount = count;
+  labelEl.textContent = '';
+  labelEl.append('Current Active Dispatches: ');
+  const strong = document.createElement('span');
+  strong.style.fontWeight = '800';
+  strong.textContent = String(count);
+  labelEl.appendChild(strong);
 }
 
 function injectToolbarStyles() {
@@ -347,6 +468,9 @@ function injectToolbarStyles() {
     (document.head || document.documentElement).appendChild(style);
   }
   style.textContent = `
+    tr.${HIDDEN_ROW_CLASS} {
+      display: none !important;
+    }
     #au-filter-toolbar {
       display: flex;
       align-items: flex-end;
@@ -420,7 +544,12 @@ function injectToolbarStyles() {
 }
 
 function startCountdownTimer() {
-  if (countdownRafId) cancelAnimationFrame(countdownRafId);
+  // Once per second — NOT requestAnimationFrame. RAF was updating the DOM
+  // 60x/sec and made scrolling/hover feel laggy across the whole page.
+  if (countdownTimerId) {
+    clearInterval(countdownTimerId);
+    countdownTimerId = null;
+  }
   countdownStartTime = performance.now();
 
   const countdownNumber = document.querySelector('#au-countdown-number');
@@ -432,36 +561,45 @@ function startCountdownTimer() {
     const remainingSeconds = Math.max(COUNTDOWN_TOTAL_SECONDS - elapsed, 0);
     const minutes = Math.floor(remainingSeconds / 60);
     const seconds = Math.floor(remainingSeconds % 60);
-    countdownNumber.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-    progressBar.style.width = `${(remainingSeconds / COUNTDOWN_TOTAL_SECONDS) * 100}%`;
+    const label = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    if (countdownNumber.textContent !== label) {
+      countdownNumber.textContent = label;
+    }
+    const width = `${(remainingSeconds / COUNTDOWN_TOTAL_SECONDS) * 100}%`;
+    if (progressBar.style.width !== width) {
+      progressBar.style.width = width;
+    }
 
-    if (remainingSeconds > 0) {
-      countdownRafId = requestAnimationFrame(update);
-    } else {
+    if (remainingSeconds <= 0) {
+      clearInterval(countdownTimerId);
+      countdownTimerId = null;
       window.location.reload();
     }
   }
 
-  countdownRafId = requestAnimationFrame(update);
+  update();
+  countdownTimerId = setInterval(update, 1000);
 }
 
 async function onCountryChanged(code) {
+  if (isTccModalOpen()) {
+    console.log('[AU Filter] Ignoring country change while TCC modal is open');
+    return;
+  }
+
   console.log('[AU Filter] Country changed to', code);
   saveSelectedCountry(code);
   searchApplied = false;
   lastProcessedSignature = '';
+  // User-initiated — allow a search attempt again
+  allowSearchTyping = true;
   startCountdownTimer();
 
-  // Pause observer while country switch rewrites the table
   suppressTableObserver = true;
   filteringInProgress = false;
 
   try {
-    const searchInput = findDashboardSearchInput();
-    if (searchInput) {
-      await typeSearchValue(searchInput, code);
-    }
-    await runFilterPipeline(true);
+    await runFilterPipeline({ forceSearch: true, allowSearch: true });
   } finally {
     setTimeout(() => {
       suppressTableObserver = false;
@@ -512,8 +650,9 @@ function injectToolbar(stageField) {
   jobCountLabel.id = 'au-job-count-label';
   jobCountLabel.style.fontSize = '12px';
   jobCountLabel.style.color = '#666';
-  jobCountLabel.innerHTML = `Current Active Dispatches: <span style="font-weight: 800;">${getActiveJobCount()}</span>`;
   jobCountWrapper.appendChild(jobCountLabel);
+  lastJobCount = -1;
+  updateJobCountLabel();
 
   const countdownContainer = document.createElement('div');
   countdownContainer.id = 'au-countdown-container';
@@ -556,55 +695,80 @@ function injectToolbar(stageField) {
   const insertParent = stageField.parentNode || stageField;
   insertParent.insertBefore(toolbar, stageField.nextSibling);
 
-  trackInterval(() => {
-    const labelEl = document.querySelector('#au-job-count-label');
-    if (labelEl) {
-      labelEl.innerHTML = `Current Active Dispatches: <span style="font-weight: 800;">${getActiveJobCount()}</span>`;
-    }
-  }, 1000);
+  // Cheap: only rewrite the label when the count actually changes
+  trackInterval(updateJobCountLabel, 5000);
 
   startCountdownTimer();
 }
 
-async function runFilterPipeline(forceSearch = false) {
-  if (filteringInProgress && !forceSearch) return;
+function applyClientSideCleanup() {
+  const table = findDashboardTable();
+  if (!table || !getTableRows(table).length) return false;
+
+  withTableMutationsPaused(() => {
+    hideNonMatchingCountryRows();
+    sortByEtaDescending();
+  });
+  lastProcessedSignature = getRowSignature(findDashboardTable());
+  return true;
+}
+
+async function runFilterPipeline({ forceSearch = false, allowSearch = true } = {}) {
+  if (filteringInProgress && !forceSearch) return false;
+  if (isTccModalOpen()) return false;
+
   filteringInProgress = true;
 
   try {
-    const searchInput = findDashboardSearchInput();
     const table = findDashboardTable();
-    const country = getSelectedCountry();
-    let rows = getTableRows(table);
-
-    if (!searchInput || !table) {
-      return false;
-    }
-
-    const beforeSignature = getRowSignature(table);
-    const needsSearch = forceSearch || !searchApplied || normalizeText(searchInput.value) !== country.code;
-
-    if (needsSearch) {
-      console.log(`[AU Filter] Typing ${country.code} into search bar`);
-      await typeSearchValue(searchInput, country.code);
-      searchApplied = true;
-      await waitForTableUpdate(beforeSignature);
-      rows = getTableRows(findDashboardTable());
-    }
-
-    if (!rows.length) {
-      console.log('[AU Filter] No rows yet after search — will retry');
-      return false;
-    }
-
-    withTableMutationsPaused(() => {
-      deleteNonMatchingCountryRows();
-      sortByEtaDescending();
-    });
-    lastProcessedSignature = getRowSignature(findDashboardTable());
-
     const stageField = findStageField();
+    const country = getSelectedCountry();
+
+    if (!table) return false;
     if (stageField) injectToolbar(stageField);
 
+    const searchInput = findDashboardSearchInput();
+    const canSearch =
+      allowSearch &&
+      allowSearchTyping &&
+      searchInput &&
+      !isForbiddenSearchInput(searchInput);
+
+    const needsSearch =
+      canSearch &&
+      (forceSearch || !searchApplied || normalizeText(searchInput.value) !== country.code);
+
+    if (needsSearch) {
+      // Quiet period: never touch search until TCC has finished booting
+      if (Date.now() - activatedAt < BOOT_QUIET_MS) {
+        console.log('[AU Filter] Quiet period — client-side cleanup only');
+        return applyClientSideCleanup();
+      }
+
+      const beforeSignature = getRowSignature(table);
+      const typed = await typeSearchValue(searchInput, country.code);
+
+      if (modalOpenedAfterSearchTouch() || isTccModalOpen()) {
+        allowSearchTyping = false;
+        console.warn('[AU Filter] Aborting search path — modal detected after touch');
+        return false;
+      }
+
+      if (typed) {
+        searchApplied = true;
+        await waitForTableUpdate(beforeSignature, 4000);
+      }
+    }
+
+    if (isTccModalOpen()) return false;
+
+    const rows = getTableRows(findDashboardTable());
+    if (!rows.length) {
+      console.log('[AU Filter] No rows yet — will retry');
+      return false;
+    }
+
+    applyClientSideCleanup();
     return true;
   } catch (err) {
     console.warn('[AU Filter] Pipeline error:', err);
@@ -614,54 +778,93 @@ async function runFilterPipeline(forceSearch = false) {
   }
 }
 
+function startTableObserver() {
+  const table = findDashboardTable();
+  const tbody = table?.querySelector('tbody') || table;
+  if (!tbody || tableObserver) return;
+
+  let debounce = null;
+  tableObserver = new MutationObserver((mutations) => {
+    if (suppressTableObserver || filteringInProgress || isTccModalOpen()) return;
+
+    const rowStructureChanged = mutations.some((mutation) => {
+      if (mutation.type !== 'childList') return false;
+      return [...mutation.addedNodes, ...mutation.removedNodes].some(
+        (node) => node.nodeType === 1 && (node.matches?.('tr') || node.querySelector?.('tr'))
+      );
+    });
+    if (!rowStructureChanged) return;
+
+    clearTimeout(debounce);
+    debounce = setTimeout(applyRowCleanup, 1500);
+  });
+  // Direct children only — ignore hover/class churn inside cells
+  tableObserver.observe(tbody, { childList: true, subtree: false });
+}
+
 function auFilter() {
-  console.log('[AU Filter] Script activated');
+  console.log('[AU Filter] Script activated on roadside dashboard');
+  activatedAt = Date.now();
+  allowSearchTyping = true;
+  lastSearchTouchAt = 0;
+
+  let modalFreeSince = null;
 
   loadSelectedCountry(() => {
     const bootInterval = trackInterval(async () => {
-      const ready = await runFilterPipeline();
+      if (isTccModalOpen()) {
+        modalFreeSince = null;
+        // If we caused the modal, do not keep hammering search after dismiss
+        if (modalOpenedAfterSearchTouch()) {
+          allowSearchTyping = false;
+        }
+        return;
+      }
+
+      if (!modalFreeSince) modalFreeSince = Date.now();
+      if (Date.now() - modalFreeSince < MODAL_CLEAR_MS) return;
+
+      const stageField = findStageField();
+      const table = findDashboardTable();
+      if (!stageField || !table) return;
+
+      // Toolbar first — no input events required
+      injectToolbar(stageField);
+
+      const quietDone = Date.now() - activatedAt >= BOOT_QUIET_MS;
+      const ready = await runFilterPipeline({
+        allowSearch: quietDone && allowSearchTyping
+      });
+
       if (!ready) return;
 
       clearInterval(bootInterval);
-      console.log('[AU Filter] Initial pipeline complete for', getSelectedCountry().code);
+      startTableObserver();
+      console.log(
+        '[AU Filter] Initial pipeline complete for',
+        getSelectedCountry().code,
+        allowSearchTyping ? '(search enabled)' : '(client-side only — search disabled this load)'
+      );
 
-      const table = findDashboardTable();
-      const tbody = table?.querySelector('tbody') || table;
-      if (tbody && !tableObserver) {
-        let debounce = null;
-        tableObserver = new MutationObserver((mutations) => {
-          if (suppressTableObserver || filteringInProgress) return;
-
-          // Only react to rows being added/removed — ignore class/style flash updates
-          const rowStructureChanged = mutations.some((mutation) => {
-            if (mutation.type !== 'childList') return false;
-            return [...mutation.addedNodes, ...mutation.removedNodes].some(
-              (node) => node.nodeType === 1 && (node.matches?.('tr') || node.querySelector?.('tr'))
-            );
-          });
-          if (!rowStructureChanged) return;
-
-          clearTimeout(debounce);
-          debounce = setTimeout(applyRowCleanup, 400);
-        });
-        tableObserver.observe(tbody, { childList: true, subtree: false });
-      }
-
-      // Light recovery if Angular clears the search value; avoid constant re-pipelines
+      // Occasional recovery only if search typing is still allowed
       trackInterval(() => {
-        if (filteringInProgress || suppressTableObserver) return;
+        if (!allowSearchTyping || filteringInProgress || suppressTableObserver || isTccModalOpen()) return;
+        if (Date.now() - activatedAt < BOOT_QUIET_MS) return;
         const searchInput = findDashboardSearchInput();
         const country = getSelectedCountry();
         if (searchInput && normalizeText(searchInput.value) !== country.code) {
           searchApplied = false;
-          runFilterPipeline(true);
+          runFilterPipeline({ forceSearch: true, allowSearch: true });
         }
-      }, 10000);
-    }, 500);
+      }, 15000);
+    }, 1000);
   });
 }
 
 function maybeActivate() {
+  // Only ever run in the top frame — never touch iframe copies of controls
+  if (window.top !== window.self) return;
+
   if (!isOnRoadsideDashboard()) {
     if (isActive) stopAuFilter();
     return;
@@ -669,6 +872,7 @@ function maybeActivate() {
   if (isActive) return;
 
   isTccQolEnabled((enabled) => {
+    if (window.top !== window.self) return;
     if (!isOnRoadsideDashboard() || isActive) return;
 
     if (enabled) {
@@ -703,6 +907,6 @@ setInterval(() => {
     lastPath = location.pathname;
     maybeActivate();
   }
-}, 1000);
+}, 2000);
 
 maybeActivate();
